@@ -27,25 +27,24 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module rom_ahb import cvw::*;  #(parameter cvw_t P, 
-                                 parameter RANGE = 65535, PRELOAD = 0) (
+module rom_ahb import config_pkg::*;  #(parameter RANGE = 65535, PRELOAD = 0) (
   input  logic                 HCLK, HRESETn, 
   input  logic                 HSELRom,
-  input  logic [P.PA_BITS-1:0] HADDR,
+  input  logic [PA_BITS-1:0] HADDR,
   input  logic                 HREADY,
   input  logic [1:0]           HTRANS,
-  output logic [P.XLEN-1:0]    HREADRom,
+  output logic [XLEN-1:0]    HREADRom,
   output logic                 HRESPRom, HREADYRom
 );
 
   localparam ADDR_WIDTH = $clog2(RANGE/8);
-  localparam OFFSET     = $clog2(P.XLEN/8);   
+  localparam OFFSET     = $clog2(XLEN/8);   
  
   // Never stalls
   assign HREADYRom = 1'b1;
   assign HRESPRom  = 1'b0; // OK
 
   // single-ported ROM
-  rom1p1r #(ADDR_WIDTH, P.XLEN, PRELOAD)
+  rom1p1r #(ADDR_WIDTH, XLEN, PRELOAD)
     memory(.clk(HCLK), .ce(1'b1), .addr(HADDR[ADDR_WIDTH+OFFSET-1:OFFSET]), .dout(HREADRom));  
 endmodule

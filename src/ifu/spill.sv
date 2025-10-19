@@ -30,29 +30,30 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module spill import cvw::*;  #(parameter cvw_t P) (
+module spill import config_pkg::*;   (
   input logic               clk,               
   input logic               reset,
   input logic               StallF, FlushD,
-  input logic [P.XLEN-1:0]  PCF,               // 2 byte aligned PC in Fetch stage
-  input logic [P.XLEN-1:2]  PCPlus4F,          // PCF + 4
-  input logic [P.XLEN-1:0]  PCNextF,           // The next PCF
+  input logic [XLEN-1:0]  PCF,               // 2 byte aligned PC in Fetch stage
+  input logic [XLEN-1:2]  PCPlus4F,          // PCF + 4
+  input logic [XLEN-1:0]  PCNextF,           // The next PCF
   input logic [31:0]        InstrRawF,         // Instruction from the IROM, I$, or bus. Used to check if the instruction if compressed
   input logic               IFUCacheBusStallF, // I$ or bus are stalled. Transition to second fetch of spill after the first is fetched
   input logic               ITLBMissOrUpdateAF, // ITLB miss causes HPTW (hardware pagetable walker) walk or update access bit
   input logic               CacheableF,        // Is the instruction from the cache?
-  output logic [P.XLEN-1:0] PCSpillNextF,      // The next PCF for one of the two memory addresses of the spill
-  output logic [P.XLEN-1:0] PCSpillF,          // PCF for one of the two memory addresses of the spill
+  output logic [XLEN-1:0] PCSpillNextF,      // The next PCF for one of the two memory addresses of the spill
+  output logic [XLEN-1:0] PCSpillF,          // PCF for one of the two memory addresses of the spill
   output logic              SelSpillNextF,     // During the transition between the two spill operations, the IFU should stall the pipeline
   output logic              SelSpillF,         // Select incremented PC on a spill
   output logic [31:0]       PostSpillInstrRawF,// The final 32 bit instruction after merging the two spilled fetches into 1 instruction
   output logic              CompressedF);      // The fetched instruction is compressed
 
+generate
   // Spill threshold occurs when all the cache offset PC bits are 1 (except [0]).  Without a cache this is just PCF[1]
   typedef enum logic [1:0]  {STATE_READY, STATE_SPILL} statetype;
 
   statetype          CurrState, NextState;
-  logic [P.XLEN-1:0] PCPlus2NextF, PCPlus2F;         
+  logic [XLEN-1:0] PCPlus2NextF, PCPlus2F;         
   logic              TakeSpillF;
   logic              SpillF;
   logic              SpillSaveF;
@@ -64,22 +65,22 @@ module spill import cvw::*;  #(parameter cvw_t P) (
   ////////////////////////////////////////////////////////////////////////////////////////////////////
   
   // compute PCF+2 from the raw PC+4
-  mux2 #(P.XLEN) pcplus2mux(.d0({PCF[P.XLEN-1:2], 2'b10}), .d1({PCPlus4F, 2'b00}), .s(PCF[1]), .y(PCPlus2NextF));
+  mux2 #(XLEN) pcplus2mux(.d0({PCF[XLEN-1:2], 2'b10}), .d1({PCPlus4F, 2'b00}), .s(PCF[1]), .y(PCPlus2NextF));
   // select between PCNextF and PCF+2
-  mux2 #(P.XLEN) pcnextspillmux(.d0(PCNextF), .d1(PCPlus2NextF), .s(SelSpillNextF & ~FlushD), .y(PCSpillNextF));
+  mux2 #(XLEN) pcnextspillmux(.d0(PCNextF), .d1(PCPlus2NextF), .s(SelSpillNextF & ~FlushD), .y(PCSpillNextF));
   // select between PCF and PCF+2
   // not required for functional correctness, but improves critical path.  pcspillf ends up on the hptw's ihadr 
   // and into the dmmu.  Cutting the path here removes the PC+4 adder.
-  flopr #(P.XLEN) pcplus2reg(clk, reset, PCPlus2NextF, PCPlus2F);
-  mux2 #(P.XLEN) pcspillmux(.d0(PCF), .d1(PCPlus2F), .s(SelSpillF), .y(PCSpillF));
+  flopr #(XLEN) pcplus2reg(clk, reset, PCPlus2NextF, PCPlus2F);
+  mux2 #(XLEN) pcspillmux(.d0(PCF), .d1(PCPlus2F), .s(SelSpillF), .y(PCSpillF));
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
   // Detect spill
   ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  if (P.ICACHE_SUPPORTED) begin
+  if (ICACHE_SUPPORTED) begin
     logic SpillCachedF, SpillUncachedF;
-    assign SpillCachedF = &PCF[$clog2(P.ICACHE_LINELENINBITS/32)+1:1];
+    assign SpillCachedF = &PCF[$clog2(ICACHE_LINELENINBITS/32)+1:1];
     assign SpillUncachedF = PCF[1]; 
     assign SpillF = (CacheableF ? SpillCachedF : SpillUncachedF);
   end else
@@ -121,4 +122,5 @@ module spill import cvw::*;  #(parameter cvw_t P) (
   else CompressedF = 1'b0;
   assign EarlyCompressedF = ~(&InstrRawF[1:0]);
 
+endgenerate
 endmodule

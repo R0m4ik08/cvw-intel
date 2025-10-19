@@ -31,16 +31,16 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module spi_apb import cvw::*; #(parameter cvw_t P) (
+module spi_apb import config_pkg::*; (
   input  logic                PCLK, PRESETn,
   input  logic                PSEL,
   input  logic [7:0]          PADDR,
-  input  logic [P.XLEN-1:0]   PWDATA,
-  input  logic [P.XLEN/8-1:0] PSTRB,
+  input  logic [XLEN-1:0]   PWDATA,
+  input  logic [XLEN/8-1:0] PSTRB,
   input  logic                PWRITE,
   input  logic                PENABLE,
   output logic                PREADY,
-  output logic [P.XLEN-1:0]   PRDATA,
+  output logic [XLEN-1:0]   PRDATA,
   output logic                SPIOut,
   input  logic                SPIIn,
   output logic [3:0]          SPICS,
@@ -144,8 +144,13 @@ module spi_apb import cvw::*; #(parameter cvw_t P) (
   // -- Note SPI registers are 32 bits no matter what; access them with LW SW.
   
   assign Din = PWDATA[31:0]; 
-  if (P.XLEN == 64) assign PRDATA = { Dout,  Dout}; 
-  else              assign PRDATA =  Dout;  
+
+  generate
+    
+    if (XLEN == 64) assign PRDATA = { Dout,  Dout}; 
+    else              assign PRDATA =  Dout; 
+
+  endgenerate
   
   // Register access  
   always_ff@(posedge PCLK)
@@ -307,7 +312,10 @@ module spi_apb import cvw::*; #(parameter cvw_t P) (
   // Shift Registers --------------------------------------------------
   // Transmit shift register
   assign TransmitLoad = TransmitStart | (EndOfFrame & ~TransmitFIFOEmpty);
-  assign TransmitDataEndian = Format[0] ? {<<{TransmitReadData[7:0]}} : TransmitReadData[7:0];
+  assign TransmitDataEndian = Format[0] ? {
+      TransmitReadData[0], TransmitReadData[1], TransmitReadData[2], TransmitReadData[3],
+      TransmitReadData[4], TransmitReadData[5], TransmitReadData[6], TransmitReadData[7]
+    } : TransmitReadData[7:0];
   always_ff @(posedge PCLK)
     if(~PRESETn)            TransmitReg <= 8'b0;
     else if (TransmitLoad)  TransmitReg <= TransmitDataEndian;
@@ -319,7 +327,7 @@ module spi_apb import cvw::*; #(parameter cvw_t P) (
   // to module's output pins. Else, connected to SPIIn. There are no
   // setup/hold time issues because transmit shift register and receive
   // shift register always shift/sample on opposite edges
-  assign ShiftIn = P.SPI_LOOPBACK_TEST ? SPIOut : SPIIn;
+  assign ShiftIn = SPI_LOOPBACK_TEST ? SPIOut : SPIIn;
   
   // Receive shift register
   always_ff @(posedge PCLK)
@@ -332,7 +340,9 @@ module spi_apb import cvw::*; #(parameter cvw_t P) (
   // Aligns received data and reverses if little-endian
   assign LeftShiftAmount = 4'h8 - FrameLength;
   assign ASR = ReceiveShiftReg << LeftShiftAmount[2:0];
-  assign ReceiveShiftRegEndian = Format[0] ? {<<{ASR[7:0]}} : ASR[7:0];
+  assign ReceiveShiftRegEndian = Format[0] ? {
+    ASR[0], ASR[1], ASR[2], ASR[3], ASR[4], ASR[5], ASR[6], ASR[7]
+  } : ASR[7:0];
 
   // Interrupt logic: raise interrupt if any enabled interrupts are pending
   assign SPIIntr = |(InterruptPending & InterruptEnable);

@@ -27,9 +27,9 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module tlbcontrol import cvw::*;  #(parameter cvw_t P, ITLB = 0) (
-  input  logic [P.SVMODE_BITS-1:0] SATP_MODE,
-  input  logic [P.XLEN-1:0]        VAdr,
+module tlbcontrol import config_pkg::*;  #( ITLB = 0) (
+  input  logic [SVMODE_BITS-1:0] SATP_MODE,
+  input  logic [XLEN-1:0]        VAdr,
   input  logic                     STATUS_MXR, STATUS_SUM, STATUS_MPRV,
   input  logic [1:0]               STATUS_MPP,
   input  logic                     ENVCFG_PBMTE,       // Page-based memory types enabled
@@ -51,7 +51,7 @@ module tlbcontrol import cvw::*;  #(parameter cvw_t P, ITLB = 0) (
   output logic                     PTE_N,         // NAPOT page table entry
   output logic [1:0]               PBMemoryType   // PBMT field of PTE during TLB hit, or 00 otherwise
 );
-
+generate
   // Sections of the page table entry
   logic [1:0]                     PTE_PBMT;
   logic                           PTE_RESERVED, PTE_D, PTE_A, PTE_U, PTE_X, PTE_W, PTE_R, PTE_V; // Useful PTE Control Bits
@@ -64,13 +64,13 @@ module tlbcontrol import cvw::*;  #(parameter cvw_t P, ITLB = 0) (
   logic                           PreUpdateDA, PrePageFault;
 
   // Grab the sv mode from SATP and determine whether translation should occur
-  assign Translate = (SATP_MODE != P.NO_TRANSLATE[P.SVMODE_BITS-1:0]) & (EffectivePrivilegeModeW != P.M_MODE) & ~DisableTranslation; 
+  assign Translate = (SATP_MODE != NO_TRANSLATE[SVMODE_BITS-1:0]) & (EffectivePrivilegeModeW != M_MODE) & ~DisableTranslation; 
 
   // Determine whether TLB is being used
   assign TLBAccess = ReadAccess | WriteAccess | (|CMOpM);
 
   // Check that upper bits are legal (all 0s or all 1s)
-  vm64check #(P) vm64check(.SATP_MODE, .VAdr, .SV39Mode, .UpperBitsUnequal);
+  vm64check vm64check(.SATP_MODE, .VAdr, .SV39Mode, .UpperBitsUnequal);
 
   // unswizzle useful PTE bits
   assign PTE_N = PTEAccessBits[11];
@@ -80,11 +80,11 @@ module tlbcontrol import cvw::*;  #(parameter cvw_t P, ITLB = 0) (
   assign {PTE_U, PTE_X, PTE_W, PTE_R, PTE_V} = PTEAccessBits[4:0];
 
   // Send PMA a 2-bit MemoryType that is PBMT during leaf page table accesses and 0 otherwise
-  assign PBMemoryType = PTE_PBMT & {2{Translate & TLBHit & P.SVPBMT_SUPPORTED}};
+  assign PBMemoryType = PTE_PBMT & {2{Translate & TLBHit & SVPBMT_SUPPORTED}};
  
   // check if reserved, N, or PBMT bits are malformed w in RV64
-  assign BadPBMT = ((PTE_PBMT != 0) & ~(P.SVPBMT_SUPPORTED & ENVCFG_PBMTE)) | PTE_PBMT == 3; // PBMT must be zero if not supported; value of 3 is reserved
-  assign BadNAPOT = PTE_N & (~P.SVNAPOT_SUPPORTED | ~NAPOT4);              // N must be be 0 if CVNAPOT is not supported or not 64 KiB contiguous region
+  assign BadPBMT = ((PTE_PBMT != 0) & ~(SVPBMT_SUPPORTED & ENVCFG_PBMTE)) | PTE_PBMT == 3; // PBMT must be zero if not supported; value of 3 is reserved
+  assign BadNAPOT = PTE_N & (~SVNAPOT_SUPPORTED | ~NAPOT4);              // N must be be 0 if CVNAPOT is not supported or not 64 KiB contiguous region
   assign BadReserved = PTE_RESERVED;                                       // Reserved bits must be zero
   assign ReservedRW = PTE_W & ~PTE_R;                                      // page fault on reserved encoding with R=0, W=1 per Privileged Spec 10.3.1
  
@@ -92,7 +92,7 @@ module tlbcontrol import cvw::*;  #(parameter cvw_t P, ITLB = 0) (
   if (ITLB == 1) begin:itlb // Instruction TLB fault checking
     // User mode may only execute user mode pages, and supervisor mode may
     // only execute non-user mode pages.
-    assign ImproperPrivilege = ((EffectivePrivilegeModeW == P.U_MODE) & ~PTE_U) | ((EffectivePrivilegeModeW == P.S_MODE) & PTE_U);
+    assign ImproperPrivilege = ((EffectivePrivilegeModeW == U_MODE) & ~PTE_U) | ((EffectivePrivilegeModeW == S_MODE) & PTE_U);
     assign PreUpdateDA = ~PTE_A;
     assign InvalidAccess = ~PTE_X | ReservedRW;
  end else begin:dtlb // Data TLB fault checking
@@ -101,8 +101,8 @@ module tlbcontrol import cvw::*;  #(parameter cvw_t P, ITLB = 0) (
 
     // User mode may only load/store from user mode pages, and supervisor mode
     // may only access user mode pages when STATUS_SUM is low.
-    assign ImproperPrivilege = ((EffectivePrivilegeModeW == P.U_MODE) & ~PTE_U) |
-      ((EffectivePrivilegeModeW == P.S_MODE) & PTE_U & ~STATUS_SUM);
+    assign ImproperPrivilege = ((EffectivePrivilegeModeW == U_MODE) & ~PTE_U) |
+      ((EffectivePrivilegeModeW == S_MODE) & PTE_U & ~STATUS_SUM);
     // Check for read error. Reads are invalid when the page is not readable
     // (and executable pages are not readable) or when the page is neither
     // readable nor executable (and executable pages are readable).
@@ -116,12 +116,13 @@ module tlbcontrol import cvw::*;  #(parameter cvw_t P, ITLB = 0) (
   end
 
   // Determine whether to update DA bits.  With SVADU, it is done in hardware
-  assign UpdateDA = P.SVADU_SUPPORTED & PreUpdateDA & Translate & TLBHit & ~TLBPageFault & ENVCFG_ADUE;
+  assign UpdateDA = SVADU_SUPPORTED & PreUpdateDA & Translate & TLBHit & ~TLBPageFault & ENVCFG_ADUE;
 
   // Determine whether page fault occurs
-  assign PrePageFault = UpperBitsUnequal | Misaligned | ~PTE_V | ImproperPrivilege | (P.XLEN == 64 & (BadPBMT | BadNAPOT | BadReserved)) | (PreUpdateDA & (~P.SVADU_SUPPORTED | ~ENVCFG_ADUE));
+  assign PrePageFault = UpperBitsUnequal | Misaligned | ~PTE_V | ImproperPrivilege | (XLEN == 64 & (BadPBMT | BadNAPOT | BadReserved)) | (PreUpdateDA & (~SVADU_SUPPORTED | ~ENVCFG_ADUE));
   assign TLBPageFault = Translate & TLBHit & (PrePageFault | InvalidAccess);
 
   assign TLBHit = CAMHit & TLBAccess;
   assign TLBMiss = ~CAMHit & TLBAccess & Translate ;
+endgenerate
 endmodule

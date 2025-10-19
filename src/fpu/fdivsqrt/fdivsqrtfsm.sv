@@ -27,7 +27,7 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module fdivsqrtfsm import cvw::*;  #(parameter cvw_t P) (
+module fdivsqrtfsm import config_pkg::*;   (
   input  logic                clk, reset, 
   input  logic                XInfE, YInfE, 
   input  logic                XZeroE, YZeroE, 
@@ -38,26 +38,26 @@ module fdivsqrtfsm import cvw::*;  #(parameter cvw_t P) (
   input  logic                StallM, FlushE,
   input  logic                IntDivE,
   input  logic                ISpecialCaseE,
-  input  logic [P.DURLEN-1:0] CyclesE,
+  input  logic [DURLEN-1:0] CyclesE,
   output logic                IFDivStartE,
   output logic                FDivBusyE, FDivDoneE,
   output logic                SpecialCaseM
 );
-  
+generate
   typedef enum logic [1:0] {IDLE, BUSY, DONE} statetype;
   statetype state;
 
   logic SpecialCaseE, FSpecialCaseE;
-  logic [P.DURLEN-1:0] step;
+  logic [DURLEN-1:0] step;
 
   // FDivStartE and IDivStartE come from fctrl, reflecitng the start of floating-point and possibly integer division
-  assign IFDivStartE = (FDivStartE | (IDivStartE & P.IDIV_ON_FPU)) & (state == IDLE) & ~StallM;
+  assign IFDivStartE = (FDivStartE | (IDivStartE & IDIV_ON_FPU)) & (state == IDLE) & ~StallM;
   assign FDivDoneE = (state == DONE);
   assign FDivBusyE = (state == BUSY) | IFDivStartE; 
  
   // terminate immediately on special cases
   assign FSpecialCaseE = XZeroE | XInfE  | XNaNE |  (XsE&SqrtE) | (YZeroE | YInfE | YNaNE)&~SqrtE;
-  if (P.IDIV_ON_FPU) assign SpecialCaseE = IntDivE ? ISpecialCaseE : FSpecialCaseE;
+  if (IDIV_ON_FPU) assign SpecialCaseE = IntDivE ? ISpecialCaseE : FSpecialCaseE;
   else               assign SpecialCaseE = FSpecialCaseE;
   flopenr #(1) SpecialCaseReg(clk, reset, IFDivStartE, SpecialCaseE, SpecialCaseM); // save SpecialCase for checking in fdivsqrtpostproc
 
@@ -76,5 +76,5 @@ module fdivsqrtfsm import cvw::*;  #(parameter cvw_t P) (
         else        state <= IDLE;
       end 
   end
-
+endgenerate
 endmodule

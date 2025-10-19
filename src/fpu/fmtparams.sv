@@ -28,59 +28,59 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module fmtparams import cvw::*;  #(parameter cvw_t P) (
-  input  logic [P.FMTBITS-1:0] Fmt,
-  output logic [P.NE-2:0]      Bias,
-  output logic [P.LOGFLEN-1:0] Nf
+module fmtparams import config_pkg::*;   (
+  input  logic [FMTBITS-1:0] Fmt,
+  output logic [NE-2:0]      Bias,
+  output logic [LOGFLEN-1:0] Nf
 );
-
-  if (P.FPSIZES == 1) begin
-    assign Bias = (P.NE-1)'(P.BIAS); 
-  end else if (P.FPSIZES == 2) begin
-    assign Bias = Fmt ? (P.NE-1)'(P.BIAS) : (P.NE-1)'(P.BIAS1); 
-  end else if (P.FPSIZES == 3) begin
+generate
+  if (FPSIZES == 1) begin
+    assign Bias = (NE-1)'(BIAS); 
+  end else if (FPSIZES == 2) begin
+    assign Bias = Fmt ? (NE-1)'(BIAS) : (NE-1)'(BIAS1); 
+  end else if (FPSIZES == 3) begin
     always_comb
       case (Fmt)
-        P.FMT:  Bias =  (P.NE-1)'(P.BIAS);
-        P.FMT1: Bias = (P.NE-1)'(P.BIAS1);
-        P.FMT2: Bias = (P.NE-1)'(P.BIAS2);
+        FMT:  Bias =  (NE-1)'(BIAS);
+        FMT1: Bias = (NE-1)'(BIAS1);
+        FMT2: Bias = (NE-1)'(BIAS2);
         default: Bias = 'x;
       endcase
-  end else if (P.FPSIZES == 4) begin        
+  end else if (FPSIZES == 4) begin        
     always_comb
       case (Fmt)
-        2'h3: Bias =  (P.NE-1)'(P.Q_BIAS);
-        2'h1: Bias =  (P.NE-1)'(P.D_BIAS);
-        2'h0: Bias =  (P.NE-1)'(P.S_BIAS);
-        2'h2: Bias =  (P.NE-1)'(P.H_BIAS);
+        2'h3: Bias =  (NE-1)'(Q_BIAS);
+        2'h1: Bias =  (NE-1)'(D_BIAS);
+        2'h0: Bias =  (NE-1)'(S_BIAS);
+        2'h2: Bias =  (NE-1)'(H_BIAS);
       endcase
   end
 
   /* verilator lint_off WIDTH */
-  if (P.FPSIZES == 1)
-    assign Nf = P.NF;
-  else if (P.FPSIZES == 2)
+  if (FPSIZES == 1)
+    assign Nf = NF;
+  else if (FPSIZES == 2)
     always_comb
       case (Fmt)
-        1'b0: Nf = P.NF1;
-        1'b1: Nf = P.NF;
+        1'b0: Nf = NF1;
+        1'b1: Nf = NF;
       endcase
-  else if (P.FPSIZES == 3)
+  else if (FPSIZES == 3)
     always_comb
       case (Fmt)
-        P.FMT:   Nf = P.NF;
-        P.FMT1:  Nf = P.NF1;
-        P.FMT2:  Nf = P.NF2; 
+        FMT:   Nf = NF;
+        FMT1:  Nf = NF1;
+        FMT2:  Nf = NF2; 
         default: Nf = 'x; // shouldn't happen
       endcase
-  else if (P.FPSIZES == 4)  
+  else if (FPSIZES == 4)  
     always_comb
       case(Fmt)
-        P.S_FMT: Nf = P.S_NF;
-        P.D_FMT: Nf = P.D_NF;
-        P.H_FMT: Nf = P.H_NF;
-        P.Q_FMT: Nf = P.Q_NF;
+        S_FMT: Nf = S_NF;
+        D_FMT: Nf = D_NF;
+        H_FMT: Nf = H_NF;
+        Q_FMT: Nf = Q_NF;
       endcase 
   /* verilator lint_on WIDTH */
-
+endgenerate
 endmodule

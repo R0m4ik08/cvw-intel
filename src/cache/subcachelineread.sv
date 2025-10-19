@@ -34,7 +34,7 @@ module subcachelineread #(parameter LINELEN, WORDLEN,
   input  logic [LINELEN-1:0]                     ReadDataLine,// Read data of the whole cacheline
   output logic [WORDLEN-1:0]                     ReadDataWord // read data of selected word.
 );
-
+generate
   localparam WORDSPERLINE = LINELEN/MUXINTERVAL;
   localparam PADLEN = WORDLEN-MUXINTERVAL;
 
@@ -52,4 +52,5 @@ module subcachelineread #(parameter LINELEN, WORDLEN,
   
   // variable input mux
   assign ReadDataWord = ReadDataLineSets[PAdr];
+endgenerate
 endmodule

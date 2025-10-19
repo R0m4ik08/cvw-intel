@@ -57,7 +57,7 @@ module controllerinput #(
   output logic [PA_BITS-1:0]  HADDROut,  // Arbitrated manager transaction. AHB address
   input  logic                HREADYIn   // Peripheral ready
 );
-
+generate
   logic                       HWRITESave;
   logic [2:0]                 HSIZESave;
   logic [2:0]                 HBURSTSave;
@@ -82,5 +82,5 @@ module controllerinput #(
 
   assign Request = HTRANSOut != 2'b00;
   assign HREADYOut = HREADYIn & ~Disable;
-
+endgenerate
 endmodule

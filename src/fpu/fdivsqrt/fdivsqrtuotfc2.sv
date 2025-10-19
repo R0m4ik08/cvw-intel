@@ -30,17 +30,17 @@
 ///////////////////////////////
 // Unified OTFC, Radix 2 //
 ///////////////////////////////
-module fdivsqrtuotfc2 import cvw::*;  #(parameter cvw_t P) (
+module fdivsqrtuotfc2 import config_pkg::*;   (
   input  logic             up, un,
-  input  logic [P.DIVb+1:0] C,                // Q2.DIVb
-  input  logic [P.DIVb:0]   U, UM,            // U1.DIVb  UM is actually U - 1 ulp and starts negative, but this representation still produces the right answer
-  output logic [P.DIVb:0]   UNext, UMNext     // U1.DIVb
+  input  logic [DIVb+1:0] C,                // Q2.DIVb
+  input  logic [DIVb:0]   U, UM,            // U1.DIVb  UM is actually U - 1 ulp and starts negative, but this representation still produces the right answer
+  output logic [DIVb:0]   UNext, UMNext     // U1.DIVb
 );
   //  The on-the-fly converter transfers the divsqrt
   //  bits to the quotient as they come.
-  logic [P.DIVb:0] K;                         // U1.DIVb one-hot 
+  logic [DIVb:0] K;                         // U1.DIVb one-hot 
 
-  assign K = (C[P.DIVb:0] & ~(C[P.DIVb:0] << 1)); // Thermometer to one hot encoding  
+  assign K = (C[DIVb:0] & ~(C[DIVb:0] << 1)); // Thermometer to one hot encoding  
 
   always_comb begin
     if (up) begin

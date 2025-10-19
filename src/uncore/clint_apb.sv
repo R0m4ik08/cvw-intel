@@ -28,15 +28,15 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module clint_apb import cvw::*;  #(parameter cvw_t P) (
+module clint_apb import config_pkg::*; (
   input  logic                PCLK, PRESETn,
   input  logic                PSEL,
   input  logic [15:0]         PADDR, 
-  input  logic [P.XLEN-1:0]   PWDATA,
-  input  logic [P.XLEN/8-1:0] PSTRB,
+  input  logic [XLEN-1:0]   PWDATA,
+  input  logic [XLEN/8-1:0] PSTRB,
   input  logic                PWRITE,
   input  logic                PENABLE,
-  output logic [P.XLEN-1:0]   PRDATA,
+  output logic [XLEN-1:0]   PRDATA,
   output logic                PREADY,
   output logic [63:0] MTIME, 
   output logic                MTimerInt, MSwInt
@@ -56,96 +56,101 @@ module clint_apb import cvw::*;  #(parameter cvw_t P) (
   assign memwrite = PWRITE & PENABLE & PSEL;  // only write in access phase
   assign PREADY   = 1'b1;                     // CLINT never takes >1 cycle to respond
 
-  // word aligned reads
-  if (P.XLEN==64) assign entry = {PADDR[15:3], 3'b000};
-  else            assign entry = {PADDR[15:2], 2'b00}; 
-  
-  // DH 2/20/21: Eventually allow MTIME to run off a separate clock
-  // This will require synchronizing MTIME to the system clock
-  // before it is read or compared to MTIMECMP.
-  // It will also require synchronizing the write to MTIMECMP.
-  // Use req and ack signals synchronized across the clock domains.
 
-  // register access
-  if (P.XLEN==64) begin:clint // 64-bit
-    always_ff @(posedge PCLK) begin
-      case(entry)
-        CLINT_MSIP:     PRDATA <= {63'b0, MSIP};
-        CLINT_MTIMECMP: PRDATA <= MTIMECMP;
-        CLINT_MTIME:    PRDATA <= MTIME;
-        default:        PRDATA <= '0;
-      endcase
-    end 
-    always_ff @(posedge PCLK) 
-      if (~PRESETn) begin
-        MSIP <= 1'b0;
-        MTIMECMP <= 64'hFFFFFFFFFFFFFFFF; // Spec says MTIMECMP is not reset, but we reset to maximum value to prevent spurious timer interrupts
-      end else if (memwrite) begin
-        if (entry == CLINT_MSIP) MSIP <= PWDATA[0];
-        if (entry == CLINT_MTIMECMP) begin
-          for(i=0;i<P.XLEN/8;i++)
-            if(PSTRB[i])
-              MTIMECMP[i*8 +: 8] <= PWDATA[i*8 +: 8];
-        end
-      end
+  generate
+    
+      // word aligned reads
+      if (XLEN==64) assign entry = {PADDR[15:3], 3'b000};
+      else            assign entry = {PADDR[15:2], 2'b00}; 
+      
+      // DH 2/20/21: Eventually allow MTIME to run off a separate clock
+      // This will require synchronizing MTIME to the system clock
+      // before it is read or compared to MTIMECM
+      // It will also require synchronizing the write to MTIMECM
+      // Use req and ack signals synchronized across the clock domains.
+    
+      // register access
+      if (XLEN==64) begin:clint // 64-bit
+        always_ff @(posedge PCLK) begin
+          case(entry)
+            CLINT_MSIP:     PRDATA <= {63'b0, MSIP};
+            CLINT_MTIMECMP: PRDATA <= MTIMECMP;
+            CLINT_MTIME:    PRDATA <= MTIME;
+            default:        PRDATA <= '0;
+          endcase
+        end 
+        always_ff @(posedge PCLK) 
+          if (~PRESETn) begin
+            MSIP <= 1'b0;
+            MTIMECMP <= 64'hFFFFFFFFFFFFFFFF; // Spec says MTIMECMP is not reset, but we reset to maximum value to prevent spurious timer interrupts
+          end else if (memwrite) begin
+            if (entry == CLINT_MSIP) MSIP <= PWDATA[0];
+            if (entry == CLINT_MTIMECMP) begin
+              for(i=0;i<XLEN/8;i++)
+                if(PSTRB[i])
+                  MTIMECMP[i*8 +: 8] <= PWDATA[i*8 +: 8];
+            end
+          end
+    
+    // eventually replace MTIME logic below with timereg
+    //    timereg tr(PCLK, PRESETn, TIMECLK, memwrite & (entry==16'hBFF8), 1'b0, PWDATA, MTIME, done);
+    
+        always_ff @(posedge PCLK) 
+          if (~PRESETn) begin
+            MTIME <= '0;
+          end else if (memwrite & entry == 16'hBFF8) begin
+            // MTIME Counter.  Eventually change this to run off separate clock.  Synchronization then needed
+            for(j=0;j<XLEN/8;j++)
+              if(PSTRB[j])
+                MTIME[j*8 +: 8] <= PWDATA[j*8 +: 8];
+          end else MTIME <= MTIME + 1; 
+      end else begin:clint // 32-bit
+        always_ff @(posedge PCLK) begin
+          case(entry)
+            16'h0000: PRDATA <= {31'b0, MSIP};
+            16'h4000: PRDATA <= MTIMECMP[31:0];
+            16'h4004: PRDATA <= MTIMECMP[63:32];
+            16'hBFF8: PRDATA <= MTIME[31:0];
+            16'hBFFC: PRDATA <= MTIME[63:32];
+            default:  PRDATA <= '0;
+          endcase
+        end 
+        always_ff @(posedge PCLK) 
+          if (~PRESETn) begin
+            MSIP <= 1'b0;
+            MTIMECMP <= 64'hFFFFFFFFFFFFFFFF; // Spec says MTIMECMP is not reset, but we reset to maximum value to prevent spurious timer interrupts
+          end else if (memwrite) begin
+            if (entry == 16'h0000) MSIP <= PWDATA[0];
+            if (entry == 16'h4000) 
+              for(j=0;j<XLEN/8;j++)
+                if(PSTRB[j])
+                  MTIMECMP[j*8 +: 8] <= PWDATA[j*8 +: 8];
+            if (entry == 16'h4004) 
+              for(j=0;j<XLEN/8;j++)
+                if(PSTRB[j])
+                  MTIMECMP[32 + j*8 +: 8] <= PWDATA[j*8 +: 8];
+            // MTIME Counter.  Eventually change this to run off separate clock.  Synchronization then needed
+          end
+    
+    // eventually replace MTIME logic below with timereg
+    //     timereg tr(PCLK, PRESETn, TIMECLK, memwrite & (entry==16'hBFF8), memwrite & (entry == 16'hBFFC), PWDATA, MTIME, done);
+        always_ff @(posedge PCLK) 
+          if (~PRESETn) begin
+            MTIME <= '0;
+            // MTIMECMP is not reset
+          end else if (memwrite & (entry == 16'hBFF8)) begin
+            for(i=0;i<XLEN/8;i++)
+              if(PSTRB[i])
+                MTIME[i*8 +: 8] <= PWDATA[i*8 +: 8];
+          end else if (memwrite & (entry == 16'hBFFC)) begin
+            // MTIME Counter.  Eventually change this to run off separate clock.  Synchronization then needed
+            for(i=0;i<XLEN/8;i++)
+              if(PSTRB[i])
+                MTIME[32 + i*8 +: 8]<= PWDATA[i*8 +: 8];
+          end else MTIME <= MTIME + 1;
+      end 
 
-// eventually replace MTIME logic below with timereg
-//    timereg tr(PCLK, PRESETn, TIMECLK, memwrite & (entry==16'hBFF8), 1'b0, PWDATA, MTIME, done);
-
-    always_ff @(posedge PCLK) 
-      if (~PRESETn) begin
-        MTIME <= '0;
-      end else if (memwrite & entry == 16'hBFF8) begin
-        // MTIME Counter.  Eventually change this to run off separate clock.  Synchronization then needed
-        for(j=0;j<P.XLEN/8;j++)
-          if(PSTRB[j])
-            MTIME[j*8 +: 8] <= PWDATA[j*8 +: 8];
-      end else MTIME <= MTIME + 1; 
-  end else begin:clint // 32-bit
-    always_ff @(posedge PCLK) begin
-      case(entry)
-        16'h0000: PRDATA <= {31'b0, MSIP};
-        16'h4000: PRDATA <= MTIMECMP[31:0];
-        16'h4004: PRDATA <= MTIMECMP[63:32];
-        16'hBFF8: PRDATA <= MTIME[31:0];
-        16'hBFFC: PRDATA <= MTIME[63:32];
-        default:  PRDATA <= '0;
-      endcase
-    end 
-    always_ff @(posedge PCLK) 
-      if (~PRESETn) begin
-        MSIP <= 1'b0;
-        MTIMECMP <= 64'hFFFFFFFFFFFFFFFF; // Spec says MTIMECMP is not reset, but we reset to maximum value to prevent spurious timer interrupts
-      end else if (memwrite) begin
-        if (entry == 16'h0000) MSIP <= PWDATA[0];
-        if (entry == 16'h4000) 
-          for(j=0;j<P.XLEN/8;j++)
-            if(PSTRB[j])
-              MTIMECMP[j*8 +: 8] <= PWDATA[j*8 +: 8];
-        if (entry == 16'h4004) 
-          for(j=0;j<P.XLEN/8;j++)
-            if(PSTRB[j])
-              MTIMECMP[32 + j*8 +: 8] <= PWDATA[j*8 +: 8];
-        // MTIME Counter.  Eventually change this to run off separate clock.  Synchronization then needed
-      end
-
-// eventually replace MTIME logic below with timereg
-//     timereg tr(PCLK, PRESETn, TIMECLK, memwrite & (entry==16'hBFF8), memwrite & (entry == 16'hBFFC), PWDATA, MTIME, done);
-    always_ff @(posedge PCLK) 
-      if (~PRESETn) begin
-        MTIME <= '0;
-        // MTIMECMP is not reset
-      end else if (memwrite & (entry == 16'hBFF8)) begin
-        for(i=0;i<P.XLEN/8;i++)
-          if(PSTRB[i])
-            MTIME[i*8 +: 8] <= PWDATA[i*8 +: 8];
-      end else if (memwrite & (entry == 16'hBFFC)) begin
-        // MTIME Counter.  Eventually change this to run off separate clock.  Synchronization then needed
-        for(i=0;i<P.XLEN/8;i++)
-          if(PSTRB[i])
-            MTIME[32 + i*8 +: 8]<= PWDATA[i*8 +: 8];
-      end else MTIME <= MTIME + 1;
-  end 
+  endgenerate
 
   // Software interrupt when MSIP is set
   assign MSwInt = MSIP;
@@ -155,13 +160,13 @@ module clint_apb import cvw::*;  #(parameter cvw_t P) (
 endmodule
 
 /*
-module timeregsync  import cvw::*;  #(parameter cvw_t P) (
+module timeregsync  import config_pkg::*;   (
   input  logic              clk, resetn, 
   input  logic              we0, we1,
-  input  logic [P.XLEN-1:0] wd,
+  input  logic [XLEN-1:0] wd,
   output logic [63:0]       q);
 
-  if (P.XLEN==64) 
+  if (XLEN==64) 
     always_ff @(posedge clk or negedge resetn) 
       if (~resetn)  q <= '0;
       else if (we0) q <= wd;
@@ -175,14 +180,14 @@ module timeregsync  import cvw::*;  #(parameter cvw_t P) (
 endmodule
 
 
-module timereg  import cvw::*;  #(parameter cvw_t P) (
+module timereg  import config_pkg::*;   (
   input  logic              PCLK, PRESETn, TIMECLK,
   input  logic              we0, we1,
-  input  logic [P.XLEN-1:0] PWDATA,
+  input  logic [XLEN-1:0] PWDATA,
   output logic [63:0]       MTIME,
   output logic              done);
 
-//  if (P.TIMEBASE_SYNC) begin:timereg // use PCLK for MTIME
+//  if (TIMEBASE_SYNC) begin:timereg // use PCLK for MTIME
   if (1) begin:timereg // use PCLK for MTIME
     timregsync timeregsync(.clk(PCLK), .resetn(PRESETn), .we0, .we1, .wd(PWDATA), .q(MTIME));
     assign done = 1;   // immediately completes
@@ -197,7 +202,7 @@ module timereg  import cvw::*;  #(parameter cvw_t P) (
     // There is no back pressure on instructions, so if multiple counter writes occur too close together, the results are unpredictable.
 
     logic req, req_sync, ack, we0_stored, we1_stored, ack_stored, resetn_sync;
-    logic [P.XLEN-1:0] wd_stored;
+    logic [XLEN-1:0] wd_stored;
     logic [63:0] time_int, time_int_gc, time_gc, MTIME_GC;
 
     // When a write enable is asserted for a cycle, sample the enables and data and raise a request until it is acknowledged

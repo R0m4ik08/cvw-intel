@@ -29,7 +29,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-module gshare import cvw::*; #(parameter cvw_t P,
+module gshare import config_pkg::*; #(
                                parameter XLEN, 
                 parameter k = 10,
                 parameter integer TYPE = 1) (
@@ -43,7 +43,7 @@ module gshare import cvw::*; #(parameter cvw_t P,
   input logic [XLEN-1:0] PCNextF, PCF, PCD, PCE, PCM,
   input logic             BPBranchF, BranchD, BranchE, BranchM, BranchW, PCSrcE
 );
-
+generate
   logic                   MatchD, MatchE, MatchM, MatchW;
   logic                   MatchX;
 
@@ -85,8 +85,8 @@ module gshare import cvw::*; #(parameter cvw_t P,
   
   assign BPDirF = MatchX ? FwdNewBPDirF : PHTBPDirF;
 
-  ram2p1r1wbe #(.USE_SRAM(P.USE_SRAM), .DEPTH(2**k), .WIDTH(2)) PHT(.clk(clk),
-    .ce1(~StallF), .ce2(~StallW & ~FlushW),
+  ram2p1r1wbe #( .DEPTH(2**k), .WIDTH(2)) PHT(.clk(clk),
+    .ce0(1'b1), .ce1(~StallF), .ce2(~StallW & ~FlushW),
     .ra1(IndexNextF),
     .rd1(PHTBPDirF),
     .wa2(IndexM),
@@ -112,5 +112,6 @@ module gshare import cvw::*; #(parameter cvw_t P,
 
   flopenr #(k) GHRReg(clk, reset, ~StallW & ~FlushW & BranchM, GHRNextM, GHRM);
   flopenrc #(1) PCSrcMReg(clk, reset, FlushM, ~StallM, PCSrcE, PCSrcM);
-    
+   
+endgenerate
 endmodule

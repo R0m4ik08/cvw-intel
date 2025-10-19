@@ -51,11 +51,11 @@
  */
 
 // The TLB will have 2**ENTRY_BITS total entries
-module tlb import cvw::*;  #(parameter cvw_t P,
+module tlb import config_pkg::*;  #(
                              parameter TLB_ENTRIES = 8, ITLB = 0) (
   input logic                      clk, reset,
-  input  logic [P.SVMODE_BITS-1:0] SATP_MODE,        // Current address translation mode
-  input  logic [P.ASID_BITS-1:0]   SATP_ASID,
+  input  logic [SVMODE_BITS-1:0] SATP_MODE,        // Current address translation mode
+  input  logic [ASID_BITS-1:0]   SATP_ASID,
   input  logic                     STATUS_MXR, STATUS_SUM, STATUS_MPRV,
   input  logic [1:0]               STATUS_MPP,
   input  logic                     ENVCFG_PBMTE,     // Page-based memory types enabled
@@ -65,23 +65,23 @@ module tlb import cvw::*;  #(parameter cvw_t P,
   input  logic                     WriteAccess,
   input  logic [3:0]               CMOpM,
   input  logic                     DisableTranslation,
-  input  logic [P.XLEN-1:0]        VAdr,             // address input before translation (could be physical or virtual)
-  input  logic [P.XLEN-1:0]        PTE,              // page table entry to write
+  input  logic [XLEN-1:0]        VAdr,             // address input before translation (could be physical or virtual)
+  input  logic [XLEN-1:0]        PTE,              // page table entry to write
   input  logic [1:0]               PageTypeWriteVal,
   input  logic                     TLBWrite,
   input  logic                     TLBFlush,
-  output logic [P.PA_BITS-1:0]     TLBPAdr,
+  output logic [PA_BITS-1:0]     TLBPAdr,
   output logic                     TLBMiss,
   output logic                     Translate,
   output logic                     TLBPageFault,
   output logic                     UpdateDA,
   output logic [1:0]               PBMemoryType     // PBMT field of PTE during TLB hit, or 00 otherwise
 );
-
+generate
   logic [TLB_ENTRIES-1:0]         Matches, WriteEnables, PTE_Gs, PTE_NAPOTs; // used as the one-hot encoding of WriteIndex
   // Sections of the virtual and physical addresses
-  logic [P.VPN_BITS-1:0]          VPN;
-  logic [P.PPN_BITS-1:0]          PPN;
+  logic [VPN_BITS-1:0]          VPN;
+  logic [PPN_BITS-1:0]          PPN;
   // Sections of the page table entry
   logic [11:0]                    PTEAccessBits;
   logic [1:0]                     HitPageType;
@@ -93,7 +93,7 @@ module tlb import cvw::*;  #(parameter cvw_t P,
   logic                           PTE_N;         // NAPOT page table entry
   logic                           NAPOT4;        // pte.ppn[3:0] = 1000, indicating 64 KiB continuous NAPOT region
 
-  if(P.XLEN == 32) begin
+  if(XLEN == 32) begin
     assign MegapageMisaligned = |(PPN[9:0]); // must have zero PPN0
     assign Misaligned = (HitPageType == 2'b01) & MegapageMisaligned;
   end else begin // 64-bit
@@ -106,24 +106,24 @@ module tlb import cvw::*;  #(parameter cvw_t P,
               ((HitPageType == 2'b01) & MegapageMisaligned);
   end
 
-  assign VPN = VAdr[P.VPN_BITS+11:12];
+  assign VPN = VAdr[VPN_BITS+11:12];
   assign NAPOT4 = (PPN[3:0] == 4'b1000); // 64 KiB contiguous region with pte.napot_bits = 4
 
-  tlbcontrol #(P, ITLB) tlbcontrol(.SATP_MODE, .VAdr, .STATUS_MXR, .STATUS_SUM, .STATUS_MPRV, .STATUS_MPP, .ENVCFG_PBMTE, .ENVCFG_ADUE,
+  tlbcontrol #(ITLB) tlbcontrol(.SATP_MODE, .VAdr, .STATUS_MXR, .STATUS_SUM, .STATUS_MPRV, .STATUS_MPP, .ENVCFG_PBMTE, .ENVCFG_ADUE,
     .EffectivePrivilegeModeW, .ReadAccess, .WriteAccess, .CMOpM, .DisableTranslation,
     .PTEAccessBits, .CAMHit, .Misaligned, .NAPOT4, 
     .TLBMiss, .TLBHit, .TLBPageFault, 
     .UpdateDA, .SV39Mode, .Translate, .PTE_N, .PBMemoryType);
 
   tlblru #(TLB_ENTRIES) lru(.clk, .reset, .TLBWrite, .Matches, .TLBHit, .WriteEnables);
-  tlbcam #(P, TLB_ENTRIES, P.VPN_BITS + P.ASID_BITS, P.VPN_SEGMENT_BITS) 
+  tlbcam #(TLB_ENTRIES, VPN_BITS + ASID_BITS, VPN_SEGMENT_BITS) 
     tlbcam(.clk, .reset, .VPN, .PageTypeWriteVal, .SV39Mode, .TLBFlush, .WriteEnables, .PTE_Gs, .PTE_NAPOTs,
            .SATP_ASID, .Matches, .HitPageType, .CAMHit);
-  tlbram #(P, TLB_ENTRIES) tlbram(.clk, .reset, .PTE, .Matches, .WriteEnables, .PPN, .PTEAccessBits, .PTE_Gs, .PTE_NAPOTs);
+  tlbram #(TLB_ENTRIES) tlbram(.clk, .reset, .PTE, .Matches, .WriteEnables, .PPN, .PTEAccessBits, .PTE_Gs, .PTE_NAPOTs);
 
   // Replace segments of the virtual page number with segments of the physical
   // page number. For 4 KB pages, the entire virtual page number is replaced.
   // For superpages, some segments are considered offsets into a larger page.
-  tlbmixer #(P) Mixer(.VPN, .PPN, .HitPageType, .Offset(VAdr[11:0]), .TLBHit, .PTE_N, .TLBPAdr);
-
+  tlbmixer Mixer(.VPN, .PPN, .HitPageType, .Offset(VAdr[11:0]), .TLBHit, .PTE_N, .TLBPAdr);
+endgenerate
 endmodule

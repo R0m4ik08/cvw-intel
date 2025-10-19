@@ -30,31 +30,31 @@
 // OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ///////////////////////////////////////////
 
-module hptw import cvw::*;  #(parameter cvw_t P) (
+module hptw import config_pkg::*;   (
   input  logic              clk, reset,
-  input  logic [P.XLEN-1:0] SATP_REGW,              // includes SATP.MODE to determine number of levels in page table
-  input  logic [P.XLEN-1:0] PCSpillF,               // addresses to translate
-  input  logic [P.XLEN+1:0] IEUAdrExtM,             // addresses to translate
+(* mark_debug = "true" *)  input  logic [XLEN-1:0] SATP_REGW,              // includes SATMODE to determine number of levels in page table
+  input  logic [XLEN-1:0] PCSpillF,               // addresses to translate
+  input  logic [XLEN+1:0] IEUAdrExtM,             // addresses to translate
   input  logic [1:0]        MemRWM, AtomicM,
   // system status
   input  logic              STATUS_MXR, STATUS_SUM, STATUS_MPRV,
   input  logic [1:0]        STATUS_MPP,
   input  logic              ENVCFG_ADUE,            // HPTW A/D Update enable
   input  logic [1:0]        PrivilegeModeW,
-  input  logic [P.XLEN-1:0] ReadDataM,              // page table entry from LSU 
-  input  logic [P.XLEN-1:0] WriteDataM,
+  input  logic [XLEN-1:0] ReadDataM,              // page table entry from LSU 
+  input  logic [XLEN-1:0] WriteDataM,
   input  logic              DCacheBusStallM,           // stall from LSU
   input  logic [2:0]        Funct3M,
   input  logic [6:0]        Funct7M,
   input  logic              ITLBMissOrUpdateAF,
   input  logic              DTLBMissOrUpdateDAM,
   input  logic              FlushW,
-  output logic [P.XLEN-1:0] PTE,                    // page table entry to TLBs
+  output logic [XLEN-1:0] PTE,                    // page table entry to TLBs
   output logic [1:0]        PageType,               // page type to TLBs
   output logic              ITLBWriteF, DTLBWriteM, // write TLB with new entry
   output logic [1:0]        PreLSURWM,
-  output logic [P.XLEN+1:0] IHAdrM,
-  output logic [P.XLEN-1:0] IHWriteDataM,
+  output logic [XLEN+1:0] IHAdrM,
+  output logic [XLEN-1:0] IHWriteDataM,
   output logic [1:0]        LSUAtomicM,
   output logic [2:0]        LSUFunct3M,
   output logic [6:0]        LSUFunct7M,
@@ -66,7 +66,7 @@ module hptw import cvw::*;  #(parameter cvw_t P) (
   output logic              LoadAccessFaultM, StoreAmoAccessFaultM, HPTWInstrAccessFaultF,
   output logic              LoadPageFaultM, StoreAmoPageFaultM, HPTWInstrPageFaultF
 );
-
+generate
   typedef enum logic [3:0] {L0_ADR, L0_RD, 
           L1_ADR, L1_RD, 
           L2_ADR, L2_RD, 
@@ -75,8 +75,8 @@ module hptw import cvw::*;  #(parameter cvw_t P) (
           FAULT} statetype;
 
   logic                     DTLBWalk; // register TLBs translation miss requests
-  logic [P.PPN_BITS-1:0]    BasePageTablePPN;
-  logic [P.PPN_BITS-1:0]    CurrentPPN;
+  logic [PPN_BITS-1:0]    BasePageTablePPN;
+  logic [PPN_BITS-1:0]    CurrentPPN;
   logic                     Executable, Writable, Readable, Valid, PTE_U;
   logic                     Misaligned, MegapageMisaligned;
   logic                     ValidPTE, LeafPTE, ValidLeafPTE, ValidNonLeafPTE;
@@ -84,16 +84,16 @@ module hptw import cvw::*;  #(parameter cvw_t P) (
   logic                     TLBMissOrUpdateDA;
   logic                     PRegEn;
   logic [1:0]               NextPageType;
-  logic [P.SVMODE_BITS-1:0] SvMode;
-  logic [P.XLEN-1:0]        TranslationVAdr;
-  logic [P.XLEN-1:0]        NextPTE, NextPTE2;
+  logic [SVMODE_BITS-1:0] SvMode;
+  logic [XLEN-1:0]        TranslationVAdr;
+  logic [XLEN-1:0]        NextPTE, NextPTE2;
   logic                     UpdatePTE;
   logic                     HPTWUpdateDA;
-  logic [P.PA_BITS-1:0]     HPTWReadAdr;
+  logic [PA_BITS-1:0]     HPTWReadAdr;
   logic                     SelHPTWAdr;
-  logic [P.XLEN+1:0]        HPTWAdrExt;
+  logic [XLEN+1:0]        HPTWAdrExt;
   logic                     LSUAccessFaultM;
-  logic [P.PA_BITS-1:0]     HPTWAdr;
+  logic [PA_BITS-1:0]     HPTWAdr;
   logic [1:0]               HPTWRW;
   logic [2:0]               HPTWSize; // 32 or 64 bit access
   statetype                 WalkerState, NextWalkerState, InitialWalkerState;
@@ -135,19 +135,19 @@ module hptw import cvw::*;  #(parameter cvw_t P) (
   assign HPTWInstrPageFaultF   = TakeHPTWFault ? HPTWInstrPageFaultDelay : 1'b0;
   
   // Extract bits from CSRs and inputs
-  assign SvMode = SATP_REGW[P.XLEN-1:P.XLEN-P.SVMODE_BITS];
-  assign BasePageTablePPN = SATP_REGW[P.PPN_BITS-1:0];
+  assign SvMode = SATP_REGW[XLEN-1:XLEN-SVMODE_BITS];
+  assign BasePageTablePPN = SATP_REGW[PPN_BITS-1:0];
   assign TLBMissOrUpdateDA = DTLBMissOrUpdateDAM | ITLBMissOrUpdateAF;
 
   // Determine which address to translate
-  mux2 #(P.XLEN) vadrmux(PCSpillF, IEUAdrExtM[P.XLEN-1:0], DTLBWalk, TranslationVAdr);
-  assign CurrentPPN = PTE[P.PPN_BITS+9:10];
+  mux2 #(XLEN) vadrmux(PCSpillF, IEUAdrExtM[XLEN-1:0], DTLBWalk, TranslationVAdr);
+  assign CurrentPPN = PTE[PPN_BITS+9:10];
 
   // State flops
   flopenr #(1) TLBMissMReg(clk, reset, StartWalk, DTLBMissOrUpdateDAM, DTLBWalk); // when walk begins, record whether it was for DTLB (or record 0 for ITLB)
   assign PRegEn = HPTWRW[1] & ~DCacheBusStallM | UpdatePTE | (NextWalkerState == IDLE);
   assign NextPTE2 = (NextWalkerState == IDLE) ? '0 : NextPTE;
-  flopenr #(P.XLEN) PTEReg(clk, reset, PRegEn, NextPTE2, PTE); // Capture page table entry from data cache
+  flopenr #(XLEN) PTEReg(clk, reset, PRegEn, NextPTE2, PTE); // Capture page table entry from data cache
 
   // Assign PTE descriptors common across all XLEN values
   // For non-leaf PTEs, D, A, U bits are reserved and ignored.  They do not cause faults while walking the page table
@@ -156,11 +156,11 @@ module hptw import cvw::*;  #(parameter cvw_t P) (
   assign ValidPTE = Valid & ~(Writable & ~Readable);
   assign ValidLeafPTE = ValidPTE & LeafPTE;
   assign ValidNonLeafPTE = Valid & ~LeafPTE;
-  if(P.XLEN == 64) assign PBMTFaultM = ValidNonLeafPTE & (|PTE[62:61]);
+  if(XLEN == 64) assign PBMTFaultM = ValidNonLeafPTE & (|PTE[62:61]);
   else assign PBMTFaultM = 1'b0;
   assign DAUFaultM = ValidNonLeafPTE & (|PTE[7:6] | PTE[4]);
 
-  if(P.SVADU_SUPPORTED) begin : hptwwrites
+  if(SVADU_SUPPORTED) begin : hptwwrites
     logic                 ReadAccess, WriteAccess;
     logic                 InvalidRead, InvalidWrite, InvalidOp;
     logic                 UpperBitsUnequal, UpperBitsUnequalD; 
@@ -168,18 +168,18 @@ module hptw import cvw::*;  #(parameter cvw_t P) (
     logic [1:0]           EffectivePrivilegeMode;
     logic                 ImproperPrivilege;
     logic                 SaveHPTWAdr, SelHPTWWriteAdr;
-    logic [P.PA_BITS-1:0] HPTWWriteAdr;  
+    logic [PA_BITS-1:0] HPTWWriteAdr;  
     logic                 SetDirty;
     logic                 Dirty, Accessed;
-    logic [P.XLEN-1:0]    AccessedPTE;
+    logic [XLEN-1:0]    AccessedPTE;
 
-    assign AccessedPTE = {PTE[P.XLEN-1:8], (SetDirty | PTE[7]), 1'b1, PTE[5:0]}; // set accessed bit, conditionally set dirty bit
-    mux2 #(P.XLEN) NextPTEMux(ReadDataM, AccessedPTE, UpdatePTE, NextPTE); // NextPTE = ReadDataM when ADUE = 0 because UpdatePTE = 0
-    flopenr #(P.PA_BITS) HPTWAdrWriteReg(clk, reset, SaveHPTWAdr, HPTWReadAdr, HPTWWriteAdr);
+    assign AccessedPTE = {PTE[XLEN-1:8], (SetDirty | PTE[7]), 1'b1, PTE[5:0]}; // set accessed bit, conditionally set dirty bit
+    mux2 #(XLEN) NextPTEMux(ReadDataM, AccessedPTE, UpdatePTE, NextPTE); // NextPTE = ReadDataM when ADUE = 0 because UpdatePTE = 0
+    flopenr #(PA_BITS) HPTWAdrWriteReg(clk, reset, SaveHPTWAdr, HPTWReadAdr, HPTWWriteAdr);
     
     assign SaveHPTWAdr = (NextWalkerState == L0_RD | NextWalkerState == L1_RD | NextWalkerState == L2_RD | NextWalkerState == L3_RD); // save the HPTWAdr when the walker is about to read the PTE at any level; the last level read is the one to write during UpdatePTE
     assign SelHPTWWriteAdr = UpdatePTE | HPTWRW[0];
-    mux2 #(P.PA_BITS) HPTWWriteAdrMux(HPTWReadAdr, HPTWWriteAdr, SelHPTWWriteAdr, HPTWAdr); 
+    mux2 #(PA_BITS) HPTWWriteAdrMux(HPTWReadAdr, HPTWWriteAdr, SelHPTWWriteAdr, HPTWAdr); 
 
     assign {Dirty, Accessed} = PTE[7:6];
     assign WriteAccess = MemRWM[0]; // implies | (|AtomicM);
@@ -187,11 +187,11 @@ module hptw import cvw::*;  #(parameter cvw_t P) (
     assign ReadAccess = MemRWM[1];
 
     assign EffectivePrivilegeMode = DTLBWalk ? (STATUS_MPRV ? STATUS_MPP : PrivilegeModeW) : PrivilegeModeW; // DTLB uses MPP mode when MPRV is 1
-    assign ImproperPrivilege = ((EffectivePrivilegeMode == P.U_MODE) & ~PTE_U) |
-                               ((EffectivePrivilegeMode == P.S_MODE) & PTE_U & (~STATUS_SUM & DTLBWalk));
+    assign ImproperPrivilege = ((EffectivePrivilegeMode == U_MODE) & ~PTE_U) |
+                               ((EffectivePrivilegeMode == S_MODE) & PTE_U & (~STATUS_SUM & DTLBWalk));
 
     // Check for page faults
-    vm64check #(P) vm64check(.SATP_MODE(SATP_REGW[P.XLEN-1:P.XLEN-P.SVMODE_BITS]), .VAdr(TranslationVAdr), 
+    vm64check vm64check(.SATP_MODE(SATP_REGW[XLEN-1:XLEN-SVMODE_BITS]), .VAdr(TranslationVAdr), 
       .SV39Mode(), .UpperBitsUnequal);
     // This register is not functionally necessary, but improves the critical path.
     flopr #(1) upperbitsunequalreg(clk, reset, UpperBitsUnequal, UpperBitsUnequalD);
@@ -235,16 +235,16 @@ module hptw import cvw::*;  #(parameter cvw_t P) (
     endcase
 
   // HPTWAdr muxing
-  if (P.XLEN==32) begin // RV32
+  if (XLEN==32) begin // RV32
     logic [9:0] VPN;
-    logic [P.PPN_BITS-1:0] PPN;
+    logic [PPN_BITS-1:0] PPN;
     assign VPN = ((WalkerState == L1_ADR) | (WalkerState == L1_RD)) ? TranslationVAdr[31:22] : TranslationVAdr[21:12]; // select VPN field based on HPTW state
     assign PPN = ((WalkerState == L1_ADR) | (WalkerState == L1_RD)) ? BasePageTablePPN : CurrentPPN; 
     assign HPTWReadAdr = {PPN, VPN, 2'b00};
     assign HPTWSize = 3'b010;
   end else begin // RV64
     logic [8:0] VPN;
-    logic [P.PPN_BITS-1:0] PPN;
+    logic [PPN_BITS-1:0] PPN;
     always_comb
       case (WalkerState) // select VPN field based on HPTW state
         L3_ADR, L3_RD:  VPN = TranslationVAdr[47:39];
@@ -253,19 +253,19 @@ module hptw import cvw::*;  #(parameter cvw_t P) (
         default:    VPN = TranslationVAdr[20:12];
       endcase
     assign PPN = ((WalkerState == L3_ADR) | (WalkerState == L3_RD) | 
-            (SvMode != P.SV48 & ((WalkerState == L2_ADR) | (WalkerState == L2_RD)))) ? BasePageTablePPN : CurrentPPN;
+            (SvMode != SV48 & ((WalkerState == L2_ADR) | (WalkerState == L2_RD)))) ? BasePageTablePPN : CurrentPPN;
     assign HPTWReadAdr = {PPN, VPN, 3'b000};
     assign HPTWSize = 3'b011;
   end
 
   // Initial state and misalignment for RV32/64
-  if (P.XLEN == 32) begin
+  if (XLEN == 32) begin
     assign InitialWalkerState = L1_ADR;
     assign MegapageMisaligned = |(CurrentPPN[9:0]); // must have zero PPN0
     assign Misaligned = ((WalkerState == L0_ADR) & MegapageMisaligned);
   end else begin
     logic  GigapageMisaligned, TerapageMisaligned;
-    assign InitialWalkerState = (SvMode == P.SV48) ? L3_ADR : L2_ADR;
+    assign InitialWalkerState = (SvMode == SV48) ? L3_ADR : L2_ADR;
     assign TerapageMisaligned = |(CurrentPPN[26:0]); // Must have zero PPN2, PPN1, PPN0
     assign GigapageMisaligned = |(CurrentPPN[17:0]); // Must have zero PPN1 and PPN0
     assign MegapageMisaligned = |(CurrentPPN[8:0]);  // Must have zero PPN0      
@@ -273,7 +273,7 @@ module hptw import cvw::*;  #(parameter cvw_t P) (
   end
 
   // Page Table Walker FSM
-  flopenl #(.TYPE(statetype)) WalkerStateReg(clk, reset | FlushW, 1'b1, NextWalkerState, IDLE, WalkerState); 
+  flopenl #(4) WalkerStateReg(clk, reset | FlushW, 1'b1, NextWalkerState, IDLE, WalkerState); 
   always_comb 
     case (WalkerState)
       IDLE:       if (TLBMissOrUpdateDA)                              NextWalkerState = InitialWalkerState;                      
@@ -300,7 +300,7 @@ module hptw import cvw::*;  #(parameter cvw_t P) (
       L0_RD:      if (HPTWFaultM)                                     NextWalkerState = FAULT;
                   else if (DCacheBusStallM)                           NextWalkerState = L0_RD;
                   else                                                NextWalkerState = LEAF;
-      LEAF:       if (P.SVADU_SUPPORTED & HPTWUpdateDA)               NextWalkerState = UPDATE_PTE;
+      LEAF:       if (SVADU_SUPPORTED & HPTWUpdateDA)               NextWalkerState = UPDATE_PTE;
                   else                                                NextWalkerState = IDLE;
       UPDATE_PTE: if (DCacheBusStallM)                                NextWalkerState = UPDATE_PTE;
                   else                                                NextWalkerState = LEAF;
@@ -320,15 +320,15 @@ module hptw import cvw::*;  #(parameter cvw_t P) (
   assign SelHPTWAdr = SelHPTW & ~(DTLBWriteM | ITLBWriteF);
 
   // multiplex the outputs to LSU
-  if (P.XLEN == 64) assign HPTWAdrExt = {{(P.XLEN+2-P.PA_BITS){1'b0}}, HPTWAdr}; // Extend to 66 bits
+  if (XLEN == 64) assign HPTWAdrExt = {{(XLEN+2-PA_BITS){1'b0}}, HPTWAdr}; // Extend to 66 bits
   else              assign HPTWAdrExt = HPTWAdr;
   mux2 #(2) rwmux(MemRWM, HPTWRW, SelHPTW, PreLSURWM);
   mux2 #(3) sizemux(Funct3M, HPTWSize, SelHPTW, LSUFunct3M);
   mux2 #(7) funct7mux(Funct7M, 7'b0, SelHPTW, LSUFunct7M);    
   mux2 #(2) atomicmux(AtomicM, 2'b00, SelHPTW, LSUAtomicM);
-  mux2 #(P.XLEN+2) lsupadrmux(IEUAdrExtM, HPTWAdrExt, SelHPTWAdr, IHAdrM);
-  if (P.SVADU_SUPPORTED) 
-    mux2 #(P.XLEN) lsuwritedatamux(WriteDataM, PTE, SelHPTW, IHWriteDataM);
+  mux2 #(XLEN+2) lsupadrmux(IEUAdrExtM, HPTWAdrExt, SelHPTWAdr, IHAdrM);
+  if (SVADU_SUPPORTED) 
+    mux2 #(XLEN) lsuwritedatamux(WriteDataM, PTE, SelHPTW, IHWriteDataM);
   else assign IHWriteDataM = WriteDataM;
-
+endgenerate
 endmodule

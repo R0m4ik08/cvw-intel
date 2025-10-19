@@ -27,12 +27,12 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module postprocess import cvw::*;  #(parameter cvw_t P) (
+module postprocess import config_pkg::*;   (
   // general signals
   input logic                              Xs, Ys,              // input signs
-  input logic  [P.NF:0]                    Xm, Ym, Zm,          // input mantissas
+  input logic  [NF:0]                    Xm, Ym, Zm,          // input mantissas
   input logic  [2:0]                       Frm,                 // rounding mode 000 = rount to nearest, ties to even   001 = round twords zero  010 = round down  011 = round up  100 = round to nearest, ties to max magnitude
-  input logic  [P.FMTBITS-1:0]             Fmt,                 // precision 1 = double 0 = single
+  input logic  [FMTBITS-1:0]             Fmt,                 // precision 1 = double 0 = single
   input logic  [2:0]                       OpCtrl,              // choose which operation (look below for values)
   input logic                              XZero, YZero,        // inputs are zero
   input logic                              XInf, YInf, ZInf,    // inputs are infinity
@@ -43,62 +43,62 @@ module postprocess import cvw::*;  #(parameter cvw_t P) (
   input logic                              FmaAs,               // the modified Z sign - depends on instruction
   input logic                              FmaPs,               // the product's sign
   input logic                              FmaSs,               // Sum sign
-  input logic  [P.NE+1:0]                  FmaSe,               // the sum's exponent
-  input logic  [P.FMALEN-1:0]              FmaSm,               // the positive sum
+  input logic  [NE+1:0]                  FmaSe,               // the sum's exponent
+  input logic  [FMALEN-1:0]              FmaSm,               // the positive sum
   input logic                              FmaASticky,          // sticky bit that is calculated during alignment
-  input logic  [$clog2(P.FMALEN+1)-1:0]    FmaSCnt,             // the normalization shift count
+  input logic  [$clog2(FMALEN+1)-1:0]    FmaSCnt,             // the normalization shift count
   //divide signals
   input logic                              DivSticky,           // divider sticky bit
-  input logic  [P.NE+1:0]                  DivUe,               // divsqrt exponent
-  input logic  [P.DIVb:0]                  DivUm,               // divsqrt significand
+  input logic  [NE+1:0]                  DivUe,               // divsqrt exponent
+  input logic  [DIVb:0]                  DivUm,               // divsqrt significand
   // conversion signals
   input logic                              CvtCs,               // the result's sign
-  input logic  [P.NE:0]                    CvtCe,               // the calculated exponent
+  input logic  [NE:0]                    CvtCe,               // the calculated exponent
   input logic                              CvtResSubnormUf,     // the convert result is subnormal or underflows
-  input logic  [P.LOGCVTLEN-1:0]           CvtShiftAmt,         // how much to shift by
+  input logic  [LOGCVTLEN-1:0]           CvtShiftAmt,         // how much to shift by
   input logic                              ToInt,               // is fp->int (since it's writing to the integer register)
   input logic                              Zfa,                 // Zfa operation (fcvtmod.w.d)
-  input logic  [P.CVTLEN-1:0]              CvtLzcIn,            // input to the Leading Zero Counter (without msb)
+  input logic  [CVTLEN-1:0]              CvtLzcIn,            // input to the Leading Zero Counter (without msb)
   input logic                              IntZero,             // is the integer input zero
   // final results
-  output logic [P.FLEN-1:0]                PostProcRes,         // postprocessor final result
+  output logic [FLEN-1:0]                PostProcRes,         // postprocessor final result
   output logic [4:0]                       PostProcFlg,         // postprocesser flags
-  output logic [P.XLEN-1:0]                FCvtIntRes           // the integer conversion result
+  output logic [XLEN-1:0]                FCvtIntRes           // the integer conversion result
   );
-  
+generate
   // general signals
   logic                        Rs;                   // result sign
-  logic [P.NF-1:0]             Rf;                   // Result fraction
-  logic [P.NE-1:0]             Re;                   // Result exponent
+  logic [NF-1:0]             Rf;                   // Result fraction
+  logic [NE-1:0]             Re;                   // Result exponent
   logic                        Ms;                   // normalized sign
-  logic [P.NORMSHIFTSZ-1:0]    Mf;                   // normalized fraction
-  logic [P.NE+1:0]             Me;                   // normalized exponent
-  logic [P.NE+1:0]             FullRe;               // Re with bits to determine sign and overflow
+  logic [NORMSHIFTSZ-1:0]    Mf;                   // normalized fraction
+  logic [NE+1:0]             Me;                   // normalized exponent
+  logic [NE+1:0]             FullRe;               // Re with bits to determine sign and overflow
   logic                        UfPlus1;              // do you add one (for determining underflow flag)
-  logic [P.LOGNORMSHIFTSZ-1:0] ShiftAmt;             // normalization shift amount
-  logic [P.NORMSHIFTSZ-1:0]    ShiftIn;              // input to normalization shift
-  logic [P.NORMSHIFTSZ-1:0]    Shifted;              // the output of the normalized shifter (before shift correction)
+  logic [LOGNORMSHIFTSZ-1:0] ShiftAmt;             // normalization shift amount
+  logic [NORMSHIFTSZ-1:0]    ShiftIn;              // input to normalization shift
+  logic [NORMSHIFTSZ-1:0]    Shifted;              // the output of the normalized shifter (before shift correction)
   logic                        Plus1;                // add one to the final result?
   logic                        Overflow;             // overflow flag used to select results
   logic                        Invalid;              // invalid flag used to select results
   logic                        Guard, Round, Sticky; // bits needed to determine rounding
-  logic [P.FMTBITS-1:0]        OutFmt;               // output format
+  logic [FMTBITS-1:0]        OutFmt;               // output format
   // fma signals
-  logic [P.NE+1:0]             FmaMe;                // exponent of the normalized sum
+  logic [NE+1:0]             FmaMe;                // exponent of the normalized sum
   logic                        FmaSZero;             // is the sum zero
-  logic [P.NE+1:0]             NormSumExp;           // exponent of the normalized sum not taking into account Subnormal or zero results
+  logic [NE+1:0]             NormSumExp;           // exponent of the normalized sum not taking into account Subnormal or zero results
   logic                        FmaPreResultSubnorm;  // is the result subnormal - calculated before LZA correction
-  logic [$clog2(P.FMALEN+1)-1:0] FmaShiftAmt;          // normalization shift amount for fma
+  logic [$clog2(FMALEN+1)-1:0] FmaShiftAmt;          // normalization shift amount for fma
   // division signals
-  logic [P.LOGNORMSHIFTSZ-1:0] DivShiftAmt;          // divsqrt shift amount
-  logic [P.NE+1:0]             Ue;                   // divsqrt corrected exponent after correction shift
+  logic [LOGNORMSHIFTSZ-1:0] DivShiftAmt;          // divsqrt shift amount
+  logic [NE+1:0]             Ue;                   // divsqrt corrected exponent after correction shift
   logic                        DivByZero;            // divide by zero flag
   logic                        DivResSubnorm;        // is the divsqrt result subnormal
   logic                        DivSubnormShiftPos;   // is the divsqrt subnorm shift amount positive (not underflowed)
   // conversion signals
-  logic [P.CVTLEN+P.NF:0]      CvtShiftIn;           // number to be shifted for converter
+  logic [CVTLEN+NF:0]      CvtShiftIn;           // number to be shifted for converter
   logic [1:0]                  CvtNegResMsbs;        // most significant bits of possibly negated int result
-  logic [P.XLEN+1:0]           CvtNegRes;            // possibly negated integer result
+  logic [XLEN+1:0]           CvtNegRes;            // possibly negated integer result
   logic                        CvtResUf;             // did the convert result underflow
   logic                        IntInvalid;           // invalid integer flag
   // readability signals
@@ -130,9 +130,9 @@ module postprocess import cvw::*;  #(parameter cvw_t P) (
   // choose the output format depending on the operation
   //      - fp -> fp: OpCtrl contains the precision of the output
   //      - otherwise: Fmt contains the precision of the output
-  if (P.FPSIZES == 2) 
-      assign OutFmt = IntToFp|~CvtOp ? Fmt : (OpCtrl[1:0] == P.FMT); 
-  else if (P.FPSIZES == 3 | P.FPSIZES == 4) 
+  if (FPSIZES == 2) 
+      assign OutFmt = IntToFp|~CvtOp ? Fmt : (OpCtrl[1:0] == FMT); 
+  else if (FPSIZES == 3 | FPSIZES == 4) 
       assign OutFmt = IntToFp|~CvtOp ? Fmt : OpCtrl[1:0]; 
   else assign OutFmt = 0; // FPSIZES = 1
 
@@ -141,40 +141,40 @@ module postprocess import cvw::*;  #(parameter cvw_t P) (
   ///////////////////////////////////////////////////////////////////////////////
 
   // final claulations before shifting
-  cvtshiftcalc #(P) cvtshiftcalc(.ToInt, .CvtCe, .CvtResSubnormUf, .Xm, .CvtLzcIn,  
+  cvtshiftcalc  cvtshiftcalc(.ToInt, .CvtCe, .CvtResSubnormUf, .Xm, .CvtLzcIn,  
       .XZero, .IntToFp, .OutFmt, .CvtResUf, .CvtShiftIn);
 
-  fmashiftcalc #(P) fmashiftcalc(.FmaSCnt, .Fmt, .NormSumExp, .FmaSe, .FmaSm,
+  fmashiftcalc  fmashiftcalc(.FmaSCnt, .Fmt, .NormSumExp, .FmaSe, .FmaSm,
       .FmaSZero, .FmaPreResultSubnorm, .FmaShiftAmt);
 
-  divshiftcalc #(P) divshiftcalc(.DivUe, .DivResSubnorm, .DivSubnormShiftPos, .DivShiftAmt);
+  divshiftcalc  divshiftcalc(.DivUe, .DivResSubnorm, .DivSubnormShiftPos, .DivShiftAmt);
 
   // select which unit's output to shift
   always_comb
     case(PostProcSel)
       2'b10: begin // fma
-        ShiftAmt = {{P.LOGNORMSHIFTSZ-$clog2(P.FMALEN-1){1'b0}}, FmaShiftAmt};
-        ShiftIn  =  {{2'b00, FmaSm}, {P.NORMSHIFTSZ-(P.FMALEN+2){1'b0}}};
+        ShiftAmt = {{LOGNORMSHIFTSZ-$clog2(FMALEN-1){1'b0}}, FmaShiftAmt};
+        ShiftIn  =  {{2'b00, FmaSm}, {NORMSHIFTSZ-(FMALEN+2){1'b0}}};
       end
       2'b00: begin // cvt
-        ShiftAmt = {{P.LOGNORMSHIFTSZ-$clog2(P.CVTLEN+1){1'b0}}, CvtShiftAmt};
-        ShiftIn  =  {CvtShiftIn, {P.NORMSHIFTSZ-(P.CVTLEN+P.NF+1){1'b0}}};
+        ShiftAmt = {{LOGNORMSHIFTSZ-$clog2(CVTLEN+1){1'b0}}, CvtShiftAmt};
+        ShiftIn  =  {CvtShiftIn, {NORMSHIFTSZ-(CVTLEN+NF+1){1'b0}}};
       end
       2'b01: begin //divsqrt
         ShiftAmt = DivShiftAmt;
-        ShiftIn  = {{P.NF{1'b0}}, DivUm, {P.NORMSHIFTSZ-(P.DIVb+1+P.NF){1'b0}}};
+        ShiftIn  = {{NF{1'b0}}, DivUm, {NORMSHIFTSZ-(DIVb+1+NF){1'b0}}};
       end
       default: begin 
-        ShiftAmt = {P.LOGNORMSHIFTSZ{1'bx}}; 
-        ShiftIn  = {P.NORMSHIFTSZ{1'bx}}; 
+        ShiftAmt = {LOGNORMSHIFTSZ{1'bx}}; 
+        ShiftIn  = {NORMSHIFTSZ{1'bx}}; 
       end
     endcase
   
   // main normalization shift
-  normshift #(P) normshift (.ShiftIn, .ShiftAmt, .Shifted);
+  normshift  normshift (.ShiftIn, .ShiftAmt, .Shifted);
 
   // correct for LZA/divsqrt error
-  shiftcorrection #(P) shiftcorrection(.FmaOp, .FmaPreResultSubnorm, .NormSumExp,
+  shiftcorrection  shiftcorrection(.FmaOp, .FmaPreResultSubnorm, .NormSumExp,
       .DivResSubnorm, .DivSubnormShiftPos, .DivOp, .DivUe, .Ue, .FmaSZero, .Shifted, .FmaMe, .Mf);
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -190,7 +190,7 @@ module postprocess import cvw::*;  #(parameter cvw_t P) (
   // calculate result sign used in rounding unit
   roundsign roundsign(.FmaOp, .DivOp, .CvtOp, .Sqrt, .FmaSs, .Xs, .Ys, .CvtCs, .Ms);
 
-  round #(P) round(.OutFmt, .Frm, .FmaASticky, .Plus1, .PostProcSel, .CvtCe, .Ue,
+  round  round(.OutFmt, .Frm, .FmaASticky, .Plus1, .PostProcSel, .CvtCe, .Ue,
       .Ms, .FmaMe, .FmaOp, .CvtOp, .CvtResSubnormUf, .Mf, .ToInt,  .CvtResUf,
       .DivSticky, .DivOp, .UfPlus1, .FullRe, .Rf, .Re, .Sticky, .Round, .Guard, .Me);
 
@@ -205,7 +205,7 @@ module postprocess import cvw::*;  #(parameter cvw_t P) (
   // Flags
   ///////////////////////////////////////////////////////////////////////////////
 
-  flags #(P) flags(.XSNaN, .YSNaN, .ZSNaN, .XInf, .YInf, .ZInf, .InfIn, .XZero, .YZero, 
+  flags  flags(.XSNaN, .YSNaN, .ZSNaN, .XInf, .YInf, .ZInf, .InfIn, .XZero, .YZero, 
               .Xs, .Sqrt, .ToInt, .IntToFp, .Int64, .Signed, .OutFmt, .CvtCe,
               .NaNIn, .FmaAs, .FmaPs, .Round, .IntInvalid, .DivByZero,
               .Guard, .Sticky, .UfPlus1, .CvtOp, .DivOp, .FmaOp, .FullRe, .Plus1,
@@ -215,11 +215,11 @@ module postprocess import cvw::*;  #(parameter cvw_t P) (
   // Select the result
   ///////////////////////////////////////////////////////////////////////////////
 
-  negateintres #(P) negateintres(.Xs, .Shifted, .Signed, .Int64, .Plus1, .CvtNegResMsbs, .CvtNegRes);
+  negateintres  negateintres(.Xs, .Shifted, .Signed, .Int64, .Plus1, .CvtNegResMsbs, .CvtNegRes);
 
-  specialcase #(P) specialcase(.Xs, .Xm, .Ym, .Zm, .XZero, .IntInvalid, 
+  specialcase  specialcase(.Xs, .Xm, .Ym, .Zm, .XZero, .IntInvalid, 
       .IntZero, .Frm, .OutFmt, .XNaN, .YNaN, .ZNaN, .CvtResUf, 
       .NaNIn, .IntToFp, .Int64, .Signed, .Zfa, .CvtOp, .FmaOp, .Plus1, .Invalid, .Overflow, .InfIn, .CvtNegRes,
       .XInf, .YInf, .DivOp, .DivByZero, .FullRe, .CvtCe, .Rs, .Re, .Rf, .PostProcRes, .FCvtIntRes);
-
+endgenerate
 endmodule

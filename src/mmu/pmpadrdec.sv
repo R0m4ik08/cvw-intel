@@ -31,11 +31,11 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module pmpadrdec import cvw::*;  #(parameter cvw_t P) (
-  input  logic [P.PA_BITS-1:0]  PhysicalAddress,
+module pmpadrdec import config_pkg::*;   (
+  input  logic [PA_BITS-1:0]  PhysicalAddress,
   input  logic [1:0]            Size,
   input  logic [7:0]            PMPCfg,
-  input  logic [P.PA_BITS-3:0]  PMPAdr,
+  input  logic [PA_BITS-3:0]  PMPAdr,
   input  logic                  FirstMatch,
   input  logic                  PAgePMPAdrIn,
   output logic                  PAgePMPAdrOut,
@@ -60,13 +60,13 @@ module pmpadrdec import cvw::*;  #(parameter cvw_t P) (
   assign TORMatch = PAgePMPAdrIn & PAltPMPAdr; // exclusion-tag: PAgePMPAdrIn
 
   // Naturally aligned regions
-  logic [P.PA_BITS-1:0] NAMask, NABase;
+  logic [PA_BITS-1:0] NAMask, NABase;
 
   assign NAMask[1:0] = {2'b11};
-  assign NAMask[P.PA_BITS-1:2] = (PMPAdr + {{(P.PA_BITS-3){1'b0}}, (AdrMode == NAPOT)}) ^ PMPAdr;
+  assign NAMask[PA_BITS-1:2] = (PMPAdr + {{(PA_BITS-3){1'b0}}, (AdrMode == NAPOT)}) ^ PMPAdr;
   // form a mask where the bottom k bits are 1, corresponding to a size of 2^k bytes for this memory region. 
   // This assumes we're using at least an NA4 region, but works for any size NAPOT region.
-  assign NABase = {(PMPAdr & ~NAMask[P.PA_BITS-1:2]), 2'b00}; // base physical address of the pmp region
+  assign NABase = {(PMPAdr & ~NAMask[PA_BITS-1:2]), 2'b00}; // base physical address of the pmp region
   assign NAMatch = &((NABase ~^ PhysicalAddress) | NAMask); // check if upper bits of base address match, ignore lower bits corresponding to inside the memory range
 
   // finally pick the appropriate match for the access type

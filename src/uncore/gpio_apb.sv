@@ -29,15 +29,15 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module gpio_apb import cvw::*;  #(parameter cvw_t P) (
+module gpio_apb import config_pkg::*; (
   input  logic                PCLK, PRESETn,
   input  logic                PSEL,
   input  logic [7:0]          PADDR, 
-  input  logic [P.XLEN-1:0]   PWDATA,
-  input  logic [P.XLEN/8-1:0] PSTRB,
+  input  logic [XLEN-1:0]   PWDATA,
+  input  logic [XLEN/8-1:0] PSTRB,
   input  logic                PWRITE,
   input  logic                PENABLE,
-  output logic [P.XLEN-1:0]   PRDATA,
+  output logic [XLEN-1:0]   PRDATA,
   output logic                PREADY,
   input  logic [31:0]         iof0, iof1,
   input  logic [31:0]         GPIOIN,
@@ -75,81 +75,85 @@ module gpio_apb import cvw::*;  #(parameter cvw_t P) (
   assign memwrite = PWRITE & PENABLE & PSEL;  // only write in access phase
   assign PREADY   = 1'b1;                     // GPIO never takes >1 cycle to respond
 
-  // account for subword read/write circuitry
-  // -- Note GPIO registers are 32 bits no matter what; access them with LW SW.
-  assign Din = PWDATA[31:0]; 
-  if (P.XLEN == 64) assign PRDATA = {Dout, Dout}; 
-  else              assign PRDATA = Dout;    
-
-  // register access
-  always_ff @(posedge PCLK)
-    if (~PRESETn) begin
-      input_en  <= '0;
-      output_en <= '0;
-      output_val <= '0;
-      rise_ie    <= '0;
-      rise_ip    <= '0;
-      fall_ie    <= '0;
-      fall_ip    <= '0;
-      high_ie    <= '0;
-      high_ip    <= '0;
-      low_ie     <= '0;
-      low_ip     <= '0;
-      iof_en     <= '0;
-      iof_sel    <= '0;
-      out_xor    <= '0;
-    end else begin     // writes
-        // According to FE310 spec: Once the interrupt is pending, it will remain set until a 1 is written to the *_ip register at that bit.
-        /* verilator lint_off CASEINCOMPLETE */
-      if (memwrite) 
-        case(entry)
-          GPIO_INPUT_EN:   input_en   <= Din;
-          GPIO_OUTPUT_EN:  output_en  <= Din;
-          GPIO_OUTPUT_VAL: output_val <= Din;
-          GPIO_RISE_IE:    rise_ie    <= Din;
-          GPIO_FALL_IE:    fall_ie    <= Din;
-          GPIO_HIGH_IE:    high_ie    <= Din;
-          GPIO_LOW_IE:     low_ie     <= Din;
-          GPIO_IOF_EN:     iof_en     <= Din;
-          GPIO_IOF_SEL:    iof_sel    <= Din;
-          GPIO_OUT_XOR:    out_xor    <= Din;
-        endcase
-        /* verilator lint_on CASEINCOMPLETE */
-
-      // interrupts can be cleared by writing corresponding bits to a register
-      if (memwrite & entry == GPIO_RISE_IP)   rise_ip <= rise_ip & ~Din;
-      else                                    rise_ip <= rise_ip | (input2d & ~input3d);
-      if (memwrite & (entry == GPIO_FALL_IP)) fall_ip <= fall_ip & ~Din;
-      else                                    fall_ip <= fall_ip | (~input2d & input3d);
-      if (memwrite & (entry == GPIO_HIGH_IP)) high_ip <= high_ip & ~Din;
-      else                                    high_ip <= high_ip | input3d;
-      if (memwrite & (entry == GPIO_LOW_IP))  low_ip  <= low_ip  & ~Din;
-      else                                    low_ip  <= low_ip  | ~input3d;
-
-      case(entry) // flop to sample inputs
-        GPIO_INPUT_VAL:   Dout <= input_val;
-        GPIO_INPUT_EN:    Dout <= input_en;
-        GPIO_OUTPUT_EN:   Dout <= output_en;
-        GPIO_OUTPUT_VAL:  Dout <= output_val;
-        GPIO_RISE_IE:     Dout <= rise_ie;
-        GPIO_RISE_IP:     Dout <= rise_ip;
-        GPIO_FALL_IE:     Dout <= fall_ie;
-        GPIO_FALL_IP:     Dout <= fall_ip;
-        GPIO_HIGH_IE:     Dout <= high_ie;
-        GPIO_HIGH_IP:     Dout <= high_ip;
-        GPIO_LOW_IE:      Dout <= low_ie;
-        GPIO_LOW_IP:      Dout <= low_ip;
-        GPIO_IOF_EN:      Dout <= iof_en;
-        GPIO_IOF_SEL:     Dout <= iof_sel;
-        GPIO_OUT_XOR:     Dout <= out_xor; 
-        default:          Dout <= '0;
-      endcase
-    end
-
-  // chip i/o
-  // connect OUT to IN for loopback testing
-  if (P.GPIO_LOOPBACK_TEST) assign input0d = ((output_en & GPIOOUT) | (~output_en & GPIOIN)) & input_en;
-  else                      assign input0d = GPIOIN & input_en;
+  generate
+    
+      // account for subword read/write circuitry
+      // -- Note GPIO registers are 32 bits no matter what; access them with LW SW.
+      assign Din = PWDATA[31:0]; 
+      if (XLEN == 64) assign PRDATA = {Dout, Dout}; 
+      else              assign PRDATA = Dout;    
+    
+      // register access
+      always_ff @(posedge PCLK)
+        if (~PRESETn) begin
+          input_en  <= '0;
+          output_en <= '0;
+          output_val <= '0;
+          rise_ie    <= '0;
+          rise_ip    <= '0;
+          fall_ie    <= '0;
+          fall_ip    <= '0;
+          high_ie    <= '0;
+          high_ip    <= '0;
+          low_ie     <= '0;
+          low_ip     <= '0;
+          iof_en     <= '0;
+          iof_sel    <= '0;
+          out_xor    <= '0;
+        end else begin     // writes
+            // According to FE310 spec: Once the interrupt is pending, it will remain set until a 1 is written to the *_ip register at that bit.
+            /* verilator lint_off CASEINCOMPLETE */
+          if (memwrite) 
+            case(entry)
+              GPIO_INPUT_EN:   input_en   <= Din;
+              GPIO_OUTPUT_EN:  output_en  <= Din;
+              GPIO_OUTPUT_VAL: output_val <= Din;
+              GPIO_RISE_IE:    rise_ie    <= Din;
+              GPIO_FALL_IE:    fall_ie    <= Din;
+              GPIO_HIGH_IE:    high_ie    <= Din;
+              GPIO_LOW_IE:     low_ie     <= Din;
+              GPIO_IOF_EN:     iof_en     <= Din;
+              GPIO_IOF_SEL:    iof_sel    <= Din;
+              GPIO_OUT_XOR:    out_xor    <= Din;
+            endcase
+            /* verilator lint_on CASEINCOMPLETE */
+    
+          // interrupts can be cleared by writing corresponding bits to a register
+          if (memwrite & entry == GPIO_RISE_IP)   rise_ip <= rise_ip & ~Din;
+          else                                    rise_ip <= rise_ip | (input2d & ~input3d);
+          if (memwrite & (entry == GPIO_FALL_IP)) fall_ip <= fall_ip & ~Din;
+          else                                    fall_ip <= fall_ip | (~input2d & input3d);
+          if (memwrite & (entry == GPIO_HIGH_IP)) high_ip <= high_ip & ~Din;
+          else                                    high_ip <= high_ip | input3d;
+          if (memwrite & (entry == GPIO_LOW_IP))  low_ip  <= low_ip  & ~Din;
+          else                                    low_ip  <= low_ip  | ~input3d;
+    
+          case(entry) // flop to sample inputs
+            GPIO_INPUT_VAL:   Dout <= input_val;
+            GPIO_INPUT_EN:    Dout <= input_en;
+            GPIO_OUTPUT_EN:   Dout <= output_en;
+            GPIO_OUTPUT_VAL:  Dout <= output_val;
+            GPIO_RISE_IE:     Dout <= rise_ie;
+            GPIO_RISE_IP:     Dout <= rise_ip;
+            GPIO_FALL_IE:     Dout <= fall_ie;
+            GPIO_FALL_IP:     Dout <= fall_ip;
+            GPIO_HIGH_IE:     Dout <= high_ie;
+            GPIO_HIGH_IP:     Dout <= high_ip;
+            GPIO_LOW_IE:      Dout <= low_ie;
+            GPIO_LOW_IP:      Dout <= low_ip;
+            GPIO_IOF_EN:      Dout <= iof_en;
+            GPIO_IOF_SEL:     Dout <= iof_sel;
+            GPIO_OUT_XOR:     Dout <= out_xor; 
+            default:          Dout <= '0;
+          endcase
+        end
+    
+      // chip i/o
+      // connect OUT to IN for loopback testing
+      if (GPIO_LOOPBACK_TEST) assign input0d = ((output_en & GPIOOUT) | (~output_en & GPIOIN)) & input_en;
+      else                      assign input0d = GPIOIN & input_en;
+        
+  endgenerate
 
   // synchroninzer for inputs
   flop #(32) sync1(PCLK,input0d,input1d);

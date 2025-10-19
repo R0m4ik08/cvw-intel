@@ -27,18 +27,18 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module wallypipelinedcore import cvw::*; #(parameter cvw_t P) (
+module wallypipelinedcore import config_pkg::*; (
    input  logic                  clk, reset,
    // Privileged
    input  logic                  MTimerInt, MExtInt, SExtInt, MSwInt,
    input  logic [63:0]           MTIME_CLINT, 
    // Bus Interface
-   input  logic [P.AHBW-1:0]     HRDATA,
+   input  logic [AHBW-1:0]     HRDATA,
    input  logic                  HREADY, HRESP,
    output logic                  HCLK, HRESETn,
-   output logic [P.PA_BITS-1:0]  HADDR,
-   output logic [P.AHBW-1:0]     HWDATA,
-   output logic [P.XLEN/8-1:0]   HWSTRB,
+   output logic [PA_BITS-1:0]  HADDR,
+   output logic [AHBW-1:0]     HWDATA,
+   output logic [XLEN/8-1:0]   HWSTRB,
    output logic                  HWRITE,
    output logic [2:0]            HSIZE,
    output logic [2:0]            HBURST,
@@ -50,25 +50,25 @@ module wallypipelinedcore import cvw::*; #(parameter cvw_t P) (
 
   logic                          StallF, StallD, StallE, StallM, StallW;
   logic                          FlushD, FlushE, FlushM, FlushW;
-  logic                          TrapM, RetM;
+(* mark_debug = "true" *)  logic                          TrapM, RetM;
 
   //  signals that must connect through DP
   logic                          IntDivE, W64E;
   logic                          CSRReadM, CSRWriteM, PrivilegedM;
   logic [1:0]                    AtomicM;
-  logic [P.XLEN-1:0]             ForwardedSrcAE, ForwardedSrcBE;
-  logic [P.XLEN-1:0]             SrcAM;
+  logic [XLEN-1:0]             ForwardedSrcAE, ForwardedSrcBE;
+  logic [XLEN-1:0]             SrcAM;
   logic [2:0]                    Funct3E;
   logic [31:0]                   InstrD;
-  logic [31:0]                   InstrM, InstrOrigM;
-  logic [P.XLEN-1:0]             PCSpillF, PCE, PCLinkE;
-  logic [P.XLEN-1:0]             PCM, PCSpillM;
-  logic [P.XLEN-1:0]             CSRReadValW, MDUResultW;
-  logic [P.XLEN-1:0]             EPCM, TrapVectorM;
+(* mark_debug = "true" *)  logic [31:0]                   InstrM, InstrOrigM;
+  logic [XLEN-1:0]             PCSpillF, PCE, PCLinkE;
+(* mark_debug = "true" *)  logic [XLEN-1:0]             PCM, PCSpillM;
+  logic [XLEN-1:0]             CSRReadValW, MDUResultW;
+(* mark_debug = "true" *)  logic [XLEN-1:0]             EPCM, TrapVectorM;
   logic [1:0]                    MemRWE;
   logic [1:0]                    MemRWM;
-  logic                          InstrValidD, InstrValidE, InstrValidM;
-  logic                          InstrMisalignedFaultM;
+(* mark_debug = "true" *)  logic                          InstrValidD, InstrValidE, InstrValidM;
+(* mark_debug = "true" *)  logic                          InstrMisalignedFaultM;
   logic                          IllegalBaseInstrD, IllegalFPUInstrD, IllegalIEUFPUInstrD;
   logic                          InstrPageFaultF, LoadPageFaultM, StoreAmoPageFaultM;
   logic                          LoadMisalignedFaultM, LoadAccessFaultM;
@@ -93,32 +93,32 @@ module wallypipelinedcore import cvw::*; #(parameter cvw_t P) (
   logic [4:0]                    RdE, RdM, RdW;
   logic                          FPUStallD;
   logic                          FWriteIntE;
-  logic [P.FLEN-1:0]             FWriteDataM;
-  logic [P.XLEN-1:0]             FIntResM;  
-  logic [P.XLEN-1:0]             FCvtIntResW; 
+  logic [FLEN-1:0]             FWriteDataM;
+  logic [XLEN-1:0]             FIntResM;  
+  logic [XLEN-1:0]             FCvtIntResW; 
   logic                          FCvtIntW; 
   logic                          FDivBusyE;
   logic                          FRegWriteM;
   logic                          FpLoadStoreM;
   logic [4:0]                    SetFflagsM;
-  logic [P.XLEN-1:0]             FIntDivResultW;
+  logic [XLEN-1:0]             FIntDivResultW;
 
   // memory management unit signals
   logic                          ITLBWriteF;
   logic                          ITLBMissOrUpdateAF;
-  logic [P.XLEN-1:0]             SATP_REGW;
+  logic [XLEN-1:0]             SATP_REGW;
   logic                          STATUS_MXR, STATUS_SUM, STATUS_MPRV;
   logic [1:0]                    STATUS_MPP, STATUS_FS;
   logic [1:0]                    PrivilegeModeW;
-  logic [P.XLEN-1:0]             PTE;
+  logic [XLEN-1:0]             PTE;
   logic [1:0]                    PageType;
   logic                          sfencevmaM;
   logic                          SelHPTW;
 
   // PMA checker signals
   /* verilator lint_off UNDRIVEN */ // these signals are undriven in configurations without a privileged unit
-  var logic [P.PA_BITS-3:0]      PMPADDR_ARRAY_REGW[P.PMP_ENTRIES-1:0];
-  var logic [7:0]                PMPCFG_ARRAY_REGW[P.PMP_ENTRIES-1:0];
+  var logic [PA_BITS-3:0]      PMPADDR_ARRAY_REGW[PMP_ENTRIES-1:0];
+  var logic [7:0]                PMPCFG_ARRAY_REGW[PMP_ENTRIES-1:0];
   /* verilator lint_on UNDRIVEN */
 
   // IMem stalls
@@ -127,15 +127,15 @@ module wallypipelinedcore import cvw::*; #(parameter cvw_t P) (
 
   // cpu lsu interface
   logic [2:0]                    Funct3M;
-  logic [P.XLEN-1:0]             IEUAdrE;
-  logic [P.XLEN-1:0]             WriteDataM;
-  logic [P.XLEN-1:0]             IEUAdrM;  
-  logic [P.XLEN-1:0]             IEUAdrxTvalM;  
-  logic [P.LLEN-1:0]             ReadDataW;  
+  logic [XLEN-1:0]             IEUAdrE;
+  logic [XLEN-1:0]             WriteDataM;
+  logic [XLEN-1:0]             IEUAdrM;  
+  logic [XLEN-1:0]             IEUAdrxTvalM;  
+  logic [LLEN-1:0]             ReadDataW;  
   logic                          CommittedM;
 
   // AHB ifu interface
-  logic [P.PA_BITS-1:0]          IFUHADDR;
+  logic [PA_BITS-1:0]          IFUHADDR;
   logic [2:0]                    IFUHBURST;
   logic [1:0]                    IFUHTRANS;
   logic [2:0]                    IFUHSIZE;
@@ -143,9 +143,9 @@ module wallypipelinedcore import cvw::*; #(parameter cvw_t P) (
   logic                          IFUHREADY;
   
   // AHB LSU interface
-  logic [P.PA_BITS-1:0]          LSUHADDR;
-  logic [P.XLEN-1:0]             LSUHWDATA;
-  logic [P.XLEN/8-1:0]           LSUHWSTRB;
+  logic [PA_BITS-1:0]          LSUHADDR;
+  logic [XLEN-1:0]             LSUHWDATA;
+  logic [XLEN/8-1:0]           LSUHWSTRB;
   logic                          LSUHWRITE;
   logic                          LSUHREADY;
   
@@ -172,7 +172,7 @@ module wallypipelinedcore import cvw::*; #(parameter cvw_t P) (
   logic                          wfiM, IntPendingM;
 
   // instruction fetch unit: PC, branch prediction, instruction cache
-  ifu #(P) ifu(.clk, .reset,
+  ifu ifu(.clk, .reset,
     .StallF, .StallD, .StallE, .StallM, .StallW, .FlushD, .FlushE, .FlushM, .FlushW,
     .InstrValidE, .InstrValidD,
     .BranchD, .BranchE, .JumpD, .JumpE, .ICacheStallF,
@@ -195,7 +195,7 @@ module wallypipelinedcore import cvw::*; #(parameter cvw_t P) (
     .PMPCFG_ARRAY_REGW,  .PMPADDR_ARRAY_REGW, .InstrAccessFaultF); 
     
   // integer execution unit: integer register file, datapath and controller
-  ieu #(P) ieu(.clk, .reset,
+  ieu ieu(.clk, .reset,
      // Decode Stage interface
      .InstrD, .STATUS_FS, .ENVCFG_CBE, .IllegalIEUFPUInstrD, .IllegalBaseInstrD,
      // Execute Stage interface
@@ -212,14 +212,14 @@ module wallypipelinedcore import cvw::*; #(parameter cvw_t P) (
      .RdE, .RdM, .FIntResM, .FlushDCacheM,
      .BranchD, .BranchE, .JumpD, .JumpE,
      // Writeback stage
-     .CSRReadValW, .MDUResultW, .FIntDivResultW, .RdW, .ReadDataW(ReadDataW[P.XLEN-1:0]),
+     .CSRReadValW, .MDUResultW, .FIntDivResultW, .RdW, .ReadDataW(ReadDataW[XLEN-1:0]),
      .InstrValidM, .InstrValidE, .InstrValidD, .FCvtIntResW, .FCvtIntW,
      // hazards
      .StallD, .StallE, .StallM, .StallW, .FlushD, .FlushE, .FlushM, .FlushW,
      .StructuralStallD, .LoadStallD, .StoreStallD, .PCSrcE,
      .CSRReadM, .CSRWriteM, .PrivilegedM, .CSRWriteFenceM, .InvalidateICacheM); 
 
-  lsu #(P) lsu(
+  lsu lsu(
     .clk, .reset, .StallM, .FlushM, .StallW, .FlushW,
     // CPU interface
     .MemRWE, .MemRWM, .Funct3M, .Funct7M(InstrM[31:25]), .AtomicM,
@@ -255,108 +255,112 @@ module wallypipelinedcore import cvw::*; #(parameter cvw_t P) (
     .PCSpillF, .ITLBMissOrUpdateAF, .PTE, .PageType, .ITLBWriteF, .SelHPTW,
     .LSUStallM);                    
 
-  if(P.BUS_SUPPORTED) begin : ebu
-    ebu #(P) ebu(// IFU connections
-      .clk, .reset,
-      // IFU interface
-      .IFUHADDR, .IFUHBURST, .IFUHTRANS, .IFUHREADY, .IFUHSIZE,
-      // LSU interface
-      .LSUHADDR, .LSUHWDATA, .LSUHWSTRB, .LSUHSIZE, .LSUHBURST,
-      .LSUHTRANS, .LSUHWRITE, .LSUHREADY,
-      // BUS interface
-      .HREADY, .HRESP, .HCLK, .HRESETn,
-      .HADDR, .HWDATA, .HWSTRB, .HWRITE, .HSIZE, .HBURST,
-      .HPROT, .HTRANS, .HMASTLOCK);
-  end else begin
-    assign {IFUHREADY, LSUHREADY, HCLK, HRESETn, HADDR, HWDATA,
-            HWSTRB, HWRITE, HSIZE, HBURST, HPROT, HTRANS, HMASTLOCK} = '0;
-  end
-
-  // global stall and flush control  
-  hazard hzu(
-    .BPWrongE, .CSRWriteFenceM, .RetM, .TrapM,
-    .StructuralStallD,
-    .LSUStallM, .IFUStallF,
-    .FPUStallD, .ExternalStall,
-    .DivBusyE, .FDivBusyE,
-    .wfiM, .IntPendingM,
-    // Stall & flush outputs
-    .StallF, .StallD, .StallE, .StallM, .StallW,
-    .FlushD, .FlushE, .FlushM, .FlushW);    
-
-  // privileged unit
-  if (P.ZICSR_SUPPORTED) begin:priv
-    privileged #(P) priv(
-      .clk, .reset,
-      .FlushD, .FlushE, .FlushM, .FlushW, .StallD, .StallE, .StallM, .StallW,
-      .CSRReadM, .CSRWriteM, .SrcAM, .PCM, .PCSpillM, 
-      .InstrM, .InstrOrigM, .CSRReadValW, .EPCM, .TrapVectorM,
-      .RetM, .TrapM, .sfencevmaM, .InvalidateICacheM, .DCacheStallM, .ICacheStallF,
-      .InstrValidM, .CommittedM, .CommittedF,
-      .FRegWriteM, .LoadStallD, .StoreStallD,
-      .BPDirWrongM, .BTAWrongM, .BPWrongM,
-      .RASPredPCWrongM, .IClassWrongM, .DivBusyE, .FDivBusyE,
-      .IClassM, .DCacheMiss, .DCacheAccess, .ICacheMiss, .ICacheAccess, .PrivilegedM,
-      .InstrPageFaultF, .LoadPageFaultM, .StoreAmoPageFaultM,
-      .InstrMisalignedFaultM, .IllegalIEUFPUInstrD, 
-      .LoadMisalignedFaultM, .StoreAmoMisalignedFaultM,
-      .MTimerInt, .MExtInt, .SExtInt, .MSwInt,
-      .MTIME_CLINT, .IEUAdrxTvalM, .SetFflagsM,
-      .InstrAccessFaultF, .HPTWInstrAccessFaultF, .HPTWInstrPageFaultF, .LoadAccessFaultM, .StoreAmoAccessFaultM, .SelHPTW,
-      .PrivilegeModeW, .SATP_REGW,
-      .STATUS_MXR, .STATUS_SUM, .STATUS_MPRV, .STATUS_MPP, .STATUS_FS, 
-      .PMPCFG_ARRAY_REGW, .PMPADDR_ARRAY_REGW, 
-      .FRM_REGW, .ENVCFG_CBE, .ENVCFG_PBMTE, .ENVCFG_ADUE, .wfiM, .IntPendingM, .BigEndianM);
-  end else begin
-    assign {CSRReadValW, PrivilegeModeW, 
-            SATP_REGW, STATUS_MXR, STATUS_SUM, STATUS_MPRV, STATUS_MPP, STATUS_FS, FRM_REGW,
-            // PMPCFG_ARRAY_REGW, PMPADDR_ARRAY_REGW, 
-            ENVCFG_CBE, ENVCFG_PBMTE, ENVCFG_ADUE, 
-            EPCM, TrapVectorM, RetM, TrapM,
-            sfencevmaM, BigEndianM, wfiM, IntPendingM} = '0;
-  end
-
-  // multiply/divide unit
-  if (P.ZMMUL_SUPPORTED) begin:mdu
-    mdu #(P) mdu(.clk, .reset, .StallM, .StallW, .FlushE, .FlushM, .FlushW,
-      .ForwardedSrcAE, .ForwardedSrcBE, 
-      .Funct3E, .Funct3M, .IntDivE, .W64E, .MDUActiveE,
-      .MDUResultW, .DivBusyE); 
-  end else begin // no M instructions supported
-    assign MDUResultW = '0; 
-    assign DivBusyE   = 1'b0;
-  end
-
-  // floating point unit
-  if (P.F_SUPPORTED) begin:fpu
-    fpu #(P) fpu(
-      .clk, .reset,
-      .FRM_REGW,                           // Rounding mode from CSR
-      .InstrD,                             // instruction from IFU
-      .ReadDataW(ReadDataW[P.FLEN-1:0]),   // Read data from memory
-      .ForwardedSrcAE,                     // Integer input being processed (from IEU)
-      .StallE, .StallM, .StallW,           // stall signals from HZU
-      .FlushE, .FlushM, .FlushW,           // flush signals from HZU
-      .RdE, .RdM, .RdW,                    // which FP register to write to (from IEU)
-      .STATUS_FS,                          // is floating-point enabled?
-      .FRegWriteM,                         // FP register write enable
-      .FpLoadStoreM,
-      .ForwardedSrcBE,                     // Integer input for intdiv
-      .Funct3E, .Funct3M, .IntDivE, .W64E, // Integer flags and functions
-      .FPUStallD,                          // Stall the decode stage
-      .FWriteIntE, .FCvtIntE,              // integer register write enable, conversion operation
-      .FWriteDataM,                        // Data to be written to memory
-      .FIntResM,                           // data to be written to integer register
-      .FCvtIntResW,                        // fp -> int conversion result to be stored in int register
-      .FCvtIntW,                           // fpu result selection
-      .FDivBusyE,                          // Is the divide/sqrt unit busy (stall execute stage)
-      .IllegalFPUInstrD,                   // Is the instruction an illegal fpu instruction
-      .SetFflagsM,                         // FPU flags (to privileged unit)
-      .FIntDivResultW); 
-  end else begin                           // no F_SUPPORTED or D_SUPPORTED; tie outputs low
-    assign {FPUStallD, FWriteIntE, FCvtIntE, FIntResM, FCvtIntW, FRegWriteM,
-            IllegalFPUInstrD, SetFflagsM, FpLoadStoreM,
-            FWriteDataM, FCvtIntResW, FIntDivResultW, FDivBusyE} = '0;
-  end
+  generate
+    
+    if(BUS_SUPPORTED) begin : ebu
+      ebu ebu(// IFU connections
+        .clk, .reset,
+        // IFU interface
+        .IFUHADDR, .IFUHBURST, .IFUHTRANS, .IFUHREADY, .IFUHSIZE,
+        // LSU interface
+        .LSUHADDR, .LSUHWDATA, .LSUHWSTRB, .LSUHSIZE, .LSUHBURST,
+        .LSUHTRANS, .LSUHWRITE, .LSUHREADY,
+        // BUS interface
+        .HREADY, .HRESP, .HCLK, .HRESETn,
+        .HADDR, .HWDATA, .HWSTRB, .HWRITE, .HSIZE, .HBURST,
+        .HPROT, .HTRANS, .HMASTLOCK);
+    end else begin
+      assign {IFUHREADY, LSUHREADY, HCLK, HRESETn, HADDR, HWDATA,
+              HWSTRB, HWRITE, HSIZE, HBURST, HPROT, HTRANS, HMASTLOCK} = '0;
+    end
+  
+    // global stall and flush control  
+    hazard hzu(
+      .BPWrongE, .CSRWriteFenceM, .RetM, .TrapM,
+      .StructuralStallD,
+      .LSUStallM, .IFUStallF,
+      .FPUStallD, .ExternalStall,
+      .DivBusyE, .FDivBusyE,
+      .wfiM, .IntPendingM,
+      // Stall & flush outputs
+      .StallF, .StallD, .StallE, .StallM, .StallW,
+      .FlushD, .FlushE, .FlushM, .FlushW);    
+  
+    // privileged unit
+    if (ZICSR_SUPPORTED) begin:priv
+      privileged priv(
+        .clk, .reset,
+        .FlushD, .FlushE, .FlushM, .FlushW, .StallD, .StallE, .StallM, .StallW,
+        .CSRReadM, .CSRWriteM, .SrcAM, .PCM, .PCSpillM, 
+        .InstrM, .InstrOrigM, .CSRReadValW, .EPCM, .TrapVectorM,
+        .RetM, .TrapM, .sfencevmaM, .InvalidateICacheM, .DCacheStallM, .ICacheStallF,
+        .InstrValidM, .CommittedM, .CommittedF,
+        .FRegWriteM, .LoadStallD, .StoreStallD,
+        .BPDirWrongM, .BTAWrongM, .BPWrongM,
+        .RASPredPCWrongM, .IClassWrongM, .DivBusyE, .FDivBusyE,
+        .IClassM, .DCacheMiss, .DCacheAccess, .ICacheMiss, .ICacheAccess, .PrivilegedM,
+        .InstrPageFaultF, .LoadPageFaultM, .StoreAmoPageFaultM,
+        .InstrMisalignedFaultM, .IllegalIEUFPUInstrD, 
+        .LoadMisalignedFaultM, .StoreAmoMisalignedFaultM,
+        .MTimerInt, .MExtInt, .SExtInt, .MSwInt,
+        .MTIME_CLINT, .IEUAdrxTvalM, .SetFflagsM,
+        .InstrAccessFaultF, .HPTWInstrAccessFaultF, .HPTWInstrPageFaultF, .LoadAccessFaultM, .StoreAmoAccessFaultM, .SelHPTW,
+        .PrivilegeModeW, .SATP_REGW,
+        .STATUS_MXR, .STATUS_SUM, .STATUS_MPRV, .STATUS_MPP, .STATUS_FS, 
+        .PMPCFG_ARRAY_REGW, .PMPADDR_ARRAY_REGW, 
+        .FRM_REGW, .ENVCFG_CBE, .ENVCFG_PBMTE, .ENVCFG_ADUE, .wfiM, .IntPendingM, .BigEndianM);
+    end else begin
+      assign {CSRReadValW, PrivilegeModeW, 
+              SATP_REGW, STATUS_MXR, STATUS_SUM, STATUS_MPRV, STATUS_MPP, STATUS_FS, FRM_REGW,
+              // PMPCFG_ARRAY_REGW, PMPADDR_ARRAY_REGW, 
+              ENVCFG_CBE, ENVCFG_PBMTE, ENVCFG_ADUE, 
+              EPCM, TrapVectorM, RetM, TrapM,
+              sfencevmaM, BigEndianM, wfiM, IntPendingM} = '0;
+    end
+  
+    // multiply/divide unit
+    if (ZMMUL_SUPPORTED) begin:mdu
+      mdu mdu(.clk, .reset, .StallM, .StallW, .FlushE, .FlushM, .FlushW,
+        .ForwardedSrcAE, .ForwardedSrcBE, 
+        .Funct3E, .Funct3M, .IntDivE, .W64E, .MDUActiveE,
+        .MDUResultW, .DivBusyE); 
+    end else begin // no M instructions supported
+      assign MDUResultW = '0; 
+      assign DivBusyE   = 1'b0;
+    end
+  
+    // floating point unit
+    if (F_SUPPORTED) begin:fpu
+      fpu fpu(
+        .clk, .reset,
+        .FRM_REGW,                           // Rounding mode from CSR
+        .InstrD,                             // instruction from IFU
+        .ReadDataW(ReadDataW[FLEN-1:0]),   // Read data from memory
+        .ForwardedSrcAE,                     // Integer input being processed (from IEU)
+        .StallE, .StallM, .StallW,           // stall signals from HZU
+        .FlushE, .FlushM, .FlushW,           // flush signals from HZU
+        .RdE, .RdM, .RdW,                    // which FP register to write to (from IEU)
+        .STATUS_FS,                          // is floating-point enabled?
+        .FRegWriteM,                         // FP register write enable
+        .FpLoadStoreM,
+        .ForwardedSrcBE,                     // Integer input for intdiv
+        .Funct3E, .Funct3M, .IntDivE, .W64E, // Integer flags and functions
+        .FPUStallD,                          // Stall the decode stage
+        .FWriteIntE, .FCvtIntE,              // integer register write enable, conversion operation
+        .FWriteDataM,                        // Data to be written to memory
+        .FIntResM,                           // data to be written to integer register
+        .FCvtIntResW,                        // fp -> int conversion result to be stored in int register
+        .FCvtIntW,                           // fpu result selection
+        .FDivBusyE,                          // Is the divide/sqrt unit busy (stall execute stage)
+        .IllegalFPUInstrD,                   // Is the instruction an illegal fpu instruction
+        .SetFflagsM,                         // FPU flags (to privileged unit)
+        .FIntDivResultW); 
+    end else begin                           // no F_SUPPORTED or D_SUPPORTED; tie outputs low
+      assign {FPUStallD, FWriteIntE, FCvtIntE, FIntResM, FCvtIntW, FRegWriteM,
+              IllegalFPUInstrD, SetFflagsM, FpLoadStoreM,
+              FWriteDataM, FCvtIntResW, FIntDivResultW, FDivBusyE} = '0;
+    end
+    
+  endgenerate
   
 endmodule

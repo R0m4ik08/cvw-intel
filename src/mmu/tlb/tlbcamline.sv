@@ -30,11 +30,11 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module tlbcamline import cvw::*;  #(parameter cvw_t P, 
+module tlbcamline import config_pkg::*;  #( 
                                     parameter KEY_BITS = 20, SEGMENT_BITS = 10) (
   input  logic                  clk, reset,
-  input  logic [P.VPN_BITS-1:0]  VPN, // The requested page number to compare against the key
-  input  logic [P.ASID_BITS-1:0] SATP_ASID,
+  input  logic [VPN_BITS-1:0]  VPN, // The requested page number to compare against the key
+  input  logic [ASID_BITS-1:0] SATP_ASID,
   input  logic                  SV39Mode,
   input  logic                  WriteEnable,  // Write a new entry to this line
   input  logic                  PTE_G,
@@ -44,7 +44,7 @@ module tlbcamline import cvw::*;  #(parameter cvw_t P,
   output logic [1:0]            PageTypeRead,  
   output logic                  Match
 );
-
+generate
   // PageTypeRead is a key for a tera, giga, mega, or kilopage.
   // PageType == 2'b00 --> kilopage
   // PageType == 2'b01 --> megapage
@@ -57,13 +57,13 @@ module tlbcamline import cvw::*;  #(parameter cvw_t P,
   logic [1:0]          PageType;
   
   // Split up key and query into sections for each page table level.
-  logic [P.ASID_BITS-1:0] Key_ASID;
+  logic [ASID_BITS-1:0] Key_ASID;
   logic [SEGMENT_BITS-1:0] Key0, Key1, Query0, Query1;
   logic MatchASID, Match0, Match1;
 
   assign MatchASID = (SATP_ASID == Key_ASID) | PTE_G; 
 
-  if (P.XLEN == 32) begin: match
+  if (XLEN == 32) begin: match
 
     assign {Key_ASID, Key1, Key0} = Key;
     assign {Query1, Query0} = VPN;
@@ -87,7 +87,7 @@ module tlbcamline import cvw::*;  #(parameter cvw_t P,
     // For example, a gigapage in SV39 only cares about VPN[2], so VPN[0] and VPN[1]
     // should automatically match.
     // In Svnapot, if N bit is set and bottom 4 bits of PPN = 1000, then these bits don't need to match
-    assign MatchNAPOT = P.SVNAPOT_SUPPORTED & PTE_NAPOT & (Query0[SEGMENT_BITS-1:4] == Key0[SEGMENT_BITS-1:4]);
+    assign MatchNAPOT = SVNAPOT_SUPPORTED & PTE_NAPOT & (Query0[SEGMENT_BITS-1:4] == Key0[SEGMENT_BITS-1:4]);
     assign Match0 = (Query0 == Key0) | (PageType > 2'd0) | MatchNAPOT; // least significant section
     assign Match1 = (Query1 == Key1) | (PageType > 2'd1);
     assign Match2 = (Query2 == Key2) | (PageType > 2'd2);
@@ -104,4 +104,5 @@ module tlbcamline import cvw::*;  #(parameter cvw_t P,
   // On a flush, zero the valid bit and leave the key unchanged.
   flopenr #(1) validbitflop(clk, reset, WriteEnable | TLBFlush, ~TLBFlush, Valid);
   flopenr #(KEY_BITS) keyflop(clk, reset, WriteEnable, {SATP_ASID, VPN}, Key);
+endgenerate
 endmodule

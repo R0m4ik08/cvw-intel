@@ -27,18 +27,18 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module tlbramline import cvw::*;  #(parameter cvw_t P)
+module tlbramline import config_pkg::*;  
   (input  logic              clk, reset,
    input  logic              re, we,
-   input  logic [P.XLEN-1:0] d,
-   output logic [P.XLEN-1:0] q,
+   input  logic [XLEN-1:0] d,
+   output logic [XLEN-1:0] q,
    output logic              PTE_G,
    output logic              PTE_NAPOT // entry is in NAPOT mode (N bit set and PPN[3:0] = 1000)
 );
+generate
+   logic [XLEN-1:0] line;
 
-   logic [P.XLEN-1:0] line;
-
-  if (P.XLEN == 64) begin // save 7 reserved bits
+  if (XLEN == 64) begin // save 7 reserved bits
     // could optimize out N and PBMT from d[63:61] if they aren't supported
     logic [57:0] ptereg;
     logic reserved;
@@ -46,9 +46,10 @@ module tlbramline import cvw::*;  #(parameter cvw_t P)
     flopenr #(58) pteflop(clk, reset, we, {d[63:61], reserved, d[53:0]}, ptereg);
     assign line = {ptereg[57:54], 6'b0, ptereg[53:0]};
   end else // rv32
-    flopenr #(P.XLEN) pteflop(clk, reset, we, d, line);
+    flopenr #(XLEN) pteflop(clk, reset, we, d, line);
 
    assign q = re ? line : 0;
    assign PTE_G = line[5]; // send global bit to CAM as part of ASID matching
-   assign PTE_NAPOT = P.SVNAPOT_SUPPORTED & line[P.XLEN-1] & (line[13:10] == 4'b1000); // send NAPOT bit to CAM as part of matching lsbs of VPN
+   assign PTE_NAPOT = SVNAPOT_SUPPORTED & line[XLEN-1] & (line[13:10] == 4'b1000); // send NAPOT bit to CAM as part of matching lsbs of VPN
+endgenerate
 endmodule

@@ -43,7 +43,7 @@ module cacheLRU
   input  logic                InvalidateCache, // Clear all valid bits
   output logic [NUMWAYS-1:0]  VictimWay        // LRU selects a victim to evict
 );
-
+generate
   localparam                           LOGNUMWAYS = $clog2(NUMWAYS);
 
   logic [NUMWAYS-2:0]                  LRUMemory [NUMSETS-1:0];
@@ -86,7 +86,7 @@ module cacheLRU
 
   // bit duplication
   // expand HitWay as HitWay[3], {{2}{HitWay[2]}}, {{4}{HitWay[1]}, {{8{HitWay[0]}}, ...
-  for(row = 0; row < LOGNUMWAYS; row++) begin
+  for(row = 0; row < LOGNUMWAYS; row++) begin : nb_for1
     localparam integer DuplicationFactor = 2**(LOGNUMWAYS-row-1);
     localparam StartIndex = NUMWAYS-2 - DuplicationFactor + 1;
     localparam EndIndex = NUMWAYS-2 - 2 * DuplicationFactor + 2;
@@ -119,12 +119,12 @@ module cacheLRU
   if (NUMWAYS > 2) mux2 #(1) LRUMuxes[NUMWAYS-3:0](CurrLRU[NUMWAYS-3:0], ~WayExpanded[NUMWAYS-3:0], LRUUpdate[NUMWAYS-3:0], NextLRU[NUMWAYS-3:0]);
 
   // Compute next victim way.
-  for(node = NUMWAYS-2; node >= NUMWAYS/2; node--) begin
+  for(node = NUMWAYS-2; node >= NUMWAYS/2; node--) begin : bn_for2
     localparam t0 = 2*node - NUMWAYS;
     localparam t1 = t0 + 1;
     assign Intermediate[node] = CurrLRU[node] ? Intermediate[t0] : Intermediate[t1];
   end
-  for(node = NUMWAYS/2-1; node >= 0; node--) begin
+  for(node = NUMWAYS/2-1; node >= 0; node--) begin : bn_for3
     localparam int0 = (NUMWAYS/2-1-node)*2;
     localparam int1 = int0 + 1;
     assign Intermediate[node] = CurrLRU[node] ? int1[LOGNUMWAYS-1:0] : int0[LOGNUMWAYS-1:0];
@@ -146,6 +146,5 @@ module cacheLRU
   assign ForwardLRU = LRUWriteEn & (PAdr == CacheSetLRU);
   mux2 #(NUMWAYS-1) ReadLRUmux(ReadLRU, NextLRU, ForwardLRU, BypassedLRU);
   flop #(NUMWAYS-1) CurrLRUReg(clk, BypassedLRU, CurrLRU);
+endgenerate
 endmodule
-
-

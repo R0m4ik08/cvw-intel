@@ -30,17 +30,17 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module tlbcam  import cvw::*;  #(parameter cvw_t P,
+module tlbcam  import config_pkg::*;  #(
                                  parameter TLB_ENTRIES = 8, KEY_BITS = 20, SEGMENT_BITS = 10) (
   input  logic                    clk, reset,
-  input  logic [P.VPN_BITS-1:0]    VPN,
+  input  logic [VPN_BITS-1:0]    VPN,
   input  logic [1:0]              PageTypeWriteVal,
   input  logic                    SV39Mode,
   input  logic                    TLBFlush,
   input  logic [TLB_ENTRIES-1:0]  WriteEnables,
   input  logic [TLB_ENTRIES-1:0]  PTE_Gs,
   input  logic [TLB_ENTRIES-1:0]  PTE_NAPOTs,  // entry is in NAPOT mode (N bit set and PPN[3:0] = 1000)
-  input  logic [P.ASID_BITS-1:0]  SATP_ASID,
+  input  logic [ASID_BITS-1:0]  SATP_ASID,
   output logic [TLB_ENTRIES-1:0]  Matches,
   output logic [1:0]              HitPageType,
   output logic                    CAMHit
@@ -54,7 +54,7 @@ module tlbcam  import cvw::*;  #(parameter cvw_t P,
   // of page type. However, matches are determined based on a subset of the
   // page number segments.
 
-  tlbcamline #(P, KEY_BITS, SEGMENT_BITS) camlines[TLB_ENTRIES-1:0](
+  tlbcamline #(KEY_BITS, SEGMENT_BITS) camlines[TLB_ENTRIES-1:0](
     .clk, .reset, .VPN, .SATP_ASID, .SV39Mode, .PTE_G(PTE_Gs), .PTE_NAPOT(PTE_NAPOTs), .PageTypeWriteVal, .TLBFlush,
     .WriteEnable(WriteEnables), .PageTypeRead, .Match(Matches));
   assign CAMHit = |Matches & ~TLBFlush;

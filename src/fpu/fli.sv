@@ -27,13 +27,13 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module fli import cvw::*;  #(parameter cvw_t P) (
+module fli import config_pkg::*;   (
   input  logic [4:0]        Rs1,           // Index of immediate to select
   input  logic [1:0]        Fmt,           // 00 = single, 01 = double, 10 = half, 11 = quad
-  output logic [P.FLEN-1:0] Imm            // Immediate output
+  output logic [FLEN-1:0] Imm            // Immediate output
 );
-
-  logic [P.FLEN-1:0] HImmBox, SImmBox, DImmBox, QImmBox;
+generate
+  logic [FLEN-1:0] HImmBox, SImmBox, DImmBox, QImmBox;
 
   // select constant for each immediate size supported
 
@@ -41,7 +41,7 @@ module fli import cvw::*;  #(parameter cvw_t P) (
   // half
   ////////////////////////////
   
-  if (P.ZFH_SUPPORTED) begin
+  if (ZFH_SUPPORTED) begin
     logic [15:0] HImm;
     always_comb begin
         case(Rs1) 
@@ -79,7 +79,7 @@ module fli import cvw::*;  #(parameter cvw_t P) (
             31: HImm = 16'h7E00;
         endcase
     end
-    assign HImmBox = {{(P.FLEN-16){1'b1}}, HImm}; // NaN-box HImm
+    assign HImmBox = {{(FLEN-16){1'b1}}, HImm}; // NaN-box HImm
   end else assign HImmBox = '0;
 
   ////////////////////////////
@@ -123,13 +123,13 @@ module fli import cvw::*;  #(parameter cvw_t P) (
             31: SImm = 32'h7FC00000;
         endcase
     end
-    assign SImmBox = {{(P.FLEN-32){1'b1}}, SImm}; // NaN-box SImm
+    assign SImmBox = {{(FLEN-32){1'b1}}, SImm}; // NaN-box SImm
 
   ////////////////////////////
   // double
   ////////////////////////////
   
-  if (P.D_SUPPORTED) begin
+  if (D_SUPPORTED) begin
     logic [63:0] DImm;
     always_comb begin
         case(Rs1) 
@@ -167,14 +167,14 @@ module fli import cvw::*;  #(parameter cvw_t P) (
             31: DImm = 64'h7FF8000000000000;
         endcase
     end
-    assign DImmBox = {{(P.FLEN-64){1'b1}}, DImm}; // NaN-box DImm
+    assign DImmBox = {{(FLEN-64){1'b1}}, DImm}; // NaN-box DImm
   end else assign DImmBox = '0;
   
     ////////////////////////////
   // double
   ////////////////////////////
   
-  if (P.Q_SUPPORTED) begin
+  if (Q_SUPPORTED) begin
     logic [127:0] QImm;
     always_comb begin
         case(Rs1) 
@@ -215,6 +215,6 @@ module fli import cvw::*;  #(parameter cvw_t P) (
     assign QImmBox = QImm; // NaN-box QImm trivial because Q is longest format
   end else assign QImmBox = '0;
 
-  mux4 #(P.FLEN) flimux(SImmBox, DImmBox, HImmBox, QImmBox, Fmt, Imm); // select immediate based on format
-
+  mux4 #(FLEN) flimux(SImmBox, DImmBox, HImmBox, QImmBox, Fmt, Imm); // select immediate based on format
+endgenerate
 endmodule

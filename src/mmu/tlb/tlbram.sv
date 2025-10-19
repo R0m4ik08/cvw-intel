@@ -30,27 +30,27 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-module tlbram import cvw::*;  #(parameter cvw_t P, 
+module tlbram import config_pkg::*;  #( 
                                 parameter TLB_ENTRIES = 8) (
   input  logic                      clk, reset,
-  input  logic [P.XLEN-1:0]         PTE,
+  input  logic [XLEN-1:0]         PTE,
   input  logic [TLB_ENTRIES-1:0]    Matches, WriteEnables,
-  output logic [P.PPN_BITS-1:0]     PPN,
+  output logic [PPN_BITS-1:0]     PPN,
   output logic [11:0]               PTEAccessBits,
   output logic [TLB_ENTRIES-1:0]    PTE_Gs,
   output logic [TLB_ENTRIES-1:0]    PTE_NAPOTs // entry is in NAPOT mode (N bit set and PPN[3:0] = 1000)
 );
 
-  logic [P.XLEN-1:0] RamRead[TLB_ENTRIES-1:0]; // stores the page table entries
-  logic [P.XLEN-1:0] PageTableEntry;
+  logic [XLEN-1:0] RamRead[TLB_ENTRIES-1:0]; // stores the page table entries
+  logic [XLEN-1:0] PageTableEntry;
 
   // RAM implemented with array of flops and AND/OR read logic
-  tlbramline #(P) tlbramline[TLB_ENTRIES-1:0]
+  tlbramline tlbramline[TLB_ENTRIES-1:0]
      (.clk, .reset, .re(Matches), .we(WriteEnables), 
       .d(PTE), .q(RamRead), .PTE_G(PTE_Gs), .PTE_NAPOT(PTE_NAPOTs));
-  or_rows #(TLB_ENTRIES, P.XLEN) PTEOr(RamRead, PageTableEntry);
+  or_rows #(TLB_ENTRIES, XLEN) PTEOr(RamRead, PageTableEntry);
 
   // Rename the bits read from the TLB RAM
-  assign PTEAccessBits = {PageTableEntry[P.XLEN-1:P.XLEN-4] & {4{P.XLEN == 64}}, PageTableEntry[7:0]}; // for RV64 include N and PBMT bits and OR of reserved bits
-  assign PPN = PageTableEntry[P.PPN_BITS+9:10];
+  assign PTEAccessBits = {PageTableEntry[XLEN-1:XLEN-4] & {4{XLEN == 64}}, PageTableEntry[7:0]}; // for RV64 include N and PBMT bits and OR of reserved bits
+  assign PPN = PageTableEntry[PPN_BITS+9:10];
 endmodule

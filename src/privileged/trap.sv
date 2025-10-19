@@ -27,7 +27,7 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module trap import cvw::*;  #(parameter cvw_t P) (
+module trap import config_pkg::*;   (
   input  logic                 reset, 
   input  logic                 InstrMisalignedFaultM, InstrAccessFaultM, HPTWInstrAccessFaultM, HPTWInstrPageFaultM, IllegalInstrFaultM,
   input  logic                 BreakpointFaultM, LoadMisalignedFaultM, StoreAmoMisalignedFaultM,
@@ -60,8 +60,8 @@ module trap import cvw::*;  #(parameter cvw_t P) (
   // & with ~CommittedM to make sure MEPC isn't chosen so as to rerun the same instr twice
   ///////////////////////////////////////////
 
-  assign MIntGlobalEnM = (PrivilegeModeW != P.M_MODE) | STATUS_MIE; // if M ints enabled or lower priv 3.1.9
-  assign SIntGlobalEnM = (PrivilegeModeW == P.U_MODE) | ((PrivilegeModeW == P.S_MODE) & STATUS_SIE); // if in lower priv mode, or if S ints enabled and not in higher priv mode 3.1.9
+  assign MIntGlobalEnM = (PrivilegeModeW != M_MODE) | STATUS_MIE; // if M ints enabled or lower priv 3.1.9
+  assign SIntGlobalEnM = (PrivilegeModeW == U_MODE) | ((PrivilegeModeW == S_MODE) & STATUS_SIE); // if in lower priv mode, or if S ints enabled and not in higher priv mode 3.1.9
   assign PendingIntsM  = MIP_REGW & MIE_REGW;
   assign IntPendingM   = |PendingIntsM;
   assign Committed     = CommittedM | CommittedF;
@@ -69,8 +69,8 @@ module trap import cvw::*;  #(parameter cvw_t P) (
   assign ValidIntsM    = Committed ? '0 : EnabledIntsM;
   assign InterruptM    = (|ValidIntsM) & InstrValidM & (~wfiM | wfiW); // suppress interrupt if the memory system has partially processed a request. Delay interrupt until wfi is in the W stage. 
   // wfiW is to support possible but unlikely back to back wfi instructions. wfiM would be high in the M stage, while also in the W stage.
-  assign DelegateM     = P.S_SUPPORTED & (InterruptM ? MIDELEG_REGW[CauseM] : MEDELEG_REGW[CauseM]) & 
-                     (PrivilegeModeW == P.U_MODE | PrivilegeModeW == P.S_MODE);
+  assign DelegateM     = S_SUPPORTED & (InterruptM ? MIDELEG_REGW[CauseM] : MEDELEG_REGW[CauseM]) & 
+                     (PrivilegeModeW == U_MODE | PrivilegeModeW == S_MODE);
 
   ///////////////////////////////////////////
   // Trigger Traps 
@@ -111,13 +111,13 @@ module trap import cvw::*;  #(parameter cvw_t P) (
     // coverage on
     else if (BreakpointFaultM)         CauseM = 4'd3;
     else if (EcallFaultM)              CauseM = {2'b10, PrivilegeModeW};
-    else if (StoreAmoMisalignedFaultM & ~P.ZICCLSM_SUPPORTED) CauseM = 4'd6;  // misaligned faults are higher priority if they always are taken
-    else if (LoadMisalignedFaultM & ~P.ZICCLSM_SUPPORTED)     CauseM = 4'd4;
+    else if (StoreAmoMisalignedFaultM & ~ZICCLSM_SUPPORTED) CauseM = 4'd6;  // misaligned faults are higher priority if they always are taken
+    else if (LoadMisalignedFaultM & ~ZICCLSM_SUPPORTED)     CauseM = 4'd4;
     else if (StoreAmoPageFaultM)       CauseM = 4'd15;
     else if (LoadPageFaultM)           CauseM = 4'd13;
     else if (StoreAmoAccessFaultM)     CauseM = 4'd7;
     else if (LoadAccessFaultM)         CauseM = 4'd5;
-    else if (StoreAmoMisalignedFaultM & P.ZICCLSM_SUPPORTED) CauseM = 4'd6; // See priority in Privileged Spec 3.1.15
-    else if (LoadMisalignedFaultM & P.ZICCLSM_SUPPORTED)     CauseM = 4'd4;
+    else if (StoreAmoMisalignedFaultM & ZICCLSM_SUPPORTED) CauseM = 4'd6; // See priority in Privileged Spec 3.1.15
+    else if (LoadMisalignedFaultM & ZICCLSM_SUPPORTED)     CauseM = 4'd4;
     else                               CauseM = 4'd0;
 endmodule

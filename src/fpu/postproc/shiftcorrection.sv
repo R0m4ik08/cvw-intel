@@ -27,22 +27,22 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module shiftcorrection import cvw::*;  #(parameter cvw_t P) (
-  input logic  [P.NORMSHIFTSZ-1:0] Shifted,                // normalization shifter output
+module shiftcorrection import config_pkg::*;   (
+  input logic  [NORMSHIFTSZ-1:0] Shifted,                // normalization shifter output
   // divsqrt
   input logic                      DivOp,                  // is it a divsqrt operation
   input logic                      DivResSubnorm,          // is the divsqrt result subnormal
-  input logic  [P.NE+1:0]          DivUe,                  // the divsqrt result's exponent
+  input logic  [NE+1:0]          DivUe,                  // the divsqrt result's exponent
   input logic                      DivSubnormShiftPos,     // is the subnorm divider shift amount positive (ie not underflowed)
   //fma
   input logic                      FmaOp,                  // is it an fma operation
-  input logic  [P.NE+1:0]          NormSumExp,             // exponent of the normalized sum not taking into account Subnormal or zero results
+  input logic  [NE+1:0]          NormSumExp,             // exponent of the normalized sum not taking into account Subnormal or zero results
   input logic                      FmaPreResultSubnorm,    // is the result subnormal - calculated before LZA correction
   input logic                      FmaSZero,
   // output
-  output logic [P.NE+1:0]          FmaMe,                  // exponent of the normalized sum
-  output logic [P.NORMSHIFTSZ-1:0] Mf,                     // the shifted sum after correction
-  output logic [P.NE+1:0]          Ue                      // corrected exponent for divider
+  output logic [NE+1:0]          FmaMe,                  // exponent of the normalized sum
+  output logic [NORMSHIFTSZ-1:0] Mf,                     // the shifted sum after correction
+  output logic [NE+1:0]          Ue                      // corrected exponent for divider
 );
 
   logic                            ResSubnorm;             // is the result Subnormal
@@ -58,7 +58,7 @@ module shiftcorrection import cvw::*;  #(parameter cvw_t P) (
   // correct the shifting error caused by the LZA
   //  - the only possible mantissa for a plus two is all zeroes 
   //  - a one has to propagate all the way through a sum. so we can leave the bottom statement alone
-  assign LZAPlus1 = Shifted[P.NORMSHIFTSZ-1];
+  assign LZAPlus1 = Shifted[NORMSHIFTSZ-1];
 
   // correct the shifting of the divsqrt caused by producing a result in (0.5, 2) range
   // condition: if the msb is 1 or the exponent was one, but the shifted quotient was < 1 (Subnorm)
@@ -71,9 +71,9 @@ module shiftcorrection import cvw::*;  #(parameter cvw_t P) (
   // if the result of the divider was calculated to be subnormal, then the result was correctly normalized, so select the top shifted bits
   always_comb
     if (FmaOp | (DivOp & ~DivResSubnorm))  // one bit shift for FMA or divsqrt
-      if (RightShift)                      Mf = {Shifted[P.NORMSHIFTSZ-2:1], 2'b00};
-      else                                 Mf = {Shifted[P.NORMSHIFTSZ-3:0], 2'b00};
-    else                                   Mf =  Shifted[P.NORMSHIFTSZ-1:0];  // convert and subnormal division result
+      if (RightShift)                      Mf = {Shifted[NORMSHIFTSZ-2:1], 2'b00};
+      else                                 Mf = {Shifted[NORMSHIFTSZ-3:0], 2'b00};
+    else                                   Mf =  Shifted[NORMSHIFTSZ-1:0];  // convert and subnormal division result
     
   // Determine sum's exponent
   //  main exponent issues: 
@@ -83,13 +83,13 @@ module shiftcorrection import cvw::*;  #(parameter cvw_t P) (
   //      - if the result was calculated to be subnorm but it's norm and the LZA was off by 2
   //                          if plus1                    If plus2                               kill if the result Zero or actually subnormal
   //                          |                           |                                      |
-  assign FmaMe = (NormSumExp+{{P.NE+1{1'b0}}, LZAPlus1} +{{P.NE+1{1'b0}}, FmaPreResultSubnorm}) & {P.NE+2{~(FmaSZero|ResSubnorm)}};
+  assign FmaMe = (NormSumExp+{{NE+1{1'b0}}, LZAPlus1} +{{NE+1{1'b0}}, FmaPreResultSubnorm}) & {NE+2{~(FmaSZero|ResSubnorm)}};
   
   // recalculate if the result is subnormal after LZA correction
-  assign ResSubnorm = FmaPreResultSubnorm&~Shifted[P.NORMSHIFTSZ-2]&~Shifted[P.NORMSHIFTSZ-1];
+  assign ResSubnorm = FmaPreResultSubnorm&~Shifted[NORMSHIFTSZ-2]&~Shifted[NORMSHIFTSZ-1];
 
   // the quotient is in the range (.5,2) if there is no early termination
   // if the quotient < 1 and not Subnormal then subtract 1 to account for the normalization shift
-  assign Ue = (DivResSubnorm & DivSubnormShiftPos) ? 0 : DivUe - {(P.NE+1)'(0), ~LZAPlus1};
+  assign Ue = (DivResSubnorm & DivSubnormShiftPos) ? 0 : DivUe - {(NE+1)'(0), ~LZAPlus1};
 endmodule
 

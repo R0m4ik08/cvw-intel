@@ -33,7 +33,7 @@ module subwordwrite #(parameter LLEN) (
   input logic  [LLEN-1:0]   IMAFWriteDataM,
   output logic [LLEN-1:0]   LittleEndianWriteDataM
 );
-
+generate
   // Replicate data for subword writes
 
   if (LLEN == 128) begin:sww
@@ -62,4 +62,5 @@ module subwordwrite #(parameter LLEN) (
         default: LittleEndianWriteDataM = IMAFWriteDataM;            // shouldn't happen
       endcase
   end
+endgenerate
 endmodule

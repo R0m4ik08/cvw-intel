@@ -27,14 +27,14 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module fclassify import cvw::*;  #(parameter cvw_t P) (
+module fclassify import config_pkg::*;   (
   input  logic                Xs,         // sign bit
   input  logic                XNaN,       // is NaN
   input  logic                XSNaN,      // is signaling NaN
   input  logic                XSubnorm,   // is Subnormal
   input  logic                XZero,      // is zero
   input  logic                XInf,       // is infinity
-  output logic [P.XLEN-1:0]   ClassRes    // classify result
+  output logic [XLEN-1:0]   ClassRes    // classify result
 );
 
   logic PInf, PZero, PNorm, PSubnorm;     // is the input a positive infinity/zero/normal/subnormal
@@ -63,6 +63,6 @@ module fclassify import cvw::*;  #(parameter cvw_t P) (
   //  bit 7 - +Inf
   //  bit 8 - signaling NaN
   //  bit 9 - quiet NaN
-  assign ClassRes = {{P.XLEN-10{1'b0}}, XNaN&~XSNaN, XSNaN, PInf, PNorm, PSubnorm, PZero, NZero, NSubnorm, NNorm, NInf};
+  assign ClassRes = {{XLEN-10{1'b0}}, XNaN&~XSNaN, XSNaN, PInf, PNorm, PSubnorm, PZero, NZero, NSubnorm, NNorm, NInf};
 
 endmodule

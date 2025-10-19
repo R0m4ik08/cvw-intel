@@ -33,7 +33,7 @@ module or_rows #(parameter ROWS = 8, COLS=2) (
   ); 
 
   genvar row;
-
+generate
   if(ROWS == 1)
     assign y = a[0];
   else begin
@@ -41,9 +41,11 @@ module or_rows #(parameter ROWS = 8, COLS=2) (
     logic [COLS-1:0] mid[ROWS-1:1];
 
     assign mid[1] = a[0] | a[1];
-    for (row=2; row < ROWS; row++)
+    for (row=2; row < ROWS; row++) begin : nb_for1
       assign mid[row] = mid[row-1] | a[row];
+	 end
     assign y = mid[ROWS-1];
     /* verilator lint_on UNOPTFLAT */
   end
+ endgenerate
 endmodule

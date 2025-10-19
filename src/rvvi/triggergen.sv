@@ -27,7 +27,7 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module triggergen import cvw::*; (
+module triggergen import config_pkg::*; (
   input logic clk, reset,
   input logic [31:0] RvviAxiRdata,
   input logic [3:0] RvviAxiRstrb,

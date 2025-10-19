@@ -34,24 +34,24 @@
 //    001   less than
 //    011   less than or equal
 
-module fcmp import cvw::*;  #(parameter cvw_t P) (
-  input  logic [P.FMTBITS-1:0]   Fmt,           // format of fp number
+module fcmp import config_pkg::*;   (
+  input  logic [FMTBITS-1:0]   Fmt,           // format of fp number
   input  logic [2:0]             OpCtrl,        // see above table
   input  logic                   Zfa,           // Zfa variants: fminm, fmaxm, fleq, fltq
   input  logic                   Xs, Ys,        // input signs
-  input  logic [P.NE-1:0]        Xe, Ye,        // input exponents
-  input  logic [P.NF:0]          Xm, Ym,        // input mantissa
+  input  logic [NE-1:0]        Xe, Ye,        // input exponents
+  input  logic [NF:0]          Xm, Ym,        // input mantissa
   input  logic                   XZero, YZero,  // is zero
   input  logic                   XNaN, YNaN,    // is NaN
   input  logic                   XSNaN, YSNaN,  // is signaling NaN
-  input  logic [P.FLEN-1:0]      X, Y,          // original inputs (before unpacker)
+  input  logic [FLEN-1:0]      X, Y,          // original inputs (before unpacker)
   output logic                   CmpNV,         // invalid flag
-  output logic [P.FLEN-1:0]      CmpFpRes,      // compare floating-point result
-  output logic [P.XLEN-1:0]      CmpIntRes      // compare integer result
+  output logic [FLEN-1:0]      CmpFpRes,      // compare floating-point result
+  output logic [XLEN-1:0]      CmpIntRes      // compare integer result
 );
-
+generate
   logic LTabs, LT, EQ;          // is X < or > or = Y
-  logic [P.FLEN-1:0] NaNRes;    // NaN result
+  logic [FLEN-1:0] NaNRes;    // NaN result
   logic BothZero;               // are both inputs zero
   logic EitherNaN, EitherSNaN;  // are either input a (signaling) NaN
   
@@ -72,7 +72,7 @@ module fcmp import cvw::*;  #(parameter cvw_t P) (
         3'b110: CmpNV = EitherSNaN; //min 
         3'b101: CmpNV = EitherSNaN; //max
         3'b010: CmpNV = EitherSNaN; //equal
-        3'b0?1: if (P.ZFA_SUPPORTED) 
+        3'b0?1: if (ZFA_SUPPORTED) 
                   CmpNV = Zfa ? EitherSNaN : EitherNaN; // fltq,fleq / flt,fle perform CompareQuietLess / CompareSignalingLess differing on when to set invalid
                 else CmpNV = EitherNaN;                 // flt, fle
         3'b100: CmpNV = 1'b0;
@@ -85,44 +85,44 @@ module fcmp import cvw::*;  #(parameter cvw_t P) (
   // for RISC-V, return the canonical NaN
 
   // select the NaN result
-  if (P.FPSIZES == 1)
-    if(P.IEEE754) assign NaNRes = {Xs, {P.NE{1'b1}}, 1'b1, Xm[P.NF-2:0]};
-    else          assign NaNRes = {1'b0, {P.NE{1'b1}}, 1'b1, {P.NF-1{1'b0}}};
+  if (FPSIZES == 1)
+    if(IEEE754) assign NaNRes = {Xs, {NE{1'b1}}, 1'b1, Xm[NF-2:0]};
+    else          assign NaNRes = {1'b0, {NE{1'b1}}, 1'b1, {NF-1{1'b0}}};
 
-  else if (P.FPSIZES == 2) 
-    if(P.IEEE754) assign NaNRes = Fmt ? {Xs, {P.NE{1'b1}}, 1'b1, Xm[P.NF-2:0]} : {{P.FLEN-P.LEN1{1'b1}}, Xs, {P.NE1{1'b1}}, 1'b1, Xm[P.NF-2:P.NF-P.NF1]};
-    else          assign NaNRes = Fmt ? {1'b0, {P.NE{1'b1}}, 1'b1, {P.NF-1{1'b0}}} : {{P.FLEN-P.LEN1{1'b1}}, 1'b0, {P.NE1{1'b1}}, 1'b1, (P.NF1-1)'(0)};
+  else if (FPSIZES == 2) 
+    if(IEEE754) assign NaNRes = Fmt ? {Xs, {NE{1'b1}}, 1'b1, Xm[NF-2:0]} : {{FLEN-LEN1{1'b1}}, Xs, {NE1{1'b1}}, 1'b1, Xm[NF-2:NF-NF1]};
+    else          assign NaNRes = Fmt ? {1'b0, {NE{1'b1}}, 1'b1, {NF-1{1'b0}}} : {{FLEN-LEN1{1'b1}}, 1'b0, {NE1{1'b1}}, 1'b1, (NF1-1)'(0)};
   
-  else if (P.FPSIZES == 3)
+  else if (FPSIZES == 3)
     always_comb
           case (Fmt)
-              P.FMT:  
-                if(P.IEEE754) NaNRes = {Xs, {P.NE{1'b1}}, 1'b1, Xm[P.NF-2:0]};
-                else         NaNRes = {1'b0, {P.NE{1'b1}}, 1'b1, {P.NF-1{1'b0}}};
-              P.FMT1:
-                if(P.IEEE754) NaNRes = {{P.FLEN-P.LEN1{1'b1}}, Xs, {P.NE1{1'b1}}, 1'b1, Xm[P.NF-2:P.NF-P.NF1]};
-                else         NaNRes = {{P.FLEN-P.LEN1{1'b1}}, 1'b0, {P.NE1{1'b1}}, 1'b1, (P.NF1-1)'(0)};
-              P.FMT2:
-                if(P.IEEE754) NaNRes = {{P.FLEN-P.LEN2{1'b1}}, Xs, {P.NE2{1'b1}}, 1'b1, Xm[P.NF-2:P.NF-P.NF2]};
-                else         NaNRes = {{P.FLEN-P.LEN2{1'b1}}, 1'b0, {P.NE2{1'b1}}, 1'b1, (P.NF2-1)'(0)};
-              default:        NaNRes = {P.FLEN{1'bx}};
+              FMT:  
+                if(IEEE754) NaNRes = {Xs, {NE{1'b1}}, 1'b1, Xm[NF-2:0]};
+                else         NaNRes = {1'b0, {NE{1'b1}}, 1'b1, {NF-1{1'b0}}};
+              FMT1:
+                if(IEEE754) NaNRes = {{FLEN-LEN1{1'b1}}, Xs, {NE1{1'b1}}, 1'b1, Xm[NF-2:NF-NF1]};
+                else         NaNRes = {{FLEN-LEN1{1'b1}}, 1'b0, {NE1{1'b1}}, 1'b1, (NF1-1)'(0)};
+              FMT2:
+                if(IEEE754) NaNRes = {{FLEN-LEN2{1'b1}}, Xs, {NE2{1'b1}}, 1'b1, Xm[NF-2:NF-NF2]};
+                else         NaNRes = {{FLEN-LEN2{1'b1}}, 1'b0, {NE2{1'b1}}, 1'b1, (NF2-1)'(0)};
+              default:        NaNRes = {FLEN{1'bx}};
           endcase
 
-  else if (P.FPSIZES == 4)
+  else if (FPSIZES == 4)
     always_comb
           case (Fmt)
               2'h3:  
-                if(P.IEEE754) NaNRes = {Xs, {P.NE{1'b1}}, 1'b1, Xm[P.NF-2:0]};
-                else         NaNRes = {1'b0, {P.NE{1'b1}}, 1'b1, {P.NF-1{1'b0}}};
+                if(IEEE754) NaNRes = {Xs, {NE{1'b1}}, 1'b1, Xm[NF-2:0]};
+                else         NaNRes = {1'b0, {NE{1'b1}}, 1'b1, {NF-1{1'b0}}};
               2'h1:  
-                if(P.IEEE754) NaNRes = {{P.FLEN-P.D_LEN{1'b1}}, Xs, {P.D_NE{1'b1}}, 1'b1, Xm[P.NF-2:P.NF-P.D_NF]};
-                else         NaNRes = {{P.FLEN-P.D_LEN{1'b1}}, 1'b0, {P.D_NE{1'b1}}, 1'b1, (P.D_NF-1)'(0)};
+                if(IEEE754) NaNRes = {{FLEN-D_LEN{1'b1}}, Xs, {D_NE{1'b1}}, 1'b1, Xm[NF-2:NF-D_NF]};
+                else         NaNRes = {{FLEN-D_LEN{1'b1}}, 1'b0, {D_NE{1'b1}}, 1'b1, (D_NF-1)'(0)};
               2'h0: 
-                if(P.IEEE754) NaNRes = {{P.FLEN-P.S_LEN{1'b1}}, Xs, {P.S_NE{1'b1}}, 1'b1, Xm[P.NF-2:P.NF-P.S_NF]};
-                else         NaNRes = {{P.FLEN-P.S_LEN{1'b1}}, 1'b0, {P.S_NE{1'b1}}, 1'b1, (P.S_NF-1)'(0)};
+                if(IEEE754) NaNRes = {{FLEN-S_LEN{1'b1}}, Xs, {S_NE{1'b1}}, 1'b1, Xm[NF-2:NF-S_NF]};
+                else         NaNRes = {{FLEN-S_LEN{1'b1}}, 1'b0, {S_NE{1'b1}}, 1'b1, (S_NF-1)'(0)};
               2'h2:
-                if(P.IEEE754) NaNRes = {{P.FLEN-P.H_LEN{1'b1}}, Xs, {P.H_NE{1'b1}}, 1'b1, Xm[P.NF-2:P.NF-P.H_NF]};
-                else         NaNRes = {{P.FLEN-P.H_LEN{1'b1}}, 1'b0, {P.H_NE{1'b1}}, 1'b1, (P.H_NF-1)'(0)};
+                if(IEEE754) NaNRes = {{FLEN-H_LEN{1'b1}}, Xs, {H_NE{1'b1}}, 1'b1, Xm[NF-2:NF-H_NF]};
+                else         NaNRes = {{FLEN-H_LEN{1'b1}}, 1'b0, {H_NE{1'b1}}, 1'b1, (H_NF-1)'(0)};
           endcase
 
   // Min/Max
@@ -132,7 +132,7 @@ module fcmp import cvw::*;  #(parameter cvw_t P) (
   //    - if one is a NaN output the non-NaN
   always_comb
     if(OpCtrl[0]) // MAX
-        if (Zfa & P.ZFA_SUPPORTED) // fmaxm perform IEEE754 maxNum that produce NaN if either input is NaN
+        if (Zfa & ZFA_SUPPORTED) // fmaxm perform IEEE754 maxNum that produce NaN if either input is NaN
           if (XNaN | YNaN) CmpFpRes = NaNRes; // either input is NaN
           else
             if (LT) CmpFpRes = Y; // X < Y
@@ -147,7 +147,7 @@ module fcmp import cvw::*;  #(parameter cvw_t P) (
                 if(LT)  CmpFpRes = Y;        // X < Y
                 else    CmpFpRes = X;        // X > Y
     else  // MIN
-        if (Zfa & P.ZFA_SUPPORTED) // fminm perform IEEE754 minNum that produce NaN if either input is NaN
+        if (Zfa & ZFA_SUPPORTED) // fminm perform IEEE754 minNum that produce NaN if either input is NaN
           if (XNaN | YNaN) CmpFpRes = NaNRes; // either input is NaN
           else
             if (LT) CmpFpRes = X; // X < Y
@@ -166,5 +166,6 @@ module fcmp import cvw::*;  #(parameter cvw_t P) (
   //    - -0 = 0
   //    - inf = inf and -inf = -inf
   //    - return 0 if comparison with NaN (unordered)
-  assign CmpIntRes = {(P.XLEN-1)'(0), (((EQ|BothZero)&OpCtrl[1])|(LT&OpCtrl[0]&~BothZero))&~EitherNaN};
+  assign CmpIntRes = {(XLEN-1)'(0), (((EQ|BothZero)&OpCtrl[1])|(LT&OpCtrl[0]&~BothZero))&~EitherNaN};
+endgenerate
 endmodule

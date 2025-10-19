@@ -71,10 +71,10 @@
     //      | Nf 0's |           Qm           | << calculated shift amount
     //        .
 
-module normshift import cvw::*;  #(parameter cvw_t P) (
-  input  logic [P.LOGNORMSHIFTSZ-1:0]  ShiftAmt,   // shift amount
-  input  logic [P.NORMSHIFTSZ-1:0]     ShiftIn,    // number to be shifted
-  output logic [P.NORMSHIFTSZ-1:0]     Shifted     // shifted result
+module normshift import config_pkg::*;   (
+  input  logic [LOGNORMSHIFTSZ-1:0]  ShiftAmt,   // shift amount
+  input  logic [NORMSHIFTSZ-1:0]     ShiftIn,    // number to be shifted
+  output logic [NORMSHIFTSZ-1:0]     Shifted     // shifted result
 );
    
   assign Shifted = ShiftIn << ShiftAmt;

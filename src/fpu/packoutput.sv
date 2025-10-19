@@ -28,76 +28,77 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module packoutput import cvw::*;  #(parameter cvw_t P) (
-  input  logic [P.FLEN-1:0]       Unpacked,
-  input  logic [P.FMTBITS-1:0]    Fmt,
-  output logic [P.FLEN-1:0]       Packed
+module packoutput import config_pkg::*;   (
+  input  logic [FLEN-1:0]       Unpacked,
+  input  logic [FMTBITS-1:0]    Fmt,
+  output logic [FLEN-1:0]       Packed
 );
-
+generate
   logic             Sign; 
-  logic [P.NE1-1:0] Exp1;
-  logic [P.NF1-1:0] Fract1;
-  logic [P.NE2-1:0] Exp2;
-  logic [P.NF2-1:0] Fract2;
-  logic [P.H_NE-1:0] Exp3;
-  logic [P.H_NF-1:0] Fract3;
+  logic [NE1-1:0] Exp1;
+  logic [NF1-1:0] Fract1;
+  logic [NE2-1:0] Exp2;
+  logic [NF2-1:0] Fract2;
+  logic [H_NE-1:0] Exp3;
+  logic [H_NF-1:0] Fract3;
 
   // Pack exponent and fraction, with NaN-boxing to full FLEN
 
-  assign Sign = Unpacked[P.FLEN-1];
-  if (P.FPSIZES == 1) begin
+  assign Sign = Unpacked[FLEN-1];
+  if (FPSIZES == 1) begin
     assign Packed = Unpacked;
-  end else if (P.FPSIZES == 2) begin
+  end else if (FPSIZES == 2) begin
     always_comb begin
       {Exp1, Fract1} = '0; // default if not used, to prevent latch
       case (Fmt)
         1'b1: Packed = Unpacked;
         1'b0: begin
-                Exp1 = {Unpacked[P.FLEN-2], Unpacked[P.NF+P.NE1-2:P.NF]};
-                Fract1 = Unpacked[P.NF-1:P.NF-P.NF1];
-                Packed = {{(P.FLEN-P.LEN1){1'b1}}, Sign, Exp1, Fract1}; 
+                Exp1 = {Unpacked[FLEN-2], Unpacked[NF+NE1-2:NF]};
+                Fract1 = Unpacked[NF-1:NF-NF1];
+                Packed = {{(FLEN-LEN1){1'b1}}, Sign, Exp1, Fract1}; 
               end
       endcase
     end
-  end else if (P.FPSIZES == 3) begin
+  end else if (FPSIZES == 3) begin
     always_comb begin
       {Exp1, Fract1, Exp2, Fract2} = '0; // default if not used, to prevent latch
       case (Fmt)
-        P.FMT: Packed = Unpacked;
-        P.FMT1: begin
-                Exp1 = {Unpacked[P.FLEN-2], Unpacked[P.NF+P.NE1-2:P.NF]};
-                Fract1 = Unpacked[P.NF-1:P.NF-P.NF1];
-                Packed = {{(P.FLEN-P.LEN1){1'b1}}, Sign, Exp1, Fract1}; 
+        FMT: Packed = Unpacked;
+        FMT1: begin
+                Exp1 = {Unpacked[FLEN-2], Unpacked[NF+NE1-2:NF]};
+                Fract1 = Unpacked[NF-1:NF-NF1];
+                Packed = {{(FLEN-LEN1){1'b1}}, Sign, Exp1, Fract1}; 
               end
-        P.FMT2: begin
-                Exp2 = {Unpacked[P.FLEN-2], Unpacked[P.NF+P.NE2-2:P.NF]};
-                Fract2 = Unpacked[P.NF-1:P.NF-P.NF2];
-                Packed = {{(P.FLEN-P.LEN2){1'b1}}, Sign, Exp2, Fract2}; 
+        FMT2: begin
+                Exp2 = {Unpacked[FLEN-2], Unpacked[NF+NE2-2:NF]};
+                Fract2 = Unpacked[NF-1:NF-NF2];
+                Packed = {{(FLEN-LEN2){1'b1}}, Sign, Exp2, Fract2}; 
               end
         default: Packed = 'x;
       endcase
     end
-  end else if (P.FPSIZES == 4) begin        
+  end else if (FPSIZES == 4) begin        
     always_comb begin
       {Exp1, Fract1, Exp2, Fract2, Exp3, Fract3} = '0; // default if not used, to prevent latch
       case (Fmt)
         2'h3: Packed = Unpacked;  // Quad
         2'h1: begin // double
-                Exp1 = {Unpacked[P.FLEN-2], Unpacked[P.NF+P.NE1-2:P.NF]};
-                Fract1 = Unpacked[P.NF-1:P.NF-P.NF1];
-                Packed = {{(P.FLEN-P.LEN1){1'b1}}, Sign, Exp1, Fract1}; 
+                Exp1 = {Unpacked[FLEN-2], Unpacked[NF+NE1-2:NF]};
+                Fract1 = Unpacked[NF-1:NF-NF1];
+                Packed = {{(FLEN-LEN1){1'b1}}, Sign, Exp1, Fract1}; 
               end
         2'h0: begin // float
-                Exp2 = {Unpacked[P.FLEN-2], Unpacked[P.NF+P.NE2-2:P.NF]};
-                Fract2 = Unpacked[P.NF-1:P.NF-P.NF2];
-                Packed = {{(P.FLEN-P.LEN2){1'b1}}, Sign, Exp2, Fract2}; 
+                Exp2 = {Unpacked[FLEN-2], Unpacked[NF+NE2-2:NF]};
+                Fract2 = Unpacked[NF-1:NF-NF2];
+                Packed = {{(FLEN-LEN2){1'b1}}, Sign, Exp2, Fract2}; 
               end
         2'h2: begin // half
-                Exp3 = {Unpacked[P.FLEN-2], Unpacked[P.NF+P.H_NE-2:P.NF]};
-                Fract3 = Unpacked[P.NF-1:P.NF-P.H_NF];
-                Packed = {{(P.FLEN-P.H_LEN){1'b1}}, Sign, Exp3, Fract3}; 
+                Exp3 = {Unpacked[FLEN-2], Unpacked[NF+H_NE-2:NF]};
+                Fract3 = Unpacked[NF-1:NF-H_NF];
+                Packed = {{(FLEN-H_LEN){1'b1}}, Sign, Exp3, Fract3}; 
               end
       endcase
     end
   end
+endgenerate
 endmodule

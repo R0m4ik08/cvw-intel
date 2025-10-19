@@ -27,28 +27,28 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module fround import cvw::*;  #(parameter cvw_t P) (
+module fround import config_pkg::*;   (
   input  logic                    Xs,           // input's sign
-  input  logic [P.NE-1:0]         Xe,           // input's exponent
-  input  logic [P.NF:0]           Xm,           // input's fraction with leading integer bit (U1.NF)
+  input  logic [NE-1:0]         Xe,           // input's exponent
+  input  logic [NF:0]           Xm,           // input's fraction with leading integer bit (U1.NF)
   input  logic                    XNaN,         // X is NaN
   input  logic                    XSNaN,        // X is Signalling NaN
-  input  logic [P.FMTBITS-1:0]    Fmt,          // the input's precision (11=quad 01=double 00=single 10=half)
+  input  logic [FMTBITS-1:0]    Fmt,          // the input's precision (11=quad 01=double 00=single 10=half)
   input  logic [2:0]              Frm,          // rounding mode
-  input  logic [P.LOGFLEN-1:0]    Nf,           // Number of fractional bits in selected format
+  input  logic [LOGFLEN-1:0]    Nf,           // Number of fractional bits in selected format
   input  logic                    ZfaFRoundNX,  // froundnx instruction can set inexact flag
-  output logic [P.FLEN-1:0]       FRound,       // Rounded result
+  output logic [FLEN-1:0]       FRound,       // Rounded result
   output logic                    FRoundNV,     // fround invalid
   output logic                    FRoundNX      // fround inexact
 );
 
-  logic [P.NE-1:0] E, Xep1;
-  logic [P.NF:0] IMask, Tmasknonneg, Tmaskneg, Tmask, HotE, HotEP1, Trunc, Rnd;
-  logic [P.FLEN-1:0] W;
+  logic [NE-1:0] E, Xep1;
+  logic [NF:0] IMask, Tmasknonneg, Tmaskneg, Tmask, HotE, HotEP1, Trunc, Rnd;
+  logic [FLEN-1:0] W;
   logic Elt0, Eeqm1, Lnonneg, Lp, Rnonneg, Rp, Tp, RoundUp, Two, EgeNf;
 
   // Unbiased exponent
-  assign E = Xe - P.BIAS[P.NE-1:0];
+  assign E = Xe - BIAS[NE-1:0];
   assign Xep1 = Xe + 1'b1;
 
   //////////////////////////////////////////
@@ -72,11 +72,11 @@ module fround import cvw::*;  #(parameter cvw_t P) (
   //////////////////////////////////////////
 
   // Check if exponent is negative and -1
-  assign Elt0 = E[P.NE-1]; // (E < 0);
+  assign Elt0 = E[NE-1]; // (E < 0);
   assign Eeqm1 = ($signed(E) == -1);
 
   // Logic for nonnegative mask and rounding bits
-  assign IMask = $signed({1'b1, {P.NF{1'b0}}}) >>> E; /// if E > Nf, this produces all 0s instead of all 1s.  Hence exact handling is needed below.
+  assign IMask = $signed({1'b1, {NF{1'b0}}}) >>> E; /// if E > Nf, this produces all 0s instead of all 1s.  Hence exact handling is needed below.
   assign Tmasknonneg = ~IMask >>> 1'b1;
   assign HotE = IMask & ~(IMask << 1'b1);
   assign HotEP1 = HotE >> 1'b1;
@@ -88,8 +88,8 @@ module fround import cvw::*;  #(parameter cvw_t P) (
   // mux and AND-OR logic to select final rounding bits
   mux2 #(1) Lmux(Lnonneg, 1'b0, Elt0, Lp);
   mux2 #(1) Rmux(Rnonneg, Eeqm1, Elt0, Rp);
-  assign Tmaskneg = {~Eeqm1, {P.NF{1'b1}}}; // 1.11111 or 0.11111
-  mux2 #(P.NF+1) Tmaskmux(Tmasknonneg, Tmaskneg, Elt0, Tmask);
+  assign Tmaskneg = {~Eeqm1, {NF{1'b1}}}; // 1.11111 or 0.11111
+  mux2 #(NF+1) Tmaskmux(Tmasknonneg, Tmaskneg, Elt0, Tmask);
   assign Tp = |(Xm & Tmask);
 
   ///////////////////////////
@@ -116,7 +116,7 @@ module fround import cvw::*;  #(parameter cvw_t P) (
 
   // Exact logic
   /* verilator lint_off WIDTHEXPAND */
-  assign EgeNf = (E >= Nf) & Xe[P.NE-1]; // Check if E >= Nf.  Also check that Xe is positive to avoid wraparound problems
+  assign EgeNf = (E >= Nf) & Xe[NE-1]; // Check if E >= Nf.  Also check that Xe is positive to avoid wraparound problems
   /* verilator lint_on WIDTHEXPAND */
 
   // Rounding logic: determine whether to round up in magnitude
@@ -131,19 +131,19 @@ module fround import cvw::*;  #(parameter cvw_t P) (
     endcase
 
     // If result is not exact, select output in unpacked FLEN format initially
-    if (XNaN)            W = {1'b0, {P.NE{1'b1}}, 1'b1, {(P.NF-1){1'b0}}};  // Canonical NaN
-    else if (EgeNf)      W = {Xs, Xe, Xm[P.NF-1:0]};                        // Exact, no rounding needed
+    if (XNaN)            W = {1'b0, {NE{1'b1}}, 1'b1, {(NF-1){1'b0}}};  // Canonical NaN
+    else if (EgeNf)      W = {Xs, Xe, Xm[NF-1:0]};                        // Exact, no rounding needed
     else if (Elt0)                                                          // 0 <= |X| < 1 rounds to 0 or 1
-      if (RoundUp)       W = {Xs, P.BIAS[P.NE-1:0], {P.NF{1'b0}}};          //   round to +/- 1
-      else               W = {Xs, {(P.FLEN-1){1'b0}}};                      //   round to +/- 0
+      if (RoundUp)       W = {Xs, BIAS[NE-1:0], {NF{1'b0}}};          //   round to +/- 1
+      else               W = {Xs, {(FLEN-1){1'b0}}};                      //   round to +/- 0
     else begin                                                              // |X| >= 1 rounds to an integer
-      if (RoundUp & Two) W = {Xs, Xep1, {(P.NF){1'b0}}};                    //   Round up to 2.0
-      else if (RoundUp)  W = {Xs, Xe, Rnd[P.NF-1:0]};                       //   Round up to Rnd
-      else               W = {Xs, Xe, Trunc[P.NF-1:0]};                     //   Round down to Trunc
+      if (RoundUp & Two) W = {Xs, Xep1, {(NF){1'b0}}};                    //   Round up to 2.0
+      else if (RoundUp)  W = {Xs, Xe, Rnd[NF-1:0]};                       //   Round up to Rnd
+      else               W = {Xs, Xe, Trunc[NF-1:0]};                     //   Round down to Trunc
     end
   end
 
-  packoutput #(P) packoutput(W, Fmt, FRound); // pack and NaN-box based on selected format.
+  packoutput  packoutput(W, Fmt, FRound); // pack and NaN-box based on selected format.
 
   // Flags
   assign FRoundNV = XSNaN;                                       // invalid if input is signaling NaN

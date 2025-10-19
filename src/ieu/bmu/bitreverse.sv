@@ -31,11 +31,12 @@
 module bitreverse #(parameter WIDTH=32) (
   input  logic [WIDTH-1:0] A,
   output logic [WIDTH-1:0] RevA);
-
+generate
   genvar i;
   for (i=0; i<WIDTH;i++) begin:loop
     assign RevA[WIDTH-i-1] = A[i];
   end
+endgenerate
 endmodule
 
 

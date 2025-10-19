@@ -27,10 +27,10 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module mmu import cvw::*;  #(parameter cvw_t P,
+module mmu import config_pkg::*;  #(
                              parameter TLB_ENTRIES = 8, IMMU = 0) (
   input  logic                 clk, reset,
-  input  logic [P.XLEN-1:0]    SATP_REGW,          // Current value of satp CSR (from privileged unit)
+  input  logic [XLEN-1:0]    SATP_REGW,          // Current value of satp CSR (from privileged unit)
   input  logic                 STATUS_MXR,         // Status CSR: make executable page readable
   input  logic                 STATUS_SUM,         // Status CSR: Supervisor access to user memory
   input  logic                 STATUS_MPRV,        // Status CSR: modify machine privilege
@@ -39,13 +39,13 @@ module mmu import cvw::*;  #(parameter cvw_t P,
   input  logic                 ENVCFG_ADUE,        // HPTW A/D Update enable
   input  logic [1:0]           PrivilegeModeW,     // Current privilege level of the processeor
   input  logic                 DisableTranslation, // virtual address translation disabled during D$ flush and HPTW walk that use physical addresses
-  input  logic [P.XLEN+1:0]    VAdr,               // virtual/physical address from IEU or physical address from HPTW
+  input  logic [XLEN+1:0]    VAdr,               // virtual/physical address from IEU or physical address from HPTW
   input  logic [1:0]           Size,               // access size: 00 = 8 bits, 01 = 16 bits, 10 = 32 bits , 11 = 64 bits
-  input  logic [P.XLEN-1:0]    PTE,                // page table entry
+  input  logic [XLEN-1:0]    PTE,                // page table entry
   input  logic [1:0]           PageTypeWriteVal,   // page type
   input  logic                 TLBWrite,           // write TLB entry
   input  logic                 TLBFlush,           // Invalidate all TLB entries
-  output logic [P.PA_BITS-1:0] PhysicalAddress,    // PAdr when no translation, or translated VAdr (TLBPAdr) when there is translation
+  output logic [PA_BITS-1:0] PhysicalAddress,    // PAdr when no translation, or translated VAdr (TLBPAdr) when there is translation
   output logic                 TLBMiss,            // Miss TLB
   output logic                 Cacheable,          // PMA indicates memory address is cacheable
   output logic                 Idempotent,         // PMA indicates memory address is idempotent
@@ -58,11 +58,11 @@ module mmu import cvw::*;  #(parameter cvw_t P,
   // PMA checker signals
   input  logic [3:0]           CMOpM,                                                     // Cache management instructions
   input  logic                 AtomicAccessM, ExecuteAccessF, WriteAccessM, ReadAccessM,  // access type
-  input var logic [7:0]        PMPCFG_ARRAY_REGW[P.PMP_ENTRIES-1:0],                      // PMP configuration
-  input var logic [P.PA_BITS-3:0] PMPADDR_ARRAY_REGW[P.PMP_ENTRIES-1:0]                   // PMP addresses
+  input var logic [7:0]        PMPCFG_ARRAY_REGW[PMP_ENTRIES-1:0],                      // PMP configuration
+  input var logic [PA_BITS-3:0] PMPADDR_ARRAY_REGW[PMP_ENTRIES-1:0]                   // PMP addresses
 );
-
-  logic [P.PA_BITS-1:0]        TLBPAdr;                  // physical address for TLB                   
+generate
+  logic [PA_BITS-1:0]        TLBPAdr;                  // physical address for TLB                   
   logic                        PMAInstrAccessFaultF;     // Instruction access fault from PMA
   logic                        PMPInstrAccessFaultF;     // Instruction access fault from PMP
   logic                        PMALoadAccessFaultM;      // Load access fault from PMA
@@ -83,15 +83,15 @@ module mmu import cvw::*;  #(parameter cvw_t P,
   assign EffectivePrivilegeModeW = IMMU ? PrivilegeModeW : (STATUS_MPRV ? STATUS_MPP : PrivilegeModeW);
 
   // only instantiate TLB if Virtual Memory is supported
-  if (P.VIRTMEM_SUPPORTED) begin:tlb
+  if (VIRTMEM_SUPPORTED) begin:tlb
     logic ReadAccess, WriteAccess;
     assign ReadAccess = ExecuteAccessF | ReadAccessM; // execute also acts as a TLB read.  Execute and Read are never active for the same MMU, so safe to mix pipestages
     assign WriteAccess = WriteAccessM;
-    tlb #(.P(P), .TLB_ENTRIES(TLB_ENTRIES), .ITLB(IMMU)) tlb(
+    tlb #( .TLB_ENTRIES(TLB_ENTRIES), .ITLB(IMMU)) tlb(
           .clk, .reset,
-          .SATP_MODE(SATP_REGW[P.XLEN-1:P.XLEN-P.SVMODE_BITS]),
-          .SATP_ASID(SATP_REGW[P.ASID_BASE+P.ASID_BITS-1:P.ASID_BASE]),
-          .VAdr(VAdr[P.XLEN-1:0]), .STATUS_MXR, .STATUS_SUM, .STATUS_MPRV, .STATUS_MPP, .ENVCFG_PBMTE, .ENVCFG_ADUE,
+          .SATP_MODE(SATP_REGW[XLEN-1:XLEN-SVMODE_BITS]),
+          .SATP_ASID(SATP_REGW[ASID_BASE+ASID_BITS-1:ASID_BASE]),
+          .VAdr(VAdr[XLEN-1:0]), .STATUS_MXR, .STATUS_SUM, .STATUS_MPRV, .STATUS_MPP, .ENVCFG_PBMTE, .ENVCFG_ADUE,
           .EffectivePrivilegeModeW, .ReadAccess, .WriteAccess, .CMOpM,
           .DisableTranslation, .PTE, .PageTypeWriteVal,
           .TLBWrite, .TLBFlush, .TLBPAdr, .TLBMiss,
@@ -108,20 +108,20 @@ module mmu import cvw::*;  #(parameter cvw_t P,
   // If translation is occurring, select translated physical address from TLB
   // the lower 12 bits are the page offset. These are never changed from the original
   // non translated address.
-  mux2 #(P.PA_BITS-12) addressmux(VAdr[P.PA_BITS-1:12], TLBPAdr[P.PA_BITS-1:12], Translate, PhysicalAddress[P.PA_BITS-1:12]);
+  mux2 #(PA_BITS-12) addressmux(VAdr[PA_BITS-1:12], TLBPAdr[PA_BITS-1:12], Translate, PhysicalAddress[PA_BITS-1:12]);
   assign PhysicalAddress[11:0] = VAdr[11:0];
   
   ///////////////////////////////////////////
   // Check physical memory accesses
   ///////////////////////////////////////////
 
-  pmachecker #(P) pmachecker(.PhysicalAddress, .Size, .CMOpM, 
+  pmachecker pmachecker(.PhysicalAddress, .Size, .CMOpM, 
     .AtomicAccessM, .ExecuteAccessF, .WriteAccessM, .ReadAccessM, .PBMemoryType,
     .Cacheable, .Idempotent, .SelTIM, 
     .PMAInstrAccessFaultF, .PMALoadAccessFaultM, .PMAStoreAmoAccessFaultM);
  
-  if (P.PMP_ENTRIES > 0) begin : pmp
-    pmpchecker #(P) pmpchecker(.PhysicalAddress, .EffectivePrivilegeModeW,
+  if (PMP_ENTRIES > 0) begin : pmp
+    pmpchecker pmpchecker(.PhysicalAddress, .EffectivePrivilegeModeW,
       .PMPCFG_ARRAY_REGW, .PMPADDR_ARRAY_REGW,
       .ExecuteAccessF, .WriteAccessM, .ReadAccessM, .Size, .CMOpM, 
       .PMPInstrAccessFaultF, .PMPLoadAccessFaultM, .PMPStoreAmoAccessFaultM);
@@ -142,12 +142,12 @@ module mmu import cvw::*;  #(parameter cvw_t P,
       2'b11:  DataMisalignedM = |VAdr[2:0];        // ld, sd, fld, fsd
     endcase 
   // When ZiCCLSM_SUPPORTED, misalgined cacheable loads and stores are handled in hardware so they do not throw a misaligned fault
-  assign LoadMisalignedFaultM     = DataMisalignedM & ReadNoAmoAccessM & ~(P.ZICCLSM_SUPPORTED & Cacheable) & ~TLBMiss; 
-  assign StoreAmoMisalignedFaultM = DataMisalignedM & WriteAccessM & ~(P.ZICCLSM_SUPPORTED & Cacheable) & ~TLBMiss; // Store and AMO both assert WriteAccess
+  assign LoadMisalignedFaultM     = DataMisalignedM & ReadNoAmoAccessM & ~(ZICCLSM_SUPPORTED & Cacheable) & ~TLBMiss; 
+  assign StoreAmoMisalignedFaultM = DataMisalignedM & WriteAccessM & ~(ZICCLSM_SUPPORTED & Cacheable) & ~TLBMiss; // Store and AMO both assert WriteAccess
 
   // a misaligned Atomic causes an access fault rather than a misaligned fault if a misaligned load/store is handled in hardware
   // this is subtle - see privileged spec 3.6.3.3
-  assign AtomicMisalignedCausesAccessFaultM = DataMisalignedM & AtomicAccessM & (P.ZICCLSM_SUPPORTED & Cacheable);
+  assign AtomicMisalignedCausesAccessFaultM = DataMisalignedM & AtomicAccessM & (ZICCLSM_SUPPORTED & Cacheable);
 
   // Access faults
   // If TLB miss and translating we want to not have faults from the PMA and PMP checkers.
@@ -159,4 +159,5 @@ module mmu import cvw::*;  #(parameter cvw_t P,
   assign InstrPageFaultF    = TLBPageFault & ExecuteAccessF;
   assign LoadPageFaultM     = TLBPageFault & ReadNoAmoAccessM; 
   assign StoreAmoPageFaultM = TLBPageFault & (WriteAccessM | (|CMOpM));
+endgenerate
 endmodule

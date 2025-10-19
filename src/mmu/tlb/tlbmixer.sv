@@ -30,23 +30,23 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module tlbmixer import cvw::*;  #(parameter cvw_t P) (
-  input  logic [P.VPN_BITS-1:0] VPN,
-  input  logic [P.PPN_BITS-1:0] PPN,
+module tlbmixer import config_pkg::*;   (
+  input  logic [VPN_BITS-1:0] VPN,
+  input  logic [PPN_BITS-1:0] PPN,
   input  logic [1:0]            HitPageType,
   input  logic [11:0]           Offset,
   input  logic                  TLBHit,
   input  logic                  PTE_N,         // NAPOT page table entry
-  output logic [P.PA_BITS-1:0]  TLBPAdr
+  output logic [PA_BITS-1:0]  TLBPAdr
 );
-
-  localparam EXTRA_BITS = P.PPN_BITS - P.VPN_BITS;
-  logic [P.PPN_BITS-1:0] ZeroExtendedVPN;
-  logic [P.PPN_BITS-1:0] PageNumberMask;
-  logic [P.PPN_BITS-1:0] PPNMixed, PPNMixed2;
+generate
+  localparam EXTRA_BITS = PPN_BITS - VPN_BITS;
+  logic [PPN_BITS-1:0] ZeroExtendedVPN;
+  logic [PPN_BITS-1:0] PageNumberMask;
+  logic [PPN_BITS-1:0] PPNMixed, PPNMixed2;
 
   // produce PageNumberMask with 1s where virtual page number bits should be untranslaetd for superpages
-  if (P.XLEN == 32)
+  if (XLEN == 32)
     // kilopage: 22 bits of PPN, 0 bits of VPN
     // megapage: 12 bits of PPN, 10 bits of VPN
     mux2 #(22) pnm(22'h000000, 22'h0003FF, HitPageType[0], PageNumberMask);
@@ -62,11 +62,11 @@ module tlbmixer import cvw::*;  #(parameter cvw_t P) (
   assign PPNMixed = PPN | ZeroExtendedVPN & PageNumberMask; // low bits of PPN are already zero
 
   // In Svnapot, when N=1, use bottom bits of VPN for contiugous translations
-  if (P.SVNAPOT_SUPPORTED) begin
+  if (SVNAPOT_SUPPORTED) begin
     // 64 KiB contiguous NAPOT translations supported
     logic [3:0] PPNMixedBot;
     mux2 #(4) napotmux(PPNMixed[3:0], VPN[3:0], PTE_N, PPNMixedBot);
-    assign PPNMixed2 = {PPNMixed[P.PPN_BITS-1:4], PPNMixedBot};
+    assign PPNMixed2 = {PPNMixed[PPN_BITS-1:4], PPNMixedBot};
 
     /* // Generalized NAPOT implementation supporting various sized contiguous regions
     // This would also require a priority encoder in the tlbcam
@@ -99,5 +99,5 @@ module tlbmixer import cvw::*;  #(parameter cvw_t P) (
   // Output the hit physical address if translation is currently on.
   // Provide physical address of zero if not TLBHits, to cause segmentation error if miss somehow percolated through signal
   assign TLBPAdr = TLBHit ? {PPNMixed2, Offset} : 0;
-
+endgenerate
 endmodule

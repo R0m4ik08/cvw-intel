@@ -27,20 +27,20 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module fma import cvw::*;  #(parameter cvw_t P) (
+module fma import config_pkg::*;   (
   input  logic                         Xs, Ys, Zs,             // input's signs
-  input  logic [P.NE-1:0]              Xe, Ye, Ze,             // input's biased exponents in B(NE.0) format
-  input  logic [P.NF:0]                Xm, Ym, Zm,             // input's significands in U(0.NF) format
+  input  logic [NE-1:0]              Xe, Ye, Ze,             // input's biased exponents in B(NE.0) format
+  input  logic [NF:0]                Xm, Ym, Zm,             // input's significands in U(0.NF) format
   input  logic                         XZero, YZero, ZZero,    // is the input zero
   input  logic [2:0]                   OpCtrl,                 // operation control
   output logic                         ASticky,                // sticky bit that is calculated during alignment
-  output logic [P.FMALEN-1:0]          Sm,                     // the positive sum's significand
+  output logic [FMALEN-1:0]          Sm,                     // the positive sum's significand
   output logic                         InvA,                   // Was A inverted for effective subtraction (P-A or -P+A)
   output logic                         As,                     // the aligned addend's sign (modified Z sign for other operations)
   output logic                         Ps,                     // the product's sign
   output logic                         Ss,                     // the sum's sign
-  output logic [P.NE+1:0]              Se,                     // the sum's exponent
-  output logic [$clog2(P.FMALEN+1)-1:0] SCnt                    // normalization shift count
+  output logic [NE+1:0]              Se,                     // the sum's exponent
+  output logic [$clog2(FMALEN+1)-1:0] SCnt                    // normalization shift count
 );
 
   //  OpCtrl:
@@ -53,12 +53,12 @@ module fma import cvw::*;  #(parameter cvw_t P) (
   //        110 - add
   //        111 - sub
 
-  logic [2*P.NF+1:0]   Pm;         // the product's significand in U(2.2Nf) format
-  logic [P.FMALEN-1:0] Am;         // addend aligned's mantissa for addition in U(NF+4.2NF)
-  logic [P.FMALEN-1:0] AmInv;      // aligned addend's mantissa possibly inverted
-  logic [2*P.NF+1:0]   PmKilled;   // the product's mantissa possibly killed U(2.2Nf)
+  logic [2*NF+1:0]   Pm;         // the product's significand in U(2.2Nf) format
+  logic [FMALEN-1:0] Am;         // addend aligned's mantissa for addition in U(NF+4.2NF)
+  logic [FMALEN-1:0] AmInv;      // aligned addend's mantissa possibly inverted
+  logic [2*NF+1:0]   PmKilled;   // the product's mantissa possibly killed U(2.2Nf)
   logic                KillProd;   // set the product to zero before addition if the product is too small to matter
-  logic [P.NE+1:0]     Pe;         // the product's exponent B(NE+2.0) format; adds 2 bits to allow for size of number and negative sign
+  logic [NE+1:0]     Pe;         // the product's exponent B(NE+2.0) format; adds 2 bits to allow for size of number and negative sign
 
   ///////////////////////////////////////////////////////////////////////////////
   // Calculate the product
@@ -69,10 +69,10 @@ module fma import cvw::*;  #(parameter cvw_t P) (
   ///////////////////////////////////////////////////////////////////////////////
   
   // calculate the product's exponent 
-  fmaexpadd #(P) expadd(.Xe, .Ye, .XZero, .YZero, .Pe);
+  fmaexpadd  expadd(.Xe, .Ye, .XZero, .YZero, .Pe);
 
   // multiplication of the mantissa's
-  fmamult #(P) mult(.Xm, .Ym, .Pm);
+  fmamult  mult(.Xm, .Ym, .Pm);
   
   // calculate the signs and take the operation into account
   fmasign sign(.OpCtrl, .Xs, .Ys, .Zs, .Ps, .As, .InvA);
@@ -81,14 +81,14 @@ module fma import cvw::*;  #(parameter cvw_t P) (
   // Alignment shifter
   ///////////////////////////////////////////////////////////////////////////////
   
-  fmaalign #(P) align(.Ze, .Zm, .XZero, .YZero, .ZZero, .Xe, .Ye, .Am, .ASticky, .KillProd);
+  fmaalign  align(.Ze, .Zm, .XZero, .YZero, .ZZero, .Xe, .Ye, .Am, .ASticky, .KillProd);
                       
   // ///////////////////////////////////////////////////////////////////////////////
   // // Addition/LZA
   // ///////////////////////////////////////////////////////////////////////////////
       
-  fmaadd #(P) add(.Am, .Pm, .Ze, .Pe, .Ps, .KillProd, .ASticky, .AmInv, .PmKilled, .InvA, .Sm, .Se, .Ss);
+  fmaadd  add(.Am, .Pm, .Ze, .Pe, .Ps, .KillProd, .ASticky, .AmInv, .PmKilled, .InvA, .Sm, .Se, .Ss);
 
-  fmalza #(P.FMALEN, P.NF) lza(.A(AmInv), .Pm(PmKilled), .Cin(InvA & (~ASticky | KillProd)), .sub(InvA), .SCnt);
+  fmalza #(FMALEN, NF) lza(.A(AmInv), .Pm(PmKilled), .Cin(InvA & (~ASticky | KillProd)), .sub(InvA), .SCnt);
   
 endmodule

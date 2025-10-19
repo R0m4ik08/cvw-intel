@@ -25,25 +25,26 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module irom import cvw::*;  #(parameter cvw_t P) (
+module irom import config_pkg::*;   (
   input logic              clk, 
   input logic              ce,        // Chip Enable.  0: Holds IROMInstrF constant
-  input logic [P.XLEN-1:0] Adr,       // PCNextFSpill
+  input logic [XLEN-1:0] Adr,       // PCNextFSpill
   output logic [31:0]      IROMInstrF // Instruction read data
 );
+generate
 
-  localparam XLENBYTES = {{P.PA_BITS-32{1'b0}}, P.XLEN/8}; // XLEN/8, adjusted for width
-  localparam ADDR_WDITH = $clog2(P.IROM_RANGE[P.PA_BITS-1:0]/XLENBYTES); 
+  localparam XLENBYTES = {{PA_BITS-32{1'b0}}, XLEN/8}; // XLEN/8, adjusted for width
+  localparam ADDR_WDITH = $clog2(IROM_RANGE[PA_BITS-1:0]/XLENBYTES); 
   localparam OFFSET = $clog2(XLENBYTES);
 
-  logic [P.XLEN-1:0] IROMInstrFFull;
+  logic [XLEN-1:0] IROMInstrFFull;
   logic [31:0]       RawIROMInstrF;
   logic [2:1]        AdrD;
 
   // preload IROM with the FPGA bootloader by default so that it synthesizes to something, avoiding having the IEU optimized away because instructions are all 0
   // the testbench replaces these dummy contents with the actual program of interest during simulation
-  rom1p1r #(ADDR_WDITH, P.XLEN, 1) rom(.clk, .ce, .addr(Adr[ADDR_WDITH+OFFSET-1:OFFSET]), .dout(IROMInstrFFull));
-  if (P.XLEN == 32) assign RawIROMInstrF = IROMInstrFFull;
+  rom1p1r #(ADDR_WDITH, XLEN, 1) rom(.clk, .ce, .addr(Adr[ADDR_WDITH+OFFSET-1:OFFSET]), .dout(IROMInstrFFull));
+  if (XLEN == 32) assign RawIROMInstrF = IROMInstrFFull;
   else              begin
   // IROM is aligned to XLEN words, but instructions are 32 bits.  Select between the two
   // haves.  Adr is the Next PCF not PCF so we delay 1 cycle.
@@ -52,9 +53,11 @@ module irom import cvw::*;  #(parameter cvw_t P) (
   end
   // If the memory address is aligned to 2 bytes return the upper 2 bytes in the lower 2 bytes.
   // The spill logic will handle merging the two together.
-  if (P.ZCA_SUPPORTED) begin
+  if (ZCA_SUPPORTED) begin
     flopen #(1) AdrReg1(clk, ce, Adr[1], AdrD[1]);
     assign IROMInstrF = AdrD[1] ? {16'b0, RawIROMInstrF[31:16]} : RawIROMInstrF;
   end else
     assign IROMInstrF = RawIROMInstrF;
+
+endgenerate
 endmodule  

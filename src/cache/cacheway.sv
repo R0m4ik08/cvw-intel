@@ -28,7 +28,7 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module cacheway import cvw::*; #(parameter cvw_t P, 
+module cacheway import config_pkg::*; #( 
                   parameter PA_BITS, NUMSETS=512, LINELEN = 256, TAGLEN = 26,
                   OFFSETLEN = 5, INDEXLEN = 9, READ_ONLY_CACHE = 0) (
   input  logic                        clk,
@@ -73,6 +73,7 @@ module cacheway import cvw::*; #(parameter cvw_t P,
   logic                               SelectedWay;
   logic                               InvalidateCacheDelay;
   
+generate
   if (!READ_ONLY_CACHE) begin:flushlogic
     mux2 #(1) seltagmux(VictimWay, FlushWay, FlushCache, SelecteDirty);
     mux3 #(1) selectedmux(HitWay, FlushWay, VictimWay, {SelVictim, FlushCache}, SelectedWay);
@@ -105,9 +106,15 @@ module cacheway import cvw::*; #(parameter cvw_t P,
   // Tag Array
   /////////////////////////////////////////////////////////////////////////////////////////////
 
-  ram1p1rwe #(.USE_SRAM(P.USE_SRAM), .DEPTH(NUMSETS), .WIDTH(TAGLEN)) CacheTagMem(.clk, .ce(CacheEn),
-    .addr(CacheSetTag), .dout(ReadTag),
-    .din(PAdr[PA_BITS-1:OFFSETLEN+INDEXLEN]), .we(SetValidEN));
+  ram1p1rwbe #(.DEPTH(NUMSETS), .WIDTH(TAGLEN))	CacheTagMem (
+        .address  ( CacheSetTag ),
+        .byteena  ( '1 ),
+        .clock    ( clk ),
+        .ce       ( CacheEn ),
+        .data     ( PAdr[PA_BITS-1:OFFSETLEN+INDEXLEN] ),
+        .wren     ( SetValidEN ),
+        .q        ( ReadTag )
+      );
 
   // AND portion of distributed tag multiplexer
   assign TagWay = SelectedWay ? ReadTag : 0; // AND part of AOMux
@@ -123,20 +130,30 @@ module cacheway import cvw::*; #(parameter cvw_t P,
 
   genvar               words;
 
-  localparam           NUMSRAM = LINELEN/P.CACHE_SRAMLEN;
-  localparam           SRAMLENINBYTES = P.CACHE_SRAMLEN/8;
+  localparam           NUMSRAM = LINELEN/CACHE_SRAMLEN;
+  localparam           SRAMLENINBYTES = CACHE_SRAMLEN/8;
   
   for(words = 0; words < NUMSRAM; words++) begin: word
     if (READ_ONLY_CACHE) begin:wordram // no byte-enable needed for i$.
-      ram1p1rwe #(.USE_SRAM(P.USE_SRAM), .DEPTH(NUMSETS), .WIDTH(P.CACHE_SRAMLEN)) CacheDataMem(.clk, .ce(CacheEn), .addr(CacheSetData),
-      .dout(ReadDataLine[P.CACHE_SRAMLEN*(words+1)-1:P.CACHE_SRAMLEN*words]),
-      .din(LineWriteData[P.CACHE_SRAMLEN*(words+1)-1:P.CACHE_SRAMLEN*words]),
-      .we(SelectedWriteWordEn));
+      ram1p1rwbe #(.DEPTH(NUMSETS), .WIDTH(CACHE_SRAMLEN))	CacheDataMem (
+        .address  ( CacheSetData ),
+        .byteena  ( '1 ),
+        .clock    ( clk ),
+        .ce       ( CacheEn ),
+        .data     ( LineWriteData[CACHE_SRAMLEN*(words+1)-1:CACHE_SRAMLEN*words] ),
+        .wren     ( SelectedWriteWordEn ),
+        .q        ( ReadDataLine[CACHE_SRAMLEN*(words+1)-1:CACHE_SRAMLEN*words] )
+      );
     end else begin:wordram // D$ needs byte enables
-     ram1p1rwbe #(.USE_SRAM(P.USE_SRAM), .DEPTH(NUMSETS), .WIDTH(P.CACHE_SRAMLEN)) CacheDataMem(.clk, .ce(CacheEn), .addr(CacheSetData),
-      .dout(ReadDataLine[P.CACHE_SRAMLEN*(words+1)-1:P.CACHE_SRAMLEN*words]),
-      .din(LineWriteData[P.CACHE_SRAMLEN*(words+1)-1:P.CACHE_SRAMLEN*words]),
-      .we(SelectedWriteWordEn), .bwe(FinalByteMask[SRAMLENINBYTES*(words+1)-1:SRAMLENINBYTES*words]));
+      ram1p1rwbe #(.DEPTH(NUMSETS), .WIDTH(CACHE_SRAMLEN))	CacheDataMem (
+        .address  ( CacheSetData ),
+        .byteena  ( FinalByteMask[SRAMLENINBYTES*(words+1)-1:SRAMLENINBYTES*words] ),
+        .clock    ( clk ),
+        .ce       ( CacheEn ),
+        .data     ( LineWriteData[CACHE_SRAMLEN*(words+1)-1:CACHE_SRAMLEN*words] ),
+        .wren     ( SelectedWriteWordEn ),
+        .q        ( ReadDataLine[CACHE_SRAMLEN*(words+1)-1:CACHE_SRAMLEN*words] )
+      );
      end
   end
 
@@ -176,4 +193,5 @@ module cacheway import cvw::*; #(parameter cvw_t P,
       end
     end
   end else assign Dirty = 1'b0;
+endgenerate
 endmodule

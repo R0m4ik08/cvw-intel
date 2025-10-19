@@ -43,13 +43,13 @@ module uartPC16550D #(parameter UART_PRESCALE) (
   input  logic [7:0] Din,                            // 8-bit WriteData
   output logic [7:0] Dout,                           // 8-bit ReadData
   input  logic       MEMRb, MEMWb,                   // Active low memory read/write
-  output logic       INTR, TXRDYb, RXRDYb,           // interrupt and ready lines
+(* mark_debug = "true" *)(* mark_debug = "true" *)(* mark_debug = "true" *)  output logic       INTR, TXRDYb, RXRDYb,           // interrupt and ready lines
   // Clocks
   output logic       BAUDOUTb,                       // active low baud clock
   input logic        RCLK,                           // usually BAUDOUTb tied to RCLK externally
   // E1A Driver
   input  logic       SIN, DSRb, DCDb, CTSb, RIb,     // UART external serial and flow-control inputs
-  output logic       SOUT, RTSb, DTRb, OUT1b, OUT2b  // UART external serial and flow-control outputs
+(* mark_debug = "true" *)  output logic       SOUT, RTSb, DTRb, OUT1b, OUT2b  // UART external serial and flow-control outputs
 );
 
   // register map
@@ -66,10 +66,10 @@ module uartPC16550D #(parameter UART_PRESCALE) (
   typedef enum logic [1:0] {UART_IDLE, UART_ACTIVE, UART_DONE, UART_BREAK} statetype;
 
   // Registers
-  logic [10:0] RBR;
-  logic [7:0]  FCR, LCR, LSR, SCR, DLL, DLM;
-  logic [3:0]  IER, MSR;
-  logic [4:0]  MCR;
+(* mark_debug = "true" *)  logic [10:0] RBR;
+(* mark_debug = "true" *)(* mark_debug = "true" *)(* mark_debug = "true" *)(* mark_debug = "true" *)  logic [7:0]  FCR, LCR, LSR, SCR, DLL, DLM;
+(* mark_debug = "true" *)(* mark_debug = "true" *)  logic [3:0]  IER, MSR;
+(* mark_debug = "true" *)  logic [4:0]  MCR;
 
   // Synchronized and delayed UART signals
   logic        SINd, DSRbd, DCDbd, CTSbd, RIbd;
@@ -79,22 +79,22 @@ module uartPC16550D #(parameter UART_PRESCALE) (
 
   // Control signals
   logic        loop; // loopback mode
-  logic        DLAB; // Divisor Latch Access Bit (LCR bit 7)
+(* mark_debug = "true" *)  logic        DLAB; // Divisor Latch Access Bit (LCR bit 7)
 
   // Baud and rx/tx timing
   logic                         baudpulse, txbaudpulse, rxbaudpulse; // high one system clk cycle each baud/16 period
   logic [16+UART_PRESCALE-1:0]  baudcount;
   logic [3:0]                   rxoversampledcnt, txoversampledcnt;  // count oversampled-by-16
   logic [3:0]                   rxbitsreceived, txbitssent;
-  statetype rxstate, txstate;
+(* mark_debug = "true" *)  statetype rxstate, txstate;
 
   // shift registers and FIFOs
   logic [9:0]                   rxshiftreg;
   logic [10:0]                  rxfifo[15:0];
   logic [7:0]                   txfifo[15:0];
   logic [4:0]                   rxfifotailunwrapped;
-  logic [3:0]                   rxfifohead, rxfifotail, txfifohead, txfifotail, rxfifotriggerlevel;
-  logic [3:0]                   rxfifoentries;
+(* mark_debug = "true" *)(* mark_debug = "true" *)  logic [3:0]                   rxfifohead, rxfifotail, txfifohead, txfifotail, rxfifotriggerlevel;
+(* mark_debug = "true" *)  logic [3:0]                   rxfifoentries;
   logic [3:0]                   rxbitsexpected, txbitsexpected;
 
   // receive data
@@ -102,9 +102,9 @@ module uartPC16550D #(parameter UART_PRESCALE) (
   logic [9:0]                   rxtimeoutcnt;
   logic                         rxcentered;
   logic                         rxparity, rxparitybit, rxstopbit;
-  logic                         rxparityerr, rxoverrunerr, rxframingerr, rxbreak, rxfifohaserr;
-  logic                         rxdataready;
-  logic                         rxfifoempty, rxfifotriggered, rxfifotimeout;
+(* mark_debug = "true" *)  logic                         rxparityerr, rxoverrunerr, rxframingerr, rxbreak, rxfifohaserr;
+(* mark_debug = "true" *)  logic                         rxdataready;
+(* mark_debug = "true" *)  logic                         rxfifoempty, rxfifotriggered, rxfifotimeout;
   logic                         rxfifodmaready;
   logic [8:0]                   rxdata9;
   logic [7:0]                   rxdata;
@@ -114,18 +114,18 @@ module uartPC16550D #(parameter UART_PRESCALE) (
   // transmit data
   logic [7:0]                   TXHR, nexttxdata;
   logic [11:0]                  txdata, txsr;
-  logic                         txnextbit, txhrfull, txsrfull;
+(* mark_debug = "true" *)(* mark_debug = "true" *)  logic                         txnextbit, txhrfull, txsrfull;
   logic                         txparity;
-  logic                         txfifoempty, txfifofull, txfifodmaready;
+(* mark_debug = "true" *)  logic                         txfifoempty, txfifofull, txfifodmaready;
 
   // control signals
-  logic                         fifoenabled, fifodmamodesel, evenparitysel;
+(* mark_debug = "true" *)  logic                         fifoenabled, fifodmamodesel, evenparitysel;
 
   // interrupts
-  logic                         RXerr, RXerrIP, squashRXerrIP, prevSquashRXerrIP, setSquashRXerrIP, resetSquashRXerrIP;
+(* mark_debug = "true" *)  logic                         RXerr, RXerrIP, squashRXerrIP, prevSquashRXerrIP, setSquashRXerrIP, resetSquashRXerrIP;
   logic                         THRE, THRE_IP, squashTHRE_IP, prevSquashTHRE_IP, setSquashTHRE_IP, resetSquashTHRE_IP;
-  logic                         rxdataavailintr, modemstatusintr, intrpending;
-  logic [2:0]                   intrID;
+(* mark_debug = "true" *)  logic                         rxdataavailintr, modemstatusintr, intrpending;
+(* mark_debug = "true" *)  logic [2:0]                   intrID;
 
   logic                         baudpulseComb;
   logic                         HeadPointerLastMove;
@@ -347,19 +347,25 @@ module uartPC16550D #(parameter UART_PRESCALE) (
   // although rxfullbit looks like a combinational loop, in one bit rxfifotail == i and breaks the loop
   // tail is normally higher than head, but might wrap around.  unwrapped variable adds 16 to eliminate wrapping
   assign rxfifotailunwrapped = rxfifotail < rxfifohead ? {1'b1, rxfifotail} : {1'b0, rxfifotail};
-  genvar i;
-  for (i=0; i<32; i++) begin:rxfull
-    if (i == 0) assign rxfullbitunwrapped[i] = (rxfifohead==0) & (rxfifotail != 0);
-    else        assign rxfullbitunwrapped[i] = ({1'b0,rxfifohead}==i | rxfullbitunwrapped[i-1]) & (rxfifotailunwrapped != i);
-  end
-  for (i=0; i<16; i++) begin:rx
-    assign RXerrbit[i]  = |rxfifo[i][10:8]; // are any of the error conditions set?
-    assign rxfullbit[i] = rxfullbitunwrapped[i] | rxfullbitunwrapped[i+16];
-  /*      if (i > 0)
-      assign rxfullbit[i] = ((rxfifohead==i) | rxfullbit[i-1]) & (rxfifotail != i);
-      else
-      assign rxfullbit[0] = ((rxfifohead==i) | rxfullbit[15]) & (rxfifotail != i);*/
-  end
+  
+  generate
+
+    genvar i;
+    for (i=0; i<32; i++) begin:rxfull
+      if (i == 0) assign rxfullbitunwrapped[i] = (rxfifohead==0) & (rxfifotail != 0);
+      else        assign rxfullbitunwrapped[i] = ({1'b0,rxfifohead}==i | rxfullbitunwrapped[i-1]) & (rxfifotailunwrapped != i);
+    end
+    for (i=0; i<16; i++) begin:rx
+      assign RXerrbit[i]  = |rxfifo[i][10:8]; // are any of the error conditions set?
+      assign rxfullbit[i] = rxfullbitunwrapped[i] | rxfullbitunwrapped[i+16];
+    /*      if (i > 0)
+        assign rxfullbit[i] = ((rxfifohead==i) | rxfullbit[i-1]) & (rxfifotail != i);
+        else
+        assign rxfullbit[0] = ((rxfifohead==i) | rxfullbit[15]) & (rxfifotail != i);*/
+    end
+    
+  endgenerate
+  
   assign rxfifohaserr   = |(RXerrbit & rxfullbit);
 
   // receive buffer register and ready bit

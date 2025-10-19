@@ -27,24 +27,24 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module fdivsqrtexpcalc import cvw::*;  #(parameter cvw_t P) (
-  input  logic [P.NE-2:0]      Bias,      // Bias of exponent
-  input  logic [P.NE-1:0]      Xe, Ye,    // input exponents
+module fdivsqrtexpcalc import config_pkg::*;   (
+  input  logic [NE-2:0]      Bias,      // Bias of exponent
+  input  logic [NE-1:0]      Xe, Ye,    // input exponents
   input  logic                 Sqrt,
-  input  logic [P.DIVBLEN-1:0] ell, m,    // number of leading 0s in Xe and Ye
-  output logic [P.NE+1:0]      Ue         // result exponent
+  input  logic [DIVBLEN-1:0] ell, m,    // number of leading 0s in Xe and Ye
+  output logic [NE+1:0]      Ue         // result exponent
   );
 
-  logic [P.NE+1:0] SXExp;
-  logic [P.NE+1:0] SExp;
-  logic [P.NE+1:0] DExp;
+  logic [NE+1:0] SXExp;
+  logic [NE+1:0] SExp;
+  logic [NE+1:0] DExp;
 
   // Square root exponent = (Xe - l - bias) / 2 + bias; l accounts for subnorms
-  assign SXExp = {2'b0, Xe} - {{(P.NE+1-P.DIVBLEN){1'b0}}, ell} - (P.NE+2)'(P.BIAS);
-  assign SExp  = {SXExp[P.NE+1], SXExp[P.NE+1:1]} + {2'b0, Bias};
+  assign SXExp = {2'b0, Xe} - {{(NE+1-DIVBLEN){1'b0}}, ell} - (NE+2)'(BIAS);
+  assign SExp  = {SXExp[NE+1], SXExp[NE+1:1]} + {2'b0, Bias};
 
   // division exponent = (Xe-l) - (Ye-m) + bias; l and m account for subnorms
-  assign DExp  = ({2'b0, Xe} - {{(P.NE+1-P.DIVBLEN){1'b0}}, ell} - {2'b0, Ye} + {{(P.NE+1-P.DIVBLEN){1'b0}}, m} + {3'b0, Bias}); 
+  assign DExp  = ({2'b0, Xe} - {{(NE+1-DIVBLEN){1'b0}}, ell} - {2'b0, Ye} + {{(NE+1-DIVBLEN){1'b0}}, m} + {3'b0, Bias}); 
 
   // Select square root or division exponent
   assign Ue = Sqrt ? SExp : DExp;

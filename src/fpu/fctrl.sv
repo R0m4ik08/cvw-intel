@@ -27,7 +27,7 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module fctrl import cvw::*;  #(parameter cvw_t P) (
+module fctrl import config_pkg::*;   (
   input  logic                 clk,
   input  logic                 reset,
   // input control signals
@@ -49,7 +49,7 @@ module fctrl import cvw::*;  #(parameter cvw_t P) (
   // operation mux selections                                    
   output logic                 FCvtIntE, FCvtIntW,                 // convert to integer operation
   output logic [2:0]           FrmE, FrmM,                          // FP rounding mode
-  output logic [P.FMTBITS-1:0] FmtE, FmtM,                         // FP format
+  output logic [FMTBITS-1:0] FmtE, FmtM,                         // FP format
   output logic [2:0]           OpCtrlE, OpCtrlM,                   // Select which operation to do in each component
   output logic                 FpLoadStoreM,                       // FP load or store instruction
   output logic [1:0]           PostProcSelE, PostProcSelM,         // select result in the post processing unit
@@ -68,7 +68,7 @@ module fctrl import cvw::*;  #(parameter cvw_t P) (
   );
 
   `define FCTRLW 14
-
+generate
   logic [`FCTRLW-1:0]          ControlsD;                          // control signals
   logic                        FRegWriteD;                         // FP register write enable
   logic                        FDivStartD;                         // start division/sqrt
@@ -77,7 +77,7 @@ module fctrl import cvw::*;  #(parameter cvw_t P) (
   logic [1:0]                  PostProcSelD;                       // select result in the post processing unit
   logic [1:0]                  FResSelD;                           // Select one of the results that finish in the memory stage
   logic [2:0]                  FrmD;                               // FP rounding mode
-  logic [P.FMTBITS-1:0]        FmtD;                               // FP format
+  logic [FMTBITS-1:0]        FmtD;                               // FP format
   logic [1:0]                  Fmt, Fmt2;                          // format - before possible reduction
   logic                        SupportedFmt;                       // is the format supported
   logic                        SupportedFmt2;                      // is the source format supported for fp -> fp
@@ -90,15 +90,15 @@ module fctrl import cvw::*;  #(parameter cvw_t P) (
   assign Fmt = Funct7D[1:0];
   assign Fmt2 = Rs2D[1:0]; // source format for fcvt fp->fp
 
-  assign SupportedFmt =  (Fmt == 2'b00  | (Fmt == 2'b01 & P.D_SUPPORTED) |
-                         (Fmt == 2'b10 & P.ZFH_SUPPORTED)  | (Fmt == 2'b11 & P.Q_SUPPORTED));
-  assign SupportedFmt2 = (Fmt2 == 2'b00 | (Fmt2 == 2'b01 & P.D_SUPPORTED) |
-                         (Fmt2 == 2'b10 & P.ZFH_SUPPORTED) | (Fmt2 == 2'b11 & P.Q_SUPPORTED));
+  assign SupportedFmt =  (Fmt == 2'b00  | (Fmt == 2'b01 & D_SUPPORTED) |
+                         (Fmt == 2'b10 & ZFH_SUPPORTED)  | (Fmt == 2'b11 & Q_SUPPORTED));
+  assign SupportedFmt2 = (Fmt2 == 2'b00 | (Fmt2 == 2'b01 & D_SUPPORTED) |
+                         (Fmt2 == 2'b10 & ZFH_SUPPORTED) | (Fmt2 == 2'b11 & Q_SUPPORTED));
   // rounding modes 5 and 6 are reserved.  Rounding mode 7 is dynamic, and is reserved if FRM is 5, 6, or 7
   assign SupportedRM =  ~(Funct3D == 3'b101 | Funct3D == 3'b110 | (Funct3D == 3'b111 & (FRM_REGW == 3'b101 | FRM_REGW == 3'b110 | FRM_REGW == 3'b111))) |
-                         (OpD == 7'b1010011 & Funct3D == 3'b101 & Funct7D[6:2] == 5'b10100 & P.ZFA_SUPPORTED); // Zfa fltq has a funny rounding mode
+                         (OpD == 7'b1010011 & Funct3D == 3'b101 & Funct7D[6:2] == 5'b10100 & ZFA_SUPPORTED); // Zfa fltq has a funny rounding mode
   /*assign SupportedRM =  ~(Funct3D == 3'b101 | Funct3D == 3'b110 | (Funct3D == 3'b111 & (FRM_REGW == 3'b101 | FRM_REGW == 3'b110 | FRM_REGW == 3'b111))) |
-                          (OpD == 7'b1010011 & P.ZFA_SUPPORTED);
+                          (OpD == 7'b1010011 & ZFA_SUPPORTED);
 */
   // decode the instruction                       
   // FRegWrite_FWriteInt_FResSel_PostProcSel_FOpCtrl_FDivStart_IllegalFPUInstr_FCvtInt_Zfa_FroundNX
@@ -113,15 +113,15 @@ module fctrl import cvw::*;  #(parameter cvw_t P) (
       case(OpD)
         7'b0000111: case(Funct3D)
                       3'b010:                       ControlsD = `FCTRLW'b1_0_10_00_0xx_0_0_0_0_0; // flw
-                      3'b011:  if (P.D_SUPPORTED)   ControlsD = `FCTRLW'b1_0_10_00_0xx_0_0_0_0_0; // fld
-                      3'b100:  if (P.Q_SUPPORTED)   ControlsD = `FCTRLW'b1_0_10_00_0xx_0_0_0_0_0; // flq
-                      3'b001:  if (P.ZFH_SUPPORTED) ControlsD = `FCTRLW'b1_0_10_00_0xx_0_0_0_0_0; // flh
+                      3'b011:  if (D_SUPPORTED)   ControlsD = `FCTRLW'b1_0_10_00_0xx_0_0_0_0_0; // fld
+                      3'b100:  if (Q_SUPPORTED)   ControlsD = `FCTRLW'b1_0_10_00_0xx_0_0_0_0_0; // flq
+                      3'b001:  if (ZFH_SUPPORTED) ControlsD = `FCTRLW'b1_0_10_00_0xx_0_0_0_0_0; // flh
                     endcase
         7'b0100111: case(Funct3D)
                       3'b010:                       ControlsD = `FCTRLW'b0_0_10_00_0xx_0_0_0_0_0; // fsw
-                      3'b011:  if (P.D_SUPPORTED)   ControlsD = `FCTRLW'b0_0_10_00_0xx_0_0_0_0_0; // fsd
-                      3'b100:  if (P.Q_SUPPORTED)   ControlsD = `FCTRLW'b0_0_10_00_0xx_0_0_0_0_0; // fsq
-                      3'b001:  if (P.ZFH_SUPPORTED) ControlsD = `FCTRLW'b0_0_10_00_0xx_0_0_0_0_0; // fsh
+                      3'b011:  if (D_SUPPORTED)   ControlsD = `FCTRLW'b0_0_10_00_0xx_0_0_0_0_0; // fsd
+                      3'b100:  if (Q_SUPPORTED)   ControlsD = `FCTRLW'b0_0_10_00_0xx_0_0_0_0_0; // fsq
+                      3'b001:  if (ZFH_SUPPORTED) ControlsD = `FCTRLW'b0_0_10_00_0xx_0_0_0_0_0; // fsh
                     endcase
         7'b1000011:   ControlsD = `FCTRLW'b1_0_01_10_000_0_0_0_0_0; // fmadd
         7'b1000111:   ControlsD = `FCTRLW'b1_0_01_10_001_0_0_0_0_0; // fmsub
@@ -141,117 +141,117 @@ module fctrl import cvw::*;  #(parameter cvw_t P) (
                       7'b00101??: case(Funct3D)
                                     3'b000:  ControlsD = `FCTRLW'b1_0_00_00_110_0_0_0_0_0; // fmin
                                     3'b001:  ControlsD = `FCTRLW'b1_0_00_00_101_0_0_0_0_0; // fmax
-                                    3'b010:  if (P.ZFA_SUPPORTED) ControlsD = `FCTRLW'b1_0_00_00_110_0_0_0_1_0; // fminm  (Zfa)
-                                    3'b011:  if (P.ZFA_SUPPORTED) ControlsD = `FCTRLW'b1_0_00_00_101_0_0_0_1_0; // fmaxm  (Zfa)
+                                    3'b010:  if (ZFA_SUPPORTED) ControlsD = `FCTRLW'b1_0_00_00_110_0_0_0_1_0; // fminm  (Zfa)
+                                    3'b011:  if (ZFA_SUPPORTED) ControlsD = `FCTRLW'b1_0_00_00_101_0_0_0_1_0; // fmaxm  (Zfa)
                                   endcase
                       7'b10100??: case(Funct3D)
                                     3'b000:  ControlsD = `FCTRLW'b0_1_00_00_011_0_0_0_0_0; // fle
                                     3'b001:  ControlsD = `FCTRLW'b0_1_00_00_001_0_0_0_0_0; // flt
                                     3'b010:  ControlsD = `FCTRLW'b0_1_00_00_010_0_0_0_0_0; // feq
-                                    3'b100:  if (P.ZFA_SUPPORTED) ControlsD = `FCTRLW'b0_1_00_00_011_0_0_0_1_0; // fleq  (Zfa)
-                                    3'b101:  if (P.ZFA_SUPPORTED) ControlsD = `FCTRLW'b0_1_00_00_001_0_0_0_1_0; // fltq  (Zfa)
+                                    3'b100:  if (ZFA_SUPPORTED) ControlsD = `FCTRLW'b0_1_00_00_011_0_0_0_1_0; // fleq  (Zfa)
+                                    3'b101:  if (ZFA_SUPPORTED) ControlsD = `FCTRLW'b0_1_00_00_001_0_0_0_1_0; // fltq  (Zfa)
                                   endcase
                       7'b11100??: if (Funct3D == 3'b001 & Rs2D == 5'b00000)          
                                                 ControlsD = `FCTRLW'b0_1_10_00_000_0_0_0_0_0; // fclass
                                   else if (Funct3D == 3'b000 & Rs2D == 5'b00000) begin
-                                    if (Fmt[1:0] == 2'b00 | Fmt[1:0] == 2'b10 | (P.XLEN == 64 & Fmt[1:0] == 2'b01)) // coverage-tag: fmv fp to int
+                                    if (Fmt[1:0] == 2'b00 | Fmt[1:0] == 2'b10 | (XLEN == 64 & Fmt[1:0] == 2'b01)) // coverage-tag: fmv fp to int
                                                 ControlsD = `FCTRLW'b0_1_11_00_000_0_0_0_0_0; // fmv.x.w/d/h  fp to int register (double only in RV64)
-                                  end else if (P.ZFA_SUPPORTED & P.XLEN == 32 & P.D_SUPPORTED & Funct7D[1:0] == 2'b01 & Funct3D == 3'b000 & Rs2D == 5'b00001) 
+                                  end else if (ZFA_SUPPORTED & XLEN == 32 & D_SUPPORTED & Funct7D[1:0] == 2'b01 & Funct3D == 3'b000 & Rs2D == 5'b00001) 
                                                 ControlsD = `FCTRLW'b0_1_11_00_000_0_0_0_1_0; // fmvh.x.d  (Zfa) 
                                   //  Q not supported in RV64GC
                                   // coverage off   
-                                  else if (P.ZFA_SUPPORTED & P.XLEN == 64 & P.Q_SUPPORTED & Funct7D[1:0] == 2'b11 & Funct3D == 3'b000 & Rs2D == 5'b00001) 
+                                  else if (ZFA_SUPPORTED & XLEN == 64 & Q_SUPPORTED & Funct7D[1:0] == 2'b11 & Funct3D == 3'b000 & Rs2D == 5'b00001) 
                                                 ControlsD = `FCTRLW'b0_1_11_00_000_0_0_0_1_0; // fmvh.x.q  (Zfa)
                                   // coverage on
                       7'b11110??: if (Funct3D == 3'b000 & Rs2D == 5'b00000) begin
-                                    if (Fmt[1:0] == 2'b00 | Fmt[1:0] == 2'b10 | (P.XLEN == 64 & Fmt[1:0] == 2'b01))  // coverage-tag: fmv int to fp
+                                    if (Fmt[1:0] == 2'b00 | Fmt[1:0] == 2'b10 | (XLEN == 64 & Fmt[1:0] == 2'b01))  // coverage-tag: fmv int to fp
                                                 ControlsD = `FCTRLW'b1_0_00_00_011_0_0_0_0_0; // fmv.w/d/h.x  int to fp reg (double only in RV64)
-                                  end else if (P.ZFA_SUPPORTED & Funct3D == 3'b000 & Rs2D == 5'b00001) 
+                                  end else if (ZFA_SUPPORTED & Funct3D == 3'b000 & Rs2D == 5'b00001) 
                                                 ControlsD = `FCTRLW'b1_0_00_00_111_0_0_0_1_0; // fli  (Zfa)
                       7'b0100000: if (Rs2D[4:2] == 3'b000 & SupportedFmt2 & Rs2D[1:0] != 2'b00)
                                                 ControlsD = `FCTRLW'b1_0_01_00_000_0_0_0_0_0; // fcvt.s.(d/q/h)
-                                  else if (Rs2D == 5'b00100 & P.ZFA_SUPPORTED)
+                                  else if (Rs2D == 5'b00100 & ZFA_SUPPORTED)
                                                 ControlsD = `FCTRLW'b1_0_00_00_100_0_0_0_1_0; // fround.s  (Zfa) 
-                                  else if (Rs2D == 5'b00101 & P.ZFA_SUPPORTED)
+                                  else if (Rs2D == 5'b00101 & ZFA_SUPPORTED)
                                                 ControlsD = `FCTRLW'b1_0_00_00_100_0_0_0_1_1; // froundnx.s  (Zfa) 
                       7'b0100001: if (Rs2D[4:2] == 3'b000  & SupportedFmt2 & Rs2D[1:0] != 2'b01)
                                                 ControlsD = `FCTRLW'b1_0_01_00_001_0_0_0_0_0; // fcvt.d.(s/h/q)
-                                  else if (Rs2D == 5'b00100 & P.ZFA_SUPPORTED)
+                                  else if (Rs2D == 5'b00100 & ZFA_SUPPORTED)
                                                 ControlsD = `FCTRLW'b1_0_00_00_100_0_0_0_1_0; // fround.d  (Zfa)
-                                  else if (Rs2D == 5'b00101 & P.ZFA_SUPPORTED)
+                                  else if (Rs2D == 5'b00101 & ZFA_SUPPORTED)
                                                 ControlsD = `FCTRLW'b1_0_00_00_100_0_0_0_1_1; // froundnx.d  (Zfa)
                       7'b0100010: if (Rs2D[4:2] == 3'b000 & SupportedFmt2 & Rs2D[1:0] != 2'b10)
                                                 ControlsD = `FCTRLW'b1_0_01_00_010_0_0_0_0_0; // fcvt.h.(s/d/q)
-                                  else if (Rs2D == 5'b00100 & P.ZFA_SUPPORTED)
+                                  else if (Rs2D == 5'b00100 & ZFA_SUPPORTED)
                                                 ControlsD = `FCTRLW'b1_0_00_00_100_0_0_0_1_0; // fround.h  (Zfa)
-                                  else if (Rs2D == 5'b00101 & P.ZFA_SUPPORTED)
+                                  else if (Rs2D == 5'b00101 & ZFA_SUPPORTED)
                                                 ControlsD = `FCTRLW'b1_0_00_00_100_0_0_0_1_1; // froundnx.h  (Zfa)
                       // coverage off
                       // Not covered in testing because rv64gc does not support quad precision
                       7'b0100011: if (Rs2D[4:2] == 3'b000  & SupportedFmt2 & Rs2D[1:0] != 2'b11)
                                                 ControlsD = `FCTRLW'b1_0_01_00_011_0_0_0_0_0; // fcvt.q.(s/h/d)
-                                  else if (Rs2D == 5'b00100 & P.ZFA_SUPPORTED)
+                                  else if (Rs2D == 5'b00100 & ZFA_SUPPORTED)
                                                 ControlsD = `FCTRLW'b1_0_00_00_100_0_0_0_1_0; // fround.q  (Zfa)
-                                  else if (Rs2D == 5'b00101 & P.ZFA_SUPPORTED)
+                                  else if (Rs2D == 5'b00101 & ZFA_SUPPORTED)
                                                 ControlsD = `FCTRLW'b1_0_00_00_100_0_0_0_1_1; // froundnx.q  (Zfa)
                       // coverage on
                       7'b1101000: case(Rs2D)
                                     5'b00000:    ControlsD = `FCTRLW'b1_0_01_00_101_0_0_0_0_0; // fcvt.s.w   w->s
                                     5'b00001:    ControlsD = `FCTRLW'b1_0_01_00_100_0_0_0_0_0; // fcvt.s.wu wu->s
-                                    5'b00010:    if (P.XLEN == 64) ControlsD = `FCTRLW'b1_0_01_00_111_0_0_0_0_0; // fcvt.s.l   l->s
-                                    5'b00011:    if (P.XLEN == 64) ControlsD = `FCTRLW'b1_0_01_00_110_0_0_0_0_0; // fcvt.s.lu lu->s
+                                    5'b00010:    if (XLEN == 64) ControlsD = `FCTRLW'b1_0_01_00_111_0_0_0_0_0; // fcvt.s.l   l->s
+                                    5'b00011:    if (XLEN == 64) ControlsD = `FCTRLW'b1_0_01_00_110_0_0_0_0_0; // fcvt.s.lu lu->s
                                   endcase
                       7'b1100000: case(Rs2D)
                                     5'b00000:    ControlsD = `FCTRLW'b0_1_01_00_001_0_0_1_0_0; // fcvt.w.s   s->w
                                     5'b00001:    ControlsD = `FCTRLW'b0_1_01_00_000_0_0_1_0_0; // fcvt.wu.s  s->wu
-                                    5'b00010:    if (P.XLEN == 64) ControlsD = `FCTRLW'b0_1_01_00_011_0_0_1_0_0; // fcvt.l.s   s->l
-                                    5'b00011:    if (P.XLEN == 64) ControlsD = `FCTRLW'b0_1_01_00_010_0_0_1_0_0; // fcvt.lu.s  s->lu
+                                    5'b00010:    if (XLEN == 64) ControlsD = `FCTRLW'b0_1_01_00_011_0_0_1_0_0; // fcvt.l.s   s->l
+                                    5'b00011:    if (XLEN == 64) ControlsD = `FCTRLW'b0_1_01_00_010_0_0_1_0_0; // fcvt.lu.s  s->lu
                                   endcase
                       7'b1101001: case(Rs2D)
                                     5'b00000:    ControlsD = `FCTRLW'b1_0_01_00_101_0_0_0_0_0; // fcvt.d.w   w->d
                                     5'b00001:    ControlsD = `FCTRLW'b1_0_01_00_100_0_0_0_0_0; // fcvt.d.wu wu->d
-                                    5'b00010:    if (P.XLEN == 64) ControlsD = `FCTRLW'b1_0_01_00_111_0_0_0_0_0; // fcvt.d.l   l->d
-                                    5'b00011:    if (P.XLEN == 64) ControlsD = `FCTRLW'b1_0_01_00_110_0_0_0_0_0; // fcvt.d.lu lu->d
+                                    5'b00010:    if (XLEN == 64) ControlsD = `FCTRLW'b1_0_01_00_111_0_0_0_0_0; // fcvt.d.l   l->d
+                                    5'b00011:    if (XLEN == 64) ControlsD = `FCTRLW'b1_0_01_00_110_0_0_0_0_0; // fcvt.d.lu lu->d
                                   endcase
                       7'b1100001: case(Rs2D)
                                     5'b00000:    ControlsD = `FCTRLW'b0_1_01_00_001_0_0_1_0_0; // fcvt.w.d   d->w
                                     5'b00001:    ControlsD = `FCTRLW'b0_1_01_00_000_0_0_1_0_0; // fcvt.wu.d  d->wu
-                                    5'b00010:    if (P.XLEN == 64) ControlsD = `FCTRLW'b0_1_01_00_011_0_0_1_0_0; // fcvt.l.d   d->l
-                                    5'b00011:    if (P.XLEN == 64) ControlsD = `FCTRLW'b0_1_01_00_010_0_0_1_0_0; // fcvt.lu.d  d->lu
-                                    5'b01000: if (P.ZFA_SUPPORTED & P.D_SUPPORTED & Funct3D == 3'b001) 
+                                    5'b00010:    if (XLEN == 64) ControlsD = `FCTRLW'b0_1_01_00_011_0_0_1_0_0; // fcvt.l.d   d->l
+                                    5'b00011:    if (XLEN == 64) ControlsD = `FCTRLW'b0_1_01_00_010_0_0_1_0_0; // fcvt.lu.d  d->lu
+                                    5'b01000: if (ZFA_SUPPORTED & D_SUPPORTED & Funct3D == 3'b001) 
                                                  ControlsD = `FCTRLW'b0_1_01_00_001_0_0_1_1_0; // fcvtmod.w.d (Zfa)
                                   endcase
                       7'b1101010: case(Rs2D)
                                     5'b00000:    ControlsD = `FCTRLW'b1_0_01_00_101_0_0_0_0_0; // fcvt.h.w   w->h
                                     5'b00001:    ControlsD = `FCTRLW'b1_0_01_00_100_0_0_0_0_0; // fcvt.h.wu wu->h
-                                    5'b00010:    if (P.XLEN == 64) ControlsD = `FCTRLW'b1_0_01_00_111_0_0_0_0_0; // fcvt.h.l   l->h
-                                    5'b00011:    if (P.XLEN == 64) ControlsD = `FCTRLW'b1_0_01_00_110_0_0_0_0_0; // fcvt.h.lu lu->h
+                                    5'b00010:    if (XLEN == 64) ControlsD = `FCTRLW'b1_0_01_00_111_0_0_0_0_0; // fcvt.h.l   l->h
+                                    5'b00011:    if (XLEN == 64) ControlsD = `FCTRLW'b1_0_01_00_110_0_0_0_0_0; // fcvt.h.lu lu->h
                                   endcase
                       7'b1100010: case(Rs2D)
                                     5'b00000:    ControlsD = `FCTRLW'b0_1_01_00_001_0_0_1_0_0; // fcvt.w.h   h->w
                                     5'b00001:    ControlsD = `FCTRLW'b0_1_01_00_000_0_0_1_0_0; // fcvt.wu.h  h->wu
-                                    5'b00010:    if (P.XLEN == 64) ControlsD = `FCTRLW'b0_1_01_00_011_0_0_1_0_0; // fcvt.l.h   h->l
-                                    5'b00011:    if (P.XLEN == 64) ControlsD = `FCTRLW'b0_1_01_00_010_0_0_1_0_0; // fcvt.lu.h  h->lu
+                                    5'b00010:    if (XLEN == 64) ControlsD = `FCTRLW'b0_1_01_00_011_0_0_1_0_0; // fcvt.l.h   h->l
+                                    5'b00011:    if (XLEN == 64) ControlsD = `FCTRLW'b0_1_01_00_010_0_0_1_0_0; // fcvt.lu.h  h->lu
                                   endcase
                       // Not covered in testing because rv64gc does not support quad precision
                       // coverage off
                       7'b1101011: case(Rs2D)
                                     5'b00000:    ControlsD = `FCTRLW'b1_0_01_00_101_0_0_0_0_0; // fcvt.q.w   w->q
                                     5'b00001:    ControlsD = `FCTRLW'b1_0_01_00_100_0_0_0_0_0; // fcvt.q.wu wu->q
-                                    5'b00010:    if (P.XLEN == 64) ControlsD = `FCTRLW'b1_0_01_00_111_0_0_0_0_0; // fcvt.q.l   l->q
-                                    5'b00011:    if (P.XLEN == 64) ControlsD = `FCTRLW'b1_0_01_00_110_0_0_0_0_0; // fcvt.q.lu lu->q
+                                    5'b00010:    if (XLEN == 64) ControlsD = `FCTRLW'b1_0_01_00_111_0_0_0_0_0; // fcvt.q.l   l->q
+                                    5'b00011:    if (XLEN == 64) ControlsD = `FCTRLW'b1_0_01_00_110_0_0_0_0_0; // fcvt.q.lu lu->q
                                   endcase
                       7'b1100011: case(Rs2D)
                                     5'b00000:    ControlsD = `FCTRLW'b0_1_01_00_001_0_0_1_0_0; // fcvt.w.q   q->w
                                     5'b00001:    ControlsD = `FCTRLW'b0_1_01_00_000_0_0_1_0_0; // fcvt.wu.q  q->wu
-                                    5'b00010:    if (P.XLEN == 64) ControlsD = `FCTRLW'b0_1_01_00_011_0_0_1_0_0; // fcvt.l.q   q->l
-                                    5'b00011:    if (P.XLEN == 64) ControlsD = `FCTRLW'b0_1_01_00_010_0_0_1_0_0; // fcvt.lu.q  q->lu
+                                    5'b00010:    if (XLEN == 64) ControlsD = `FCTRLW'b0_1_01_00_011_0_0_1_0_0; // fcvt.l.q   q->l
+                                    5'b00011:    if (XLEN == 64) ControlsD = `FCTRLW'b0_1_01_00_010_0_0_1_0_0; // fcvt.lu.q  q->lu
                                   endcase
                       // coverage off
                       // Not covered in testing because rv64gc is not RV64Q or RV32D
-                      7'b1011001: if (P.ZFA_SUPPORTED & P.XLEN == 32 & P.D_SUPPORTED & Funct3D == 3'b000) 
+                      7'b1011001: if (ZFA_SUPPORTED & XLEN == 32 & D_SUPPORTED & Funct3D == 3'b000) 
                                                   ControlsD = `FCTRLW'b1_0_00_00_011_0_0_0_1_0; // fmvp.d.x  (Zfa) 
-                      7'b1011011: if (P.ZFA_SUPPORTED & P.XLEN == 64 & P.Q_SUPPORTED & Funct3D == 3'b000) 
+                      7'b1011011: if (ZFA_SUPPORTED & XLEN == 64 & Q_SUPPORTED & Funct3D == 3'b000) 
                                                   ControlsD = `FCTRLW'b1_0_00_00_011_0_0_0_1_0; // fmvp.q.x  (Zfa)
                       // coverage on
                    endcase
@@ -277,13 +277,13 @@ module fctrl import cvw::*;  #(parameter cvw_t P) (
   //    10 - half
   //    11 - quad
   
-    if (P.FPSIZES == 1)
+    if (FPSIZES == 1)
       assign FmtD = 1'b0;
-    else if (P.FPSIZES == 2) begin
+    else if (FPSIZES == 2) begin
       logic [1:0] FmtTmp;
       assign FmtTmp = ((Funct7D[6:3] == 4'b0100)&OpD[4]&~Rs2D[2]) ? Rs2D[1:0] : (~OpD[6]&(&OpD[2:0])) ? {~Funct3D[1], ~(Funct3D[1]^Funct3D[0])} : Funct7D[1:0];
-      assign FmtD = (P.FMT == FmtTmp);
-    end else if (P.FPSIZES == 3|P.FPSIZES == 4)
+      assign FmtD = (FMT == FmtTmp);
+    end else if (FPSIZES == 3|FPSIZES == 4)
       assign FmtD = ((Funct7D[6:3] == 4'b0100)&OpD[4]&~Rs2D[2]) ? Rs2D[1:0] : Funct7D[1:0];
 
   // Enables indicate that a source register is used and may need stalls. Also indicate special cases for infinity or NaN.
@@ -361,7 +361,7 @@ module fctrl import cvw::*;  #(parameter cvw_t P) (
   assign Adr3D = InstrD[31:27];
  
   // D/E pipeline register
-  flopenrc #(`FCTRLW+2+P.FMTBITS) DECtrlReg3(clk, reset, FlushE, ~StallE, 
+  flopenrc #(`FCTRLW+2+FMTBITS) DECtrlReg3(clk, reset, FlushE, ~StallE, 
               {FRegWriteD, PostProcSelD, FResSelD, FrmD, FmtD, OpCtrlD, FWriteIntD, FCvtIntD, ZfaD, ZfaFRoundNXD, ~IllegalFPUInstrD},
               {FRegWriteE, PostProcSelE, FResSelE, FrmE, FmtE, OpCtrlE, FWriteIntE, FCvtIntE, ZfaE, ZfaFRoundNXE, FPUActiveE});
   flopenrc #(15) DEAdrReg(clk, reset, FlushE, ~StallE, {Adr1D, Adr2D, Adr3D}, {Adr1E, Adr2E, Adr3E});
@@ -369,11 +369,11 @@ module fctrl import cvw::*;  #(parameter cvw_t P) (
   flopenrc #(3) DEEnReg(clk, reset, FlushE, ~StallE, {XEnD, YEnD, ZEnD}, {XEnE, YEnE, ZEnE});
 
   // Integer division on FPU divider
-  if (P.M_SUPPORTED & P.IDIV_ON_FPU) assign IDivStartE = IntDivE;
+  if (M_SUPPORTED & IDIV_ON_FPU) assign IDivStartE = IntDivE;
   else                               assign IDivStartE = 1'b0; 
 
   // E/M pipeline register
-  flopenrc #(14+int'(P.FMTBITS)) EMCtrlReg (clk, reset, FlushM, ~StallM,
+  flopenrc #(14+int'(FMTBITS)) EMCtrlReg (clk, reset, FlushM, ~StallM,
               {FRegWriteE, FResSelE, PostProcSelE, FrmE, FmtE, OpCtrlE, FWriteIntE, FCvtIntE, ZfaE},
               {FRegWriteM, FResSelM, PostProcSelM, FrmM, FmtM, OpCtrlM, FWriteIntM, FCvtIntM, ZfaM});
 
@@ -384,5 +384,5 @@ module fctrl import cvw::*;  #(parameter cvw_t P) (
   flopenrc #(4)  MWCtrlReg(clk, reset, FlushW, ~StallW,
           {FRegWriteM, FResSelM, FCvtIntM},
           {FRegWriteW, FResSelW, FCvtIntW});
-
+endgenerate
 endmodule

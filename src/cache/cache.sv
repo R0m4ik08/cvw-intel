@@ -28,7 +28,7 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module cache import cvw::*; #(parameter cvw_t P,
+module cache import config_pkg::*; #(
                               parameter PA_BITS, LINELEN,  NUMSETS,  NUMWAYS, LOGBWPL, WORDLEN, MUXINTERVAL, READ_ONLY_CACHE) (
   input  logic                   clk,
   input  logic                   reset,
@@ -59,7 +59,7 @@ module cache import cvw::*; #(parameter cvw_t P,
   output logic [1:0]             CacheBusRW,        // [1] Read (cache line fetch) or [0] write bus (cache line writeback)
   output logic [PA_BITS-1:0]     CacheBusAdr        // Address for bus access
 );
-
+generate
   // Cache parameters
   localparam                     LINEBYTELEN = LINELEN/8;            // Line length in bytes
   localparam                     OFFSETLEN = $clog2(LINEBYTELEN);    // Number of bits in offset field
@@ -118,7 +118,7 @@ module cache import cvw::*; #(parameter cvw_t P,
     AdrSelMuxSelLRU, CacheSetLRU);
 
   // Array of cache ways, along with victim, hit, dirty, and read merging logic
-  cacheway #(P, PA_BITS, NUMSETS, LINELEN, TAGLEN, OFFSETLEN, SETLEN, READ_ONLY_CACHE) CacheWays[NUMWAYS-1:0](
+  cacheway #(PA_BITS, NUMSETS, LINELEN, TAGLEN, OFFSETLEN, SETLEN, READ_ONLY_CACHE) CacheWays[NUMWAYS-1:0](
     .clk, .reset, .CacheEn, .CacheSetData, .CacheSetTag, .PAdr, .LineWriteData, .LineByteMask, .SelVictim,
     .SetValid, .ClearValid, .SetDirty, .ClearDirty, .VictimWay,
     .FlushWay, .FlushCache, .ReadDataLineWay, .HitWay, .ValidWay, .DirtyWay, .HitDirtyWay, .TagWay, .FlushStage, .InvalidateCache);
@@ -178,7 +178,7 @@ module cache import cvw::*; #(parameter cvw_t P,
     assign FetchBufferByteSel = SetDirty ? ~DemuxedByteMask : '1;  // If load miss set all muxes to 1.
 
     // Merge write data into fetched cache line for store miss
-    for(index = 0; index < LINELEN/8; index++) begin
+    for(index = 0; index < LINELEN/8; index++) begin : bn_for1
       mux2 #(8) WriteDataMux(.d0(WriteData[(8*index)%WORDLEN+7:(8*index)%WORDLEN]),
         .d1(FetchBuffer[8*index+7:8*index]), .s(FetchBufferByteSel[index] & ~CMOpM[3]), .y(LineWriteData[8*index+7:8*index]));
     end
@@ -231,4 +231,5 @@ module cache import cvw::*; #(parameter cvw_t P,
     .FlushAdrCntEn, .FlushWayCntEn, .FlushCntRst,
     .FlushAdrFlag, .FlushWayFlag, .FlushCache, .SelFetchBuffer,
     .InvalidateCache, .CMOpM, .CacheEn, .LRUWriteEn);
+endgenerate
 endmodule 

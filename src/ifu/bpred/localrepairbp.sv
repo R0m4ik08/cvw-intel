@@ -26,7 +26,7 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module localrepairbp import cvw::*; #(parameter cvw_t P,
+module localrepairbp import config_pkg::*; #(
                                       parameter XLEN,
                        parameter m = 6, // 2^m = number of local history branches 
                        parameter k = 10) ( // number of past branches stored
@@ -59,8 +59,8 @@ module localrepairbp import cvw::*; #(parameter cvw_t P,
   logic                   SpeculativeFlushedF;
   
   
-  ram2p1r1wbe #(.USE_SRAM(P.USE_SRAM), .DEPTH(2**k), .WIDTH(2)) PHT(.clk(clk),
-    .ce1(~StallD), .ce2(~StallW & ~FlushW),
+  ram2p1r1wbe #( .DEPTH(2**k), .WIDTH(2)) PHT(.clk(clk),
+    .ce0(1'b1), .ce1(~StallD), .ce2(~StallW & ~FlushW),
     .ra1(LHRF),
     .rd1(BPDirD),
     .wa2(LHRW),
@@ -90,8 +90,8 @@ module localrepairbp import cvw::*; #(parameter cvw_t P,
   assign IndexLHRM = {PCW[m+1] ^ PCW[1], PCW[m:2]};
   assign IndexLHRNextF = {PCNextF[m+1] ^ PCNextF[1], PCNextF[m:2]};
 
-  ram2p1r1wbe #(.USE_SRAM(P.USE_SRAM), .DEPTH(2**m), .WIDTH(k)) BHT(.clk(clk),
-    .ce1(~StallF), .ce2(~StallW & ~FlushW),
+  ram2p1r1wbe #( .DEPTH(2**m), .WIDTH(k)) BHT(.clk(clk),
+    .ce0(1'b1), .ce1(~StallF), .ce2(~StallW & ~FlushW),
     .ra1(IndexLHRNextF),
     .rd1(LHRCommittedF),
     .wa2(IndexLHRM),
@@ -102,8 +102,8 @@ module localrepairbp import cvw::*; #(parameter cvw_t P,
   assign IndexLHRD = {PCE[m+1] ^ PCE[1], PCE[m:2]};
   assign LHRNextE = BranchD ? {BPDirD[1], LHRE[k-1:1]} : LHRE;
   // RT: TODO active research: replace with a small CAM, quantify benefit
-  ram2p1r1wbe #(.USE_SRAM(P.USE_SRAM), .DEPTH(2**m), .WIDTH(k)) SHB(.clk(clk),
-    .ce1(~StallF), .ce2(~StallE & ~FlushE),
+  ram2p1r1wbe #( .DEPTH(2**m), .WIDTH(k)) SHB(.clk(clk),
+    .ce0(1'b1), .ce1(~StallF), .ce2(~StallE & ~FlushE),
     .ra1(IndexLHRNextF),
     .rd1(LHRSpeculativeF),
     .wa2(IndexLHRD),

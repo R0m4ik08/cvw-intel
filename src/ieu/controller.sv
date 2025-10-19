@@ -28,7 +28,7 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module controller import cvw::*;  #(parameter cvw_t P) (
+module controller import config_pkg::*;   (
   input  logic        clk, reset,
   // Decode stage control signals
   input  logic        StallD, FlushD,          // Stall, flush Decode stage
@@ -91,7 +91,7 @@ module controller import cvw::*;  #(parameter cvw_t P) (
   // Forwarding controls
   output logic [4:0]  RdW                      // Register destinations in Execute, Memory, or Writeback stage
 );
-
+generate
   logic [4:0] Rs1E;                      // pipelined register sources
   logic [6:0] OpD;                             // Opcode in Decode stage
   logic [2:0] Funct3D;                         // Funct3 field in Decode stage
@@ -172,32 +172,32 @@ module controller import cvw::*;  #(parameter cvw_t P) (
   // Be rigorous about detecting illegal instructions if CSRs or bit manipulation or conditional ops are supported
   // otherwise be cheap
 
-  if (P.ZICSR_SUPPORTED | P.ZBA_SUPPORTED  | P.ZBB_SUPPORTED  | P.ZBC_SUPPORTED  | P.ZBS_SUPPORTED | 
-      P.ZBKB_SUPPORTED  | P.ZBKC_SUPPORTED | P.ZBKX_SUPPORTED | P.ZKNE_SUPPORTED | 
-      P.ZKND_SUPPORTED  | P.ZKNH_SUPPORTED | P.ZICOND_SUPPORTED) begin:legalcheck // Exact integer decoding
+  if (ZICSR_SUPPORTED | ZBA_SUPPORTED  | ZBB_SUPPORTED  | ZBC_SUPPORTED  | ZBS_SUPPORTED | 
+      ZBKB_SUPPORTED  | ZBKC_SUPPORTED | ZBKX_SUPPORTED | ZKNE_SUPPORTED | 
+      ZKND_SUPPORTED  | ZKNH_SUPPORTED | ZICOND_SUPPORTED) begin:legalcheck // Exact integer decoding
     logic Funct7ZeroD, Funct7b5D, IShiftD, INoShiftD;
     logic Funct7ShiftZeroD, Funct7Shiftb5D;
 
     assign Funct7ZeroD      = (Funct7D == 7'b0000000); // most R-type instructions
     assign Funct7b5D        = (Funct7D == 7'b0100000); // srai, sub
-    assign FunctCZeroD      = (Funct3D == 3'b101 | Funct3D == 3'b111) & (Funct7D == 7'b0000111) & P.ZICOND_SUPPORTED; // czero.eqz or czero.nez
-    assign Funct7ShiftZeroD = (P.XLEN==64 & ~OpD[3]) ? (Funct7D[6:1] == 6'b000000) : Funct7ZeroD; // 64-bit logical shifts allowed on XLEN=64, non-W
-    assign Funct7Shiftb5D   = (P.XLEN==64 & ~OpD[3]) ? (Funct7D[6:1] == 6'b010000) : Funct7b5D;   // 64-bit arithmetic shifts allowed on XLEN=64, non-W
+    assign FunctCZeroD      = (Funct3D == 3'b101 | Funct3D == 3'b111) & (Funct7D == 7'b0000111) & ZICOND_SUPPORTED; // czero.eqz or czero.nez
+    assign Funct7ShiftZeroD = (XLEN==64 & ~OpD[3]) ? (Funct7D[6:1] == 6'b000000) : Funct7ZeroD; // 64-bit logical shifts allowed on XLEN=64, non-W
+    assign Funct7Shiftb5D   = (XLEN==64 & ~OpD[3]) ? (Funct7D[6:1] == 6'b010000) : Funct7b5D;   // 64-bit arithmetic shifts allowed on XLEN=64, non-W
     assign IShiftD          = (Funct3D == 3'b001 & Funct7ShiftZeroD) | (Funct3D == 3'b101 & (Funct7ShiftZeroD | Funct7Shiftb5D)); // slli, srli, srai, or w forms
     assign INoShiftD        = ((Funct3D != 3'b001) & (Funct3D != 3'b101));
     assign IFunctD          = IShiftD | INoShiftD;
     assign RFunctD          = ((Funct3D == 3'b000 | Funct3D == 3'b101) & Funct7b5D) | FunctCZeroD | Funct7ZeroD;
-    assign MFunctD          = (Funct7D == 7'b0000001) & (P.M_SUPPORTED | (P.ZMMUL_SUPPORTED & ~Funct3D[2])); // muldiv
+    assign MFunctD          = (Funct7D == 7'b0000001) & (M_SUPPORTED | (ZMMUL_SUPPORTED & ~Funct3D[2])); // muldiv
     assign LFunctD          = Funct3D == 3'b000 | Funct3D == 3'b001 | Funct3D == 3'b010 | Funct3D == 3'b100 | Funct3D == 3'b101 | 
-                              ((P.XLEN == 64) & (Funct3D == 3'b011 | Funct3D == 3'b110));
-    assign FLSFunctD        = (STATUS_FS != 2'b00) & ((Funct3D == 3'b010 & P.F_SUPPORTED) | (Funct3D == 3'b011 & P.D_SUPPORTED) |
-                              (Funct3D == 3'b100 & P.Q_SUPPORTED) | (Funct3D == 3'b001 & P.ZFH_SUPPORTED));
-    assign FenceFunctD      = (Funct3D == 3'b000) | (P.ZIFENCEI_SUPPORTED & Funct3D == 3'b001);
+                              ((XLEN == 64) & (Funct3D == 3'b011 | Funct3D == 3'b110));
+    assign FLSFunctD        = (STATUS_FS != 2'b00) & ((Funct3D == 3'b010 & F_SUPPORTED) | (Funct3D == 3'b011 & D_SUPPORTED) |
+                              (Funct3D == 3'b100 & Q_SUPPORTED) | (Funct3D == 3'b001 & ZFH_SUPPORTED));
+    assign FenceFunctD      = (Funct3D == 3'b000) | (ZIFENCEI_SUPPORTED & Funct3D == 3'b001);
     assign CMOFunctD        = (Funct3D == 3'b010 & RdD == 5'b0) & 
-                              ((P.ZICBOZ_SUPPORTED & InstrD[31:20] == 12'd4 & ENVCFG_CBE[3]) |
-                               (P.ZICBOM_SUPPORTED & ((InstrD[31:20] == 12'd0 & (ENVCFG_CBE[1:0] != 2'b00))) | 
+                              ((ZICBOZ_SUPPORTED & InstrD[31:20] == 12'd4 & ENVCFG_CBE[3]) |
+                               (ZICBOM_SUPPORTED & ((InstrD[31:20] == 12'd0 & (ENVCFG_CBE[1:0] != 2'b00))) | 
                                                       (InstrD[31:20] == 12'd1 | InstrD[31:20] == 12'd2) & ENVCFG_CBE[2]));
-    assign AFunctD          = (Funct3D == 3'b010) | (P.XLEN == 64 & Funct3D == 3'b011);
+    assign AFunctD          = (Funct3D == 3'b010) | (XLEN == 64 & Funct3D == 3'b011);
     assign AMOFunctD        = (InstrD[31:27] == 5'b00001) |
                               (InstrD[31:27] == 5'b00000) |
                               (InstrD[31:27] == 5'b00100) |
@@ -208,10 +208,10 @@ module controller import cvw::*;  #(parameter cvw_t P) (
                               (InstrD[31:27] == 5'b11000) |
                               (InstrD[31:27] == 5'b11100);
     assign RWFunctD         = ((Funct3D == 3'b000 | Funct3D == 3'b001 | Funct3D == 3'b101) & Funct7ZeroD |
-                              (Funct3D == 3'b000 | Funct3D == 3'b101) & Funct7b5D) & (P.XLEN == 64);
-    assign MWFunctD         = MFunctD & (P.XLEN == 64) & ~(Funct3D == 3'b001 | Funct3D == 3'b010 | Funct3D == 3'b011);
+                              (Funct3D == 3'b000 | Funct3D == 3'b101) & Funct7b5D) & (XLEN == 64);
+    assign MWFunctD         = MFunctD & (XLEN == 64) & ~(Funct3D == 3'b001 | Funct3D == 3'b010 | Funct3D == 3'b011);
     assign SFunctD          = Funct3D == 3'b000 | Funct3D == 3'b001 | Funct3D == 3'b010 | 
-                              ((P.XLEN == 64) & (Funct3D == 3'b011));
+                              ((XLEN == 64) & (Funct3D == 3'b011));
     assign BFunctD          = Funct3D[2:1] != 2'b01; // legal branches
     assign JRFunctD         = Funct3D == 3'b000;
     assign PFunctD          = Funct3D == 3'b000 & RdD == 5'b0;
@@ -220,7 +220,7 @@ module controller import cvw::*;  #(parameter cvw_t P) (
   end else begin:legalcheck2
     assign IFunctD = 1'b1; // Don't bother to separate out shift decoding
     assign RFunctD = ~Funct7D[0]; // Not a multiply
-    assign MFunctD = Funct7D[0] & (P.M_SUPPORTED | (P.ZMMUL_SUPPORTED & ~Funct3D[2])); // muldiv
+    assign MFunctD = Funct7D[0] & (M_SUPPORTED | (ZMMUL_SUPPORTED & ~Funct3D[2])); // muldiv
     assign LFunctD = 1'b1; // don't bother to check Funct3 for loads
     assign FLSFunctD = 1'b1; // don't bother to check Func3 for floating-point loads/stores
     assign FenceFunctD = 1'b1; // don't bother to check fields for fences
@@ -248,7 +248,7 @@ module controller import cvw::*;  #(parameter cvw_t P) (
       7'b0000111: if (FLSFunctD)  
                       ControlsD = `CTRLW'b0_000_01_10_001_0_0_0_0_0_0_0_0_0_00_0_1; // flw - only legal if FP supported
       7'b0001111: if (FenceFunctD) begin
-                    if (P.ZIFENCEI_SUPPORTED)
+                    if (ZIFENCEI_SUPPORTED)
                       ControlsD = `CTRLW'b0_000_00_00_000_0_0_0_0_0_0_0_1_0_00_0_0; // fence
                     else
                       ControlsD = `CTRLW'b0_000_00_00_000_0_0_0_0_0_0_0_0_0_00_0_0; // fence treated as nop
@@ -258,18 +258,18 @@ module controller import cvw::*;  #(parameter cvw_t P) (
       7'b0010011: if (IFunctD)    
                       ControlsD = `CTRLW'b1_000_01_00_000_0_1_0_0_0_0_0_0_0_00_0_0; // I-type ALU
       7'b0010111:     ControlsD = `CTRLW'b1_100_11_00_000_0_0_0_0_0_0_0_0_0_00_0_0; // auipc
-      7'b0011011: if (IFunctD & IWValidFunct3D & P.XLEN == 64)
+      7'b0011011: if (IFunctD & IWValidFunct3D & XLEN == 64)
                       ControlsD = `CTRLW'b1_000_01_00_000_0_1_0_0_1_0_0_0_0_00_0_0; // IW-type ALU for RV64i
       7'b0100011: if (SFunctD) 
                       ControlsD = `CTRLW'b0_001_01_01_000_0_0_0_0_0_0_0_0_0_00_0_0; // stores
       7'b0100111: if (FLSFunctD)
                       ControlsD = `CTRLW'b0_001_01_01_000_0_0_0_0_0_0_0_0_0_00_0_1; // fsw - only legal if FP supported
       7'b0101111: if (AFunctD) begin
-                    if (P.ZALRSC_SUPPORTED & InstrD[31:27] == 5'b00010 & Rs2D == 5'b0)
+                    if (ZALRSC_SUPPORTED & InstrD[31:27] == 5'b00010 & Rs2D == 5'b0)
                       ControlsD = `CTRLW'b1_000_00_10_001_0_0_0_0_0_0_0_0_0_01_0_0; // lr
-                    else if (P.ZALRSC_SUPPORTED & InstrD[31:27] == 5'b00011)
+                    else if (ZALRSC_SUPPORTED & InstrD[31:27] == 5'b00011)
                       ControlsD = `CTRLW'b1_101_01_01_100_0_0_0_0_0_0_0_0_0_01_0_0; // sc
-                    else if (P.ZAAMO_SUPPORTED & AMOFunctD) 
+                    else if (ZAAMO_SUPPORTED & AMOFunctD) 
                       ControlsD = `CTRLW'b1_101_01_11_001_0_0_0_0_0_0_0_0_0_10_0_0; // amo
                  end
       7'b0110011: if (RFunctD)
@@ -286,7 +286,7 @@ module controller import cvw::*;  #(parameter cvw_t P) (
       7'b1100111: if (JRFunctD)
                       ControlsD = `CTRLW'b1_000_01_00_000_0_0_1_1_0_0_0_0_0_00_0_0; // jalr
       7'b1101111:     ControlsD = `CTRLW'b1_011_11_00_000_0_0_1_1_0_0_0_0_0_00_0_0; // jal
-      7'b1110011: if (P.ZICSR_SUPPORTED) begin
+      7'b1110011: if (ZICSR_SUPPORTED) begin
                    if (PFunctD)
                       ControlsD = `CTRLW'b0_000_00_00_000_0_0_0_0_0_0_1_0_0_00_0_0; // privileged; decoded further in privdec modules
                    else if (CSRFunctD)
@@ -299,7 +299,7 @@ module controller import cvw::*;  #(parameter cvw_t P) (
   // Unswizzle control bits
   // Squash control signals if coming from an illegal compressed instruction
   // On RV32E, can't write to upper 16 registers.  Checking reads to upper 16 is more costly so disregard them.
-  assign IllegalERegAdrD = P.E_SUPPORTED & P.ZICSR_SUPPORTED & ControlsD[`CTRLW-1] & InstrD[11]; 
+  assign IllegalERegAdrD = E_SUPPORTED & ZICSR_SUPPORTED & ControlsD[`CTRLW-1] & InstrD[11]; 
   assign {BaseRegWriteD, PreImmSrcD, ALUSrcAD, BaseALUSrcBD, MemRWD,
           ResultSrcD, BranchD, ALUOpD, JumpD, ALUResultSrcD, BaseW64D, CSRReadD, 
           PrivilegedD, FenceXD, MDUD, AtomicD, CMOD, unused} = IllegalIEUFPUInstrD ? `CTRLW'b0 : ControlsD;
@@ -316,19 +316,19 @@ module controller import cvw::*;  #(parameter cvw_t P) (
   assign BaseSubArithD = ALUOpD & (subD | sraD | sltD | sltuD);
 
   // bit manipulation Configuration Block
-  if (P.ZBS_SUPPORTED  | P.ZBA_SUPPORTED  | P.ZBB_SUPPORTED  | P.ZBC_SUPPORTED |
-      P.ZBKB_SUPPORTED | P.ZBKC_SUPPORTED | P.ZBKX_SUPPORTED | P.ZKNE_SUPPORTED | 
-      P.ZKND_SUPPORTED | P.ZKNH_SUPPORTED) begin: bitmanipi 
+  if (ZBS_SUPPORTED  | ZBA_SUPPORTED  | ZBB_SUPPORTED  | ZBC_SUPPORTED |
+      ZBKB_SUPPORTED | ZBKC_SUPPORTED | ZBKX_SUPPORTED | ZKNE_SUPPORTED | 
+      ZKND_SUPPORTED | ZKNH_SUPPORTED) begin: bitmanipi 
     logic IllegalBitmanipInstrD;          // Unrecognized B instruction
     logic BRegWriteD;                     // Indicates if it is a R type BMU instruction in decode stage
     logic BW64D;                          // Indicates if it is a W type BMU instruction in decode stage
     logic BSubArithD;                     // TRUE for BMU ext, clr, andn, orn, xnor
     logic BALUSrcBD;                      // BMU alu src select signal
 
-    bmuctrl #(P) bmuctrl(.clk, .reset, .InstrD, .ALUOpD,
+    bmuctrl bmuctrl(.clk, .reset, .InstrD, .ALUOpD,
       .BRegWriteD, .BALUSrcBD, .BW64D, .BUW64D, .BSubArithD, .IllegalBitmanipInstrD, .StallE, .FlushE, 
       .ALUSelectD(PreALUSelectD), .BSelectE, .ZBBSelectE, .BALUControlE, .BMUActiveE);
-    if (P.ZBA_SUPPORTED) begin
+    if (ZBA_SUPPORTED) begin
       // ALU Decoding is more comprehensive when ZBA is supported. slt and slti conflicts with sh1add, sh1add.uw
       assign sltD = (Funct3D == 3'b010 & (~(Funct7D[4]) | ~OpD[5])) ;
     end else assign sltD = (Funct3D == 3'b010);
@@ -359,7 +359,7 @@ module controller import cvw::*;  #(parameter cvw_t P) (
     assign BMUActiveE = 1'b0;
   end
 
-  if (P.ZICOND_SUPPORTED) begin: Zicond
+  if (ZICOND_SUPPORTED) begin: Zicond
     logic  SomeCZeroD; // instruction is czero.*
     assign SomeCZeroD = FunctCZeroD & (OpD == 7'b0110011);
     assign CZeroD = {SomeCZeroD & (Funct3D == 3'b111), SomeCZeroD & (Funct3D == 3'b101)}; // {czero.nez, czero.eqz}
@@ -372,7 +372,7 @@ module controller import cvw::*;  #(parameter cvw_t P) (
   // Fences
   // Ordinary fence is presently a nop
   // fence.i flushes the D$ and invalidates the I$ if Zifencei is supported and I$ is implemented
-  if (P.ZIFENCEI_SUPPORTED & (P.ICACHE_SUPPORTED | P.DCACHE_SUPPORTED)) begin:fencei
+  if (ZIFENCEI_SUPPORTED & (ICACHE_SUPPORTED | DCACHE_SUPPORTED)) begin:fencei
     logic FenceID;
     assign FenceID = FenceXD & (Funct3D == 3'b001); // is it a FENCE.I instruction?
     assign InvalidateICacheD = FenceID;
@@ -385,10 +385,10 @@ module controller import cvw::*;  #(parameter cvw_t P) (
   // Cache Management instructions
   always_comb begin
     CMOpD = 4'b0000; // default: not a cbo instruction
-    if ((P.ZICBOZ_SUPPORTED) & CMOD) begin
+    if ((ZICBOZ_SUPPORTED) & CMOD) begin
       CMOpD[3] = (InstrD[31:20] == 12'd4); // cbo.zero
     end
-    if ((P.ZICBOM_SUPPORTED) & CMOD) begin
+    if ((ZICBOM_SUPPORTED) & CMOD) begin
       CMOpD[2] = (InstrD[31:20] == 12'd2); // cbo.clean
       CMOpD[1] = (InstrD[31:20] == 12'd1) | ((InstrD[31:20] == 12'd0) & (ENVCFG_CBE[1:0] == 2'b01)); // cbo.flush 
       CMOpD[0] = (InstrD[31:20] == 12'd0) & (ENVCFG_CBE[1:0] == 2'b11); // cbo.inval
@@ -401,7 +401,7 @@ module controller import cvw::*;  #(parameter cvw_t P) (
     IFUPrefetchD = 1'b0;
     LSUPrefetchD = 1'b0;
     ImmSrcD = PreImmSrcD;
-    if (P.ZICBOP_SUPPORTED & (InstrD[14:0] == 15'b110_00000_0010011)) begin // ori with destination x0 is hint for Prefetch
+    if (ZICBOP_SUPPORTED & (InstrD[14:0] == 15'b110_00000_0010011)) begin // ori with destination x0 is hint for Prefetch
       /* verilator lint_off CASEINCOMPLETE */
       case (Rs2D) // which type of prefectch?  Note: prefetch.r and .w are handled the same in Wally 
         5'b00000: IFUPrefetchD = 1'b1; // prefetch.i
@@ -478,4 +478,5 @@ module controller import cvw::*;  #(parameter cvw_t P) (
   assign MDUStallD = MDUE & MatchDE; // Int mult/div is at least two cycle latency, even when coming from the FDIV
   assign FCvtIntStallD = FCvtIntE & MatchDE; // FPU to Integer transfers have single-cycle latency except fcvt
   assign StructuralStallD = LoadStallD | StoreStallD | CSRRdStallD | MDUStallD | FCvtIntStallD;
+endgenerate
 endmodule

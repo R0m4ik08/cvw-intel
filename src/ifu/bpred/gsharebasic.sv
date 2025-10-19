@@ -28,7 +28,7 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module gsharebasic import cvw::*; #(parameter cvw_t P,
+module gsharebasic import config_pkg::*; #(
                      parameter XLEN,
                      parameter k = 10,
                      parameter TYPE = 1) (
@@ -42,7 +42,7 @@ module gsharebasic import cvw::*; #(parameter cvw_t P,
   input logic [XLEN-1:0] PCNextF, PCM,
   input logic             BranchE, BranchM, PCSrcE
 );
-
+generate
   logic [k-1:0]           IndexNextF, IndexM;
   logic [1:0]             BPDirD, BPDirE;
   logic [1:0]             NewBPDirE, NewBPDirM;
@@ -59,8 +59,8 @@ module gsharebasic import cvw::*; #(parameter cvw_t P,
   assign IndexM = GHRM;
   end
   
-  ram2p1r1wbe #(.USE_SRAM(P.USE_SRAM), .DEPTH(2**k), .WIDTH(2)) PHT(.clk(clk),
-    .ce1(~StallF), .ce2(~StallW & ~FlushW),
+  ram2p1r1wbe #( .DEPTH(2**k), .WIDTH(2)) PHT(.clk(clk),
+    .ce0(1'b1), .ce1(~StallF), .ce2(~StallW & ~FlushW),
     .ra1(IndexNextF),
     .rd1(BPDirF),
     .wa2(IndexM),
@@ -85,5 +85,5 @@ module gsharebasic import cvw::*; #(parameter cvw_t P,
   flopenrc #(k) GHREReg(clk, reset, FlushE, ~StallE, GHRD, GHRE);
   flopenrc #(k) GHRMReg(clk, reset, FlushM, ~StallM, GHRE, GHRM);
 
-
+endgenerate
 endmodule

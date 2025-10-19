@@ -27,13 +27,13 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module rvvisynth import cvw::*; #(parameter cvw_t P,
+module rvvisynth import config_pkg::*; #(
                                   parameter integer MAX_CSRS = 5, 
                                   parameter integer TOTAL_CSRS = 36)(
   input logic clk, reset,
   input logic                                     StallE, StallM, StallW, FlushE, FlushM, FlushW,
   // required
-  input logic [P.XLEN-1:0]                        PCM,
+  input logic [XLEN-1:0]                        PCM,
   input logic                                     InstrValidM,
   input logic [31:0]                              InstrRawD,
   input logic [63:0]                              Mcycle, Minstret,
@@ -42,32 +42,32 @@ module rvvisynth import cvw::*; #(parameter cvw_t P,
   // registers gpr and fpr
   input logic                                     GPRWen, FPRWen,
   input logic [4:0]                               GPRAddr, FPRAddr,
-  input logic [P.XLEN-1:0]                        GPRValue, FPRValue,
-  input var logic [P.XLEN-1:0]                    CSRArray [TOTAL_CSRS-1:0],
+  input logic [XLEN-1:0]                        GPRValue, FPRValue,
+  input var logic [XLEN-1:0]                    CSRArray [TOTAL_CSRS-1:0],
   output logic valid,
-  output logic [72+(5*P.XLEN) + MAX_CSRS*(P.XLEN+16)-1:0] rvvi
+  output logic [72+(5*XLEN) + MAX_CSRS*(XLEN+16)-1:0] rvvi
   );
 
   // pipeline controls
 
   // required
-  logic [P.XLEN-1:0]                        PCW;
+  logic [XLEN-1:0]                        PCW;
   logic                                     InstrValidW;
   logic [31:0]                              InstrRawE, InstrRawM, InstrRawW;
   logic                                     TrapW;
 
   // registers gpr and fpr
-  logic [P.XLEN-1:0]                        XLENZeros;
+  logic [XLEN-1:0]                        XLENZeros;
   logic [TOTAL_CSRS-1:0]                    CSRArrayWen;
-  logic [P.XLEN-1:0]                        CSRValue [MAX_CSRS-1:0];
+  logic [XLEN-1:0]                        CSRValue [MAX_CSRS-1:0];
   logic [TOTAL_CSRS-1:0]                    CSRWen [MAX_CSRS-1:0];
   logic [11:0]                              CSRAddr [MAX_CSRS-1:0];
   logic [MAX_CSRS-1:0]                      EnabledCSRs;
   logic [MAX_CSRS-1:0]                      CSRCountShort;
   logic [11:0]                              CSRCount;
-  logic [56+3*P.XLEN-1:0]                   Required;
-  logic [16+2*P.XLEN-1:0]                   Registers;
-  logic [MAX_CSRS*(P.XLEN+16)-1:0]          CSRs;
+  logic [56+3*XLEN-1:0]                   Required;
+  logic [16+2*XLEN-1:0]                   Registers;
+  logic [MAX_CSRS*(XLEN+16)-1:0]          CSRs;
      
   assign XLENZeros = '0;
 
@@ -75,7 +75,7 @@ module rvvisynth import cvw::*; #(parameter cvw_t P,
   // PC, inst, mcycle, minstret, trap, mode
   
   flopenrc #(1)      InstrValidMReg (clk, reset, FlushW, ~StallW, InstrValidM, InstrValidW);
-  flopenrc #(P.XLEN) PCWReg (clk, reset, FlushW, ~StallW, PCM, PCW);
+  flopenrc #(XLEN) PCWReg (clk, reset, FlushW, ~StallW, PCM, PCW);
   flopenrc #(32)     InstrRawEReg (clk, reset, FlushE, ~StallE, InstrRawD, InstrRawE);
   flopenrc #(32)     InstrRawMReg (clk, reset, FlushM, ~StallM, InstrRawE, InstrRawM);
   flopenrc #(32)     InstrRawWReg (clk, reset, FlushW, ~StallW, InstrRawM, InstrRawW);
@@ -99,24 +99,24 @@ module rvvisynth import cvw::*; #(parameter cvw_t P,
   // step 2
   genvar                                   index;
   for (index = 0; index < TOTAL_CSRS; index = index + 1) begin
-    regchangedetect #(P.XLEN) changedetect(clk, reset, CSRArray[index], CSRArrayWen[index]);
+    regchangedetect #(XLEN) changedetect(clk, reset, CSRArray[index], CSRArrayWen[index]);
   end
 
   // step 3a
   logic [TOTAL_CSRS-1:0] CSRWenPriorityMatrix [MAX_CSRS-1:0];
   logic [TOTAL_CSRS-1:0] CSRWenFilterMatrix [MAX_CSRS-1:0];
   
-  priorityaomux #(TOTAL_CSRS, P.XLEN) firstpriorityaomux(CSRArrayWen, CSRArray, CSRValue[0], CSRWenPriorityMatrix[0]);
+  priorityaomux #(TOTAL_CSRS, XLEN) firstpriorityaomux(CSRArrayWen, CSRArray, CSRValue[0], CSRWenPriorityMatrix[0]);
   assign CSRWenFilterMatrix[0] = CSRArrayWen;
 
   for(index = 1; index < MAX_CSRS; index = index + 1) begin
-    priorityaomux #(TOTAL_CSRS, P.XLEN) priorityaomux(CSRWenFilterMatrix[index], CSRArray, CSRValue[index], CSRWenPriorityMatrix[index]);
+    priorityaomux #(TOTAL_CSRS, XLEN) priorityaomux(CSRWenFilterMatrix[index], CSRArray, CSRValue[index], CSRWenPriorityMatrix[index]);
     assign CSRWenFilterMatrix[index] = CSRWenFilterMatrix[index-1] & ~CSRWenPriorityMatrix[index-1];
   end
   for(index = 0; index < MAX_CSRS; index = index + 1) begin
     // step 3b
     csrindextoaddr #(TOTAL_CSRS) csrindextoaddr(CSRWenPriorityMatrix[index], CSRAddr[index]);
-    assign CSRs[(index+1) * (P.XLEN + 16)- 1: index * (P.XLEN + 16)] = {CSRValue[index], 4'b0, CSRAddr[index]};
+    assign CSRs[(index+1) * (XLEN + 16)- 1: index * (XLEN + 16)] = {CSRValue[index], 4'b0, CSRAddr[index]};
     assign EnabledCSRs[index] = |CSRWenPriorityMatrix[index];
   end
 

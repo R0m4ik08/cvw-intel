@@ -28,7 +28,7 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module privdec import cvw::*;  #(parameter cvw_t P) (
+module privdec import config_pkg::*;   (
   input  logic         clk, reset,
   input  logic         StallW, FlushW, 
   input  logic [31:7 ] InstrM,                              // privileged instruction function field
@@ -40,12 +40,13 @@ module privdec import cvw::*;  #(parameter cvw_t P) (
   output logic         IllegalInstrFaultM,                  // Illegal instruction
   output logic         EcallFaultM, BreakpointFaultM,       // Ecall or breakpoint; must retire, so don't flush it when the trap occurs
   output logic         sretM, mretM, RetM,                  // return instructions
-  output logic         wfiM, wfiW, sfencevmaM               // wfi / sfence.vma / sinval.vma instructions
+(* mark_debug = "true" *)(* mark_debug = "true" *)  output logic         wfiM, wfiW, sfencevmaM               // wfi / sfence.vma / sinval.vma instructions
 );
+generate
 
   logic                rs1zeroM, rdzeroM;                   // rs1 / rd field = 0
   logic                IllegalPrivilegedInstrM;             // privileged instruction isn't a legal one or in legal mode
-  logic                WFITimeoutM;                         // WFI reaches timeout threshold
+(* mark_debug = "true" *)  logic                WFITimeoutM;                         // WFI reaches timeout threshold
   logic                ebreakM, ecallM;                     // ebreak / ecall instructions
   logic                sinvalvmaM;                          // sinval.vma
   logic                presfencevmaM;                       // sfence.vma before checking privilege mode
@@ -66,33 +67,33 @@ module privdec import cvw::*;  #(parameter cvw_t P) (
   assign sfencewinvalM  = (InstrM[31:20] == 12'b000110000000) & rs1zeroM & rdzeroM;
   assign sfenceinvalirM = (InstrM[31:20] == 12'b000110000001) & rs1zeroM & rdzeroM;
   assign presfencevmaM  = (InstrM[31:25] ==  7'b0001001)                 & rdzeroM;
-  assign vmaM           =  presfencevmaM | (sinvalvmaM & P.SVINVAL_SUPPORTED);      // sfence.vma or sinval.vma
-  assign fenceinvalM    = (sfencewinvalM | sfenceinvalirM) & P.SVINVAL_SUPPORTED;   // sfence.w.inval or sfence.inval.ir
+  assign vmaM           =  presfencevmaM | (sinvalvmaM & SVINVAL_SUPPORTED);      // sfence.vma or sinval.vma
+  assign fenceinvalM    = (sfencewinvalM | sfenceinvalirM) & SVINVAL_SUPPORTED;   // sfence.w.inval or sfence.inval.ir
 
-  assign sretM =      PrivilegedM & (InstrM[31:20] == 12'b000100000010) & rs1zeroM & P.S_SUPPORTED & 
-                      (PrivilegeModeW == P.M_MODE | PrivilegeModeW == P.S_MODE & ~STATUS_TSR); 
-  assign mretM =      PrivilegedM & (InstrM[31:20] == 12'b001100000010) & rs1zeroM & (PrivilegeModeW == P.M_MODE);
+  assign sretM =      PrivilegedM & (InstrM[31:20] == 12'b000100000010) & rs1zeroM & S_SUPPORTED & 
+                      (PrivilegeModeW == M_MODE | PrivilegeModeW == S_MODE & ~STATUS_TSR); 
+  assign mretM =      PrivilegedM & (InstrM[31:20] == 12'b001100000010) & rs1zeroM & (PrivilegeModeW == M_MODE);
   assign RetM =       sretM | mretM;
   assign ecallM =     PrivilegedM & (InstrM[31:20] == 12'b000000000000) & rs1zeroM;
   assign ebreakM =    PrivilegedM & (InstrM[31:20] == 12'b000000000001) & rs1zeroM;
   assign wfiM =       PrivilegedM & (InstrM[31:20] == 12'b000100000101) & rs1zeroM;
 
   // all of sinval.vma, sfence.w.inval, sfence.inval.ir are treated as sfence.vma
-  assign sfencevmaM = PrivilegedM & P.VIRTMEM_SUPPORTED & 
-                      ((PrivilegeModeW == P.M_MODE & (vmaM | fenceinvalM)) |
-                       (PrivilegeModeW == P.S_MODE & (vmaM & ~STATUS_TVM  | fenceinvalM))); // sfence.w.inval & sfence.inval.ir not affected by TVM
+  assign sfencevmaM = PrivilegedM & VIRTMEM_SUPPORTED & 
+                      ((PrivilegeModeW == M_MODE & (vmaM | fenceinvalM)) |
+                       (PrivilegeModeW == S_MODE & (vmaM & ~STATUS_TVM  | fenceinvalM))); // sfence.w.inval & sfence.inval.ir not affected by TVM
 
   ///////////////////////////////////////////
   // WFI timeout Privileged Spec 3.1.6.5
   ///////////////////////////////////////////
 
-  if (P.U_SUPPORTED) begin:wfi
-    logic [P.WFI_TIMEOUT_BIT:0] WFICount, WFICountPlus1;
+  if (U_SUPPORTED) begin:wfi
+    logic [WFI_TIMEOUT_BIT:0] WFICount, WFICountPlus1;
     assign WFICountPlus1 = wfiM ? WFICount + 1 : '0; // restart counting on WFI
-    flopr #(P.WFI_TIMEOUT_BIT+1) wficountreg(clk, reset, WFICountPlus1, WFICount);  // count while in WFI
+    flopr #(WFI_TIMEOUT_BIT+1) wficountreg(clk, reset, WFICountPlus1, WFICount);  // count while in WFI
   // coverage off -item e 1 -fecexprrow 1
   // WFI Timeout trap will not occur when STATUS_TW is low while in supervisor mode, so the system gets stuck waiting for an interrupt and triggers a watchdog timeout.
-    assign WFITimeoutM = ((STATUS_TW & PrivilegeModeW != P.M_MODE) | (P.S_SUPPORTED & PrivilegeModeW == P.U_MODE)) & WFICount[P.WFI_TIMEOUT_BIT]; 
+    assign WFITimeoutM = ((STATUS_TW & PrivilegeModeW != M_MODE) | (S_SUPPORTED & PrivilegeModeW == U_MODE)) & WFICount[WFI_TIMEOUT_BIT]; 
   // coverage on
   end else assign WFITimeoutM = 1'b0;
 
@@ -112,4 +113,5 @@ module privdec import cvw::*;  #(parameter cvw_t P) (
   assign IllegalPrivilegedInstrM = PrivilegedM & ~(sretM|mretM|ecallM|ebreakM|wfiM|sfencevmaM);
   assign IllegalInstrFaultM = IllegalIEUFPUInstrM | IllegalPrivilegedInstrM | IllegalCSRAccessM | 
                               WFITimeoutM; 
+endgenerate
 endmodule

@@ -28,15 +28,15 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module amoalu import cvw::*;  #(parameter cvw_t P) (
-  input  logic [P.XLEN-1:0] ReadDataM,    // LSU's ReadData
-  input  logic [P.XLEN-1:0] IHWriteDataM, // LSU's WriteData
+module amoalu import config_pkg::*;   (
+  input  logic [XLEN-1:0] ReadDataM,    // LSU's ReadData
+  input  logic [XLEN-1:0] IHWriteDataM, // LSU's WriteData
   input  logic [6:0]        LSUFunct7M,   // ALU Operation
   input  logic [2:0]        LSUFunct3M,   // Memoy access width
-  output logic [P.XLEN-1:0] AMOResultM    // ALU output
+  output logic [XLEN-1:0] AMOResultM    // ALU output
 );
-
-  logic [P.XLEN-1:0] a, b, y;
+generate
+  logic [XLEN-1:0] a, b, y;
   logic               lt, cmp, sngd, sngd32, eq32, lt32, w64;
 
   // Rename inputs
@@ -46,10 +46,10 @@ module amoalu import cvw::*;  #(parameter cvw_t P) (
   // Share hardware among the four amomin/amomax comparators
   assign sngd = ~LSUFunct7M[5]; // Funct7[5] = 0 for signed amomin/max
   assign w64 = (LSUFunct3M[1:0] == 2'b10); // operate on bottom 32 bits
-  assign sngd32 = sngd & (P.XLEN == 32 | w64); // flip sign in lower 32 bits on 32-bit comparisons only
+  assign sngd32 = sngd & (XLEN == 32 | w64); // flip sign in lower 32 bits on 32-bit comparisons only
 
   comparator #(32) cmp32(a[31:0], b[31:0], sngd32, {eq32, lt32});
-  if (P.XLEN == 32) begin
+  if (XLEN == 32) begin
     assign lt = lt32;
   end else begin
     logic equpper, ltupper, lt64;
@@ -77,9 +77,9 @@ module amoalu import cvw::*;  #(parameter cvw_t P) (
     endcase
 
   // sign extend output if necessary for w64
-  if (P.XLEN == 32) begin:sext
+  if (XLEN == 32) begin:sext
     assign AMOResultM = y;
-  end else begin:sext // P.XLEN = 64
+  end else begin:sext // XLEN = 64
     always_comb 
       if (w64) begin // sign-extend word-length operations
         AMOResultM = {{32{y[31]}}, y[31:0]};
@@ -87,4 +87,5 @@ module amoalu import cvw::*;  #(parameter cvw_t P) (
         AMOResultM = y;
       end
   end
+endgenerate
 endmodule

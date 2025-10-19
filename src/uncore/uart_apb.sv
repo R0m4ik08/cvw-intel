@@ -29,15 +29,15 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module uart_apb import cvw::*; #(parameter cvw_t P) (
+module uart_apb import config_pkg::*; (
   input  logic                PCLK, PRESETn,
   input  logic                PSEL,
   input  logic [2:0]          PADDR, 
-  input  logic [P.XLEN-1:0]   PWDATA,
-  input  logic [P.XLEN/8-1:0] PSTRB,
+  input  logic [XLEN-1:0]   PWDATA,
+  input  logic [XLEN/8-1:0] PSTRB,
   input  logic                PWRITE,
   input  logic                PENABLE,
-  output logic [P.XLEN-1:0]   PRDATA,
+  output logic [XLEN-1:0]   PRDATA,
   output logic                PREADY,
   input  logic                SIN, DSRb, DCDb, CTSb, RIb,           // from E1A driver from RS232 interface
   output logic                SOUT, RTSb, DTRb,                     // to E1A driver to RS232 interface
@@ -56,11 +56,16 @@ module uart_apb import cvw::*; #(parameter cvw_t P) (
   assign MEMWb    = ~memwrite;
 
   assign Din = PWDATA[7:0]; 
-  if (P.XLEN == 64) assign PRDATA = {Dout, Dout, Dout, Dout, Dout, Dout, Dout, Dout};
-  else              assign PRDATA = {Dout, Dout, Dout, Dout};   
   
+  generate
+
+    if (XLEN == 64) assign PRDATA = {Dout, Dout, Dout, Dout, Dout, Dout, Dout, Dout};
+    else              assign PRDATA = {Dout, Dout, Dout, Dout};   
+    
+  endgenerate
+
   logic BAUDOUTb;  // loop tx clock BAUDOUTb back to rx clock RCLK
-  uartPC16550D #(P.UART_PRESCALE) uartPC(  
+  uartPC16550D #(UART_PRESCALE) uartPC(  
     // Processor Interface
     .PCLK, .PRESETn,
     .A(entry), .Din, 

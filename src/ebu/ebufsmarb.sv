@@ -65,7 +65,7 @@ module ebufsmarb (
   ////////////////////////////////////////////////////////////////////////////////////////////////////
 
   assign both = LSUReq & IFUReq;
-  flopenl #(.TYPE(statetype)) busreg(HCLK, ~HRESETn, 1'b1, NextState, IDLE, CurrState);
+  flopenl #(2) busreg(HCLK, ~HRESETn, 1'b1, NextState, IDLE, CurrState);
   always_comb 
     case (CurrState) 
       IDLE:      if (both)                                      NextState = ARBITRATE; 

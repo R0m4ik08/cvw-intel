@@ -34,7 +34,7 @@ module swbytemask #(parameter WORDLEN, EXTEND = 0)(
   output logic [WORDLEN/8-1:0]         ByteMask,
   output logic [WORDLEN/8-1:0]         ByteMaskExtended
 );
-
+generate
   if(EXTEND) begin
     logic [WORDLEN*2/8-1:0]              ExtendedByteMask;
     // 'd2 means 2, but stops Design Compiler from complaining about signed to unsigned conversion    
@@ -75,4 +75,5 @@ module swbytemask #(parameter WORDLEN, EXTEND = 0)(
     end
   end
 */
+endgenerate
 endmodule

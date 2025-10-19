@@ -28,16 +28,16 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module csrsr import cvw::*;  #(parameter cvw_t P) (
+module csrsr import config_pkg::*;   (
   input  logic              clk, reset, StallW,
   input  logic              WriteMSTATUSM, WriteMSTATUSHM, WriteSSTATUSM, 
   input  logic              TrapM, FRegWriteM,
   input  logic [1:0]        NextPrivilegeModeM, PrivilegeModeW,
   input  logic              mretM, sretM, 
   input  logic              WriteFRMM, SetOrWriteFFLAGSM,
-  input  logic [P.XLEN-1:0] CSRWriteValM,
+  input  logic [XLEN-1:0] CSRWriteValM,
   input  logic              SelHPTW,
-  output logic [P.XLEN-1:0] MSTATUS_REGW, SSTATUS_REGW, MSTATUSH_REGW,
+  output logic [XLEN-1:0] MSTATUS_REGW, SSTATUS_REGW, MSTATUSH_REGW,
   output logic [1:0]        STATUS_MPP,
   output logic              STATUS_SPP, STATUS_TSR, STATUS_TW,
   output logic              STATUS_MIE, STATUS_SIE,
@@ -46,7 +46,7 @@ module csrsr import cvw::*;  #(parameter cvw_t P) (
   output logic [1:0]        STATUS_FS,
   output logic              BigEndianM
 );
-  
+generate
   logic STATUS_SD, STATUS_TW_INT, STATUS_TSR_INT, STATUS_TVM_INT, STATUS_MXR_INT, STATUS_SUM_INT, STATUS_MPRV_INT;
   logic [1:0] STATUS_SXL, STATUS_UXL, STATUS_XS, STATUS_FS_INT, STATUS_MPP_NEXT;
   logic STATUS_MPIE, STATUS_SPIE, STATUS_UBE, STATUS_SBE, STATUS_MBE;
@@ -55,7 +55,7 @@ module csrsr import cvw::*;  #(parameter cvw_t P) (
   // STATUS REGISTER FIELD
   // See Privileged Spec Section 3.1.6
   // Lower privilege status registers are a subset of the full status register
-  if (P.XLEN==64) begin: csrsr64 // RV64
+  if (XLEN==64) begin: csrsr64 // RV64
     assign MSTATUS_REGW  = {STATUS_SD, 25'b0, STATUS_MBE, STATUS_SBE, STATUS_SXL, STATUS_UXL, 9'b0,
                            STATUS_TSR, STATUS_TW, STATUS_TVM, STATUS_MXR, STATUS_SUM, STATUS_MPRV,
                            STATUS_XS, STATUS_FS, STATUS_MPP, 2'b0,
@@ -81,52 +81,52 @@ module csrsr import cvw::*;  #(parameter cvw_t P) (
   end
 
   // extract values to write to upper status register on 64/32-bit access
-  if (P.XLEN==64) begin:upperstatus
-    assign nextMBE = P.BIGENDIAN_SUPPORTED & CSRWriteValM[37];
-    assign nextSBE = P.S_SUPPORTED & P.BIGENDIAN_SUPPORTED & CSRWriteValM[36];
+  if (XLEN==64) begin:upperstatus
+    assign nextMBE = BIGENDIAN_SUPPORTED & CSRWriteValM[37];
+    assign nextSBE = S_SUPPORTED & BIGENDIAN_SUPPORTED & CSRWriteValM[36];
   end else begin:upperstatus
-    assign nextMBE = P.BIGENDIAN_SUPPORTED & STATUS_MBE;
-    assign nextSBE = P.S_SUPPORTED & P.BIGENDIAN_SUPPORTED & STATUS_SBE;
+    assign nextMBE = BIGENDIAN_SUPPORTED & STATUS_MBE;
+    assign nextSBE = S_SUPPORTED & BIGENDIAN_SUPPORTED & STATUS_SBE;
   end
 
   // hardwired STATUS bits
-  assign STATUS_TSR  = P.S_SUPPORTED & STATUS_TSR_INT; // override register with 0 if supervisor mode not supported
-  assign STATUS_TW   = P.U_SUPPORTED & STATUS_TW_INT; // override register with 0 if only machine mode supported
-  assign STATUS_TVM  = P.S_SUPPORTED & STATUS_TVM_INT; // override register with 0 if supervisor mode not supported
-  assign STATUS_MXR  = P.S_SUPPORTED & STATUS_MXR_INT; // override register with 0 if supervisor mode not supported
+  assign STATUS_TSR  = S_SUPPORTED & STATUS_TSR_INT; // override register with 0 if supervisor mode not supported
+  assign STATUS_TW   = U_SUPPORTED & STATUS_TW_INT; // override register with 0 if only machine mode supported
+  assign STATUS_TVM  = S_SUPPORTED & STATUS_TVM_INT; // override register with 0 if supervisor mode not supported
+  assign STATUS_MXR  = S_SUPPORTED & STATUS_MXR_INT; // override register with 0 if supervisor mode not supported
   // SXL and UXL bits only matter for RV64.  Set to 10 for RV64 if mode is supported, or 0 if not
-  assign STATUS_SXL  = P.S_SUPPORTED ? 2'b10 : 2'b00; // 10 if supervisor mode supported
-  assign STATUS_UXL  = P.U_SUPPORTED ? 2'b10 : 2'b00; // 10 if user mode supported
-  assign STATUS_SUM  = P.S_SUPPORTED & P.VIRTMEM_SUPPORTED & STATUS_SUM_INT; // override register with 0 if supervisor mode not supported
-  assign STATUS_MPRV = P.U_SUPPORTED & STATUS_MPRV_INT; // override with 0 if user mode not supported
-  assign STATUS_FS   = P.F_SUPPORTED ? STATUS_FS_INT : 2'b00; // off if no FP
+  assign STATUS_SXL  = S_SUPPORTED ? 2'b10 : 2'b00; // 10 if supervisor mode supported
+  assign STATUS_UXL  = U_SUPPORTED ? 2'b10 : 2'b00; // 10 if user mode supported
+  assign STATUS_SUM  = S_SUPPORTED & VIRTMEM_SUPPORTED & STATUS_SUM_INT; // override register with 0 if supervisor mode not supported
+  assign STATUS_MPRV = U_SUPPORTED & STATUS_MPRV_INT; // override with 0 if user mode not supported
+  assign STATUS_FS   = F_SUPPORTED ? STATUS_FS_INT : 2'b00; // off if no FP
   assign STATUS_SD   = (STATUS_FS == 2'b11) | (STATUS_XS == 2'b11); // dirty state logic
   assign STATUS_XS   = 2'b00; // No additional user-mode state to be dirty
 
   always_comb
-    if      (CSRWriteValM[12:11] == P.U_MODE & P.U_SUPPORTED) STATUS_MPP_NEXT = P.U_MODE;
-    else if (CSRWriteValM[12:11] == P.S_MODE & P.S_SUPPORTED) STATUS_MPP_NEXT = P.S_MODE;
-    else if (CSRWriteValM[12:11] == P.M_MODE)                 STATUS_MPP_NEXT = P.M_MODE;
+    if      (CSRWriteValM[12:11] == U_MODE & U_SUPPORTED) STATUS_MPP_NEXT = U_MODE;
+    else if (CSRWriteValM[12:11] == S_MODE & S_SUPPORTED) STATUS_MPP_NEXT = S_MODE;
+    else if (CSRWriteValM[12:11] == M_MODE)                 STATUS_MPP_NEXT = M_MODE;
     else                                                      STATUS_MPP_NEXT = STATUS_MPP; // do not change MPP when trying to write reserved 10 or unsupported mode
 
   ///////////////////////////////////////////
   // Endianness logic Privileged Spec 3.1.6.4
   ///////////////////////////////////////////
 
-  if (P.BIGENDIAN_SUPPORTED) begin: endianmux
+  if (BIGENDIAN_SUPPORTED) begin: endianmux
     // determine whether big endian accesses should be made
     logic [1:0] EndiannessPrivMode;
     always_comb begin
-      if      (SelHPTW)                                  EndiannessPrivMode = P.S_MODE;
+      if      (SelHPTW)                                  EndiannessPrivMode = S_MODE;
       //coverage off -item c 1 -feccondrow 1
       // status.MPRV always gets reset upon leaving machine mode, so MPRV will never be high when out of machine mode
-      else if (PrivilegeModeW == P.M_MODE & STATUS_MPRV) EndiannessPrivMode = STATUS_MPP;
+      else if (PrivilegeModeW == M_MODE & STATUS_MPRV) EndiannessPrivMode = STATUS_MPP;
       //coverage on
       else                                               EndiannessPrivMode = PrivilegeModeW;
 
       case (EndiannessPrivMode) 
-        P.M_MODE: BigEndianM = STATUS_MBE;
-        P.S_MODE: BigEndianM = STATUS_SBE;
+        M_MODE: BigEndianM = STATUS_MBE;
+        S_MODE: BigEndianM = STATUS_SBE;
         default: BigEndianM  = STATUS_UBE;
       endcase
     end
@@ -160,11 +160,11 @@ module csrsr import cvw::*;  #(parameter cvw_t P) (
         // y = PrivilegeModeW
         // x = NextPrivilegeModeM
         // Modes: 11 = Machine, 01 = Supervisor, 00 = User
-        if (NextPrivilegeModeM == P.M_MODE) begin
+        if (NextPrivilegeModeM == M_MODE) begin
           STATUS_MPIE <= STATUS_MIE;
           STATUS_MIE  <= 1'b0;
           STATUS_MPP  <= PrivilegeModeW;
-        end else if (P.S_SUPPORTED) begin // supervisor mode
+        end else if (S_SUPPORTED) begin // supervisor mode
           STATUS_SPIE <= STATUS_SIE;
           STATUS_SIE  <= 1'b0;
           STATUS_SPP  <= PrivilegeModeW[0];
@@ -172,44 +172,45 @@ module csrsr import cvw::*;  #(parameter cvw_t P) (
       end else if (mretM) begin // Privileged 3.1.6.1
         STATUS_MIE      <= STATUS_MPIE; // restore global interrupt enable
         STATUS_MPIE     <= 1'b1; // 
-        STATUS_MPP      <= P.U_SUPPORTED ? P.U_MODE : P.M_MODE; // set MPP to lowest supported privilege level
-        STATUS_MPRV_INT <= STATUS_MPRV_INT & (STATUS_MPP == P.M_MODE); // page 21 of privileged spec.
-      end else if (sretM & P.S_SUPPORTED) begin
+        STATUS_MPP      <= U_SUPPORTED ? U_MODE : M_MODE; // set MPP to lowest supported privilege level
+        STATUS_MPRV_INT <= STATUS_MPRV_INT & (STATUS_MPP == M_MODE); // page 21 of privileged spec.
+      end else if (sretM & S_SUPPORTED) begin
         STATUS_SIE      <= STATUS_SPIE; // restore global interrupt enable
-        STATUS_SPIE     <= P.S_SUPPORTED; 
+        STATUS_SPIE     <= S_SUPPORTED; 
         STATUS_SPP      <= 1'b0; // set SPP to lowest supported privilege level to catch bugs
         STATUS_MPRV_INT <= 1'b0; // always clear MPRV
       end else if (WriteMSTATUSM) begin
-        STATUS_TSR_INT  <= P.S_SUPPORTED & CSRWriteValM[22];
-        STATUS_TW_INT   <= P.U_SUPPORTED & CSRWriteValM[21];
-        STATUS_TVM_INT  <= P.S_SUPPORTED & CSRWriteValM[20];
-        STATUS_MXR_INT  <= P.S_SUPPORTED & CSRWriteValM[19];
-        STATUS_SUM_INT  <= P.VIRTMEM_SUPPORTED & CSRWriteValM[18];
-        STATUS_MPRV_INT <= P.U_SUPPORTED & CSRWriteValM[17];
+        STATUS_TSR_INT  <= S_SUPPORTED & CSRWriteValM[22];
+        STATUS_TW_INT   <= U_SUPPORTED & CSRWriteValM[21];
+        STATUS_TVM_INT  <= S_SUPPORTED & CSRWriteValM[20];
+        STATUS_MXR_INT  <= S_SUPPORTED & CSRWriteValM[19];
+        STATUS_SUM_INT  <= VIRTMEM_SUPPORTED & CSRWriteValM[18];
+        STATUS_MPRV_INT <= U_SUPPORTED & CSRWriteValM[17];
         STATUS_FS_INT   <= CSRWriteValM[14:13];
         STATUS_MPP      <= STATUS_MPP_NEXT;
-        STATUS_SPP      <= P.S_SUPPORTED & CSRWriteValM[8];
+        STATUS_SPP      <= S_SUPPORTED & CSRWriteValM[8];
         STATUS_MPIE     <= CSRWriteValM[7];
-        STATUS_SPIE     <= P.S_SUPPORTED & CSRWriteValM[5];
+        STATUS_SPIE     <= S_SUPPORTED & CSRWriteValM[5];
         STATUS_MIE      <= CSRWriteValM[3];
-        STATUS_SIE      <= P.S_SUPPORTED & CSRWriteValM[1];
-        STATUS_UBE      <= P.U_SUPPORTED & P.BIGENDIAN_SUPPORTED & CSRWriteValM[6];
+        STATUS_SIE      <= S_SUPPORTED & CSRWriteValM[1];
+        STATUS_UBE      <= U_SUPPORTED & BIGENDIAN_SUPPORTED & CSRWriteValM[6];
         STATUS_MBE      <= nextMBE;
         STATUS_SBE      <= nextSBE;
       // coverage off
       // MSTATUSH only exists in 32-bit configurations, will not be hit on rv64gc
-      end else if ((P.XLEN == 32) & WriteMSTATUSHM) begin
-        STATUS_MBE      <= P.BIGENDIAN_SUPPORTED & CSRWriteValM[5];
-        STATUS_SBE      <= P.S_SUPPORTED & P.BIGENDIAN_SUPPORTED & CSRWriteValM[4];
+      end else if ((XLEN == 32) & WriteMSTATUSHM) begin
+        STATUS_MBE      <= BIGENDIAN_SUPPORTED & CSRWriteValM[5];
+        STATUS_SBE      <= S_SUPPORTED & BIGENDIAN_SUPPORTED & CSRWriteValM[4];
       // coverage on
-      end else if (P.S_SUPPORTED & WriteSSTATUSM) begin // write a subset of the STATUS bits
-        STATUS_MXR_INT  <= P.S_SUPPORTED & CSRWriteValM[19];
-        STATUS_SUM_INT  <= P.VIRTMEM_SUPPORTED & CSRWriteValM[18];
+      end else if (S_SUPPORTED & WriteSSTATUSM) begin // write a subset of the STATUS bits
+        STATUS_MXR_INT  <= S_SUPPORTED & CSRWriteValM[19];
+        STATUS_SUM_INT  <= VIRTMEM_SUPPORTED & CSRWriteValM[18];
         STATUS_FS_INT   <= CSRWriteValM[14:13];
-        STATUS_SPP      <= P.S_SUPPORTED & CSRWriteValM[8];
-        STATUS_SPIE     <= P.S_SUPPORTED & CSRWriteValM[5];
-        STATUS_SIE      <= P.S_SUPPORTED & CSRWriteValM[1];
-        STATUS_UBE      <= P.U_SUPPORTED & P.BIGENDIAN_SUPPORTED & CSRWriteValM[6];
+        STATUS_SPP      <= S_SUPPORTED & CSRWriteValM[8];
+        STATUS_SPIE     <= S_SUPPORTED & CSRWriteValM[5];
+        STATUS_SIE      <= S_SUPPORTED & CSRWriteValM[1];
+        STATUS_UBE      <= U_SUPPORTED & BIGENDIAN_SUPPORTED & CSRWriteValM[6];
       end else if (FRegWriteM | WriteFRMM | SetOrWriteFFLAGSM) STATUS_FS_INT <= 2'b11; 
     end
+endgenerate
 endmodule

@@ -34,7 +34,7 @@ module cnt #(parameter WIDTH = 32) (
   input  logic             W64,        // Indicates word operation
   output logic [WIDTH-1:0] CntResult   // count result
 );
-
+generate
   //count instructions
   logic [WIDTH-1:0] czResult;        // count zeros result
   logic [WIDTH-1:0] cpopResult;      // population count result
@@ -60,4 +60,5 @@ module cnt #(parameter WIDTH = 32) (
   assign cpopResult[WIDTH-1:$clog2(WIDTH)+1] = '0;
 
   mux2 #(WIDTH) cntresultmux(czResult, cpopResult, B[1], CntResult);
+endgenerate
 endmodule

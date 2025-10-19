@@ -28,10 +28,10 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module csri import cvw::*;  #(parameter cvw_t P) (
+module csri import config_pkg::*;   (
   input  logic              clk, reset, 
   input  logic              CSRMWriteM, CSRSWriteM,
-  input  logic [P.XLEN-1:0] CSRWriteValM,
+  input  logic [XLEN-1:0] CSRWriteValM,
   input  logic [11:0]       CSRAdrM,
   input  logic              MExtInt, SExtInt, MTimerInt, STimerInt, MSwInt,
   input  logic [11:0]       MIDELEG_REGW,
@@ -39,7 +39,7 @@ module csri import cvw::*;  #(parameter cvw_t P) (
   output logic [11:0]       MIP_REGW, MIE_REGW,
   output logic [11:0]       MIP_REGW_writeable // only SEIP, STIP, SSIP are actually writeable; the rest are hardwired to 0
 );
-
+generate
   logic [11:0]              MIP_WRITE_MASK, SIP_WRITE_MASK, MIE_WRITE_MASK;
   logic                     WriteMIPM, WriteMIEM, WriteSIPM, WriteSIEM;
   logic                     STIP;
@@ -59,8 +59,8 @@ module csri import cvw::*;  #(parameter cvw_t P) (
   // MEIP, MTIP, MSIP are read-only
   // SEIP, STIP, SSIP is writable in MIP if S mode exists
   // SSIP is writable in SIP if S mode exists
-  if (P.S_SUPPORTED) begin:mask
-    if (P.SSTC_SUPPORTED) begin
+  if (S_SUPPORTED) begin:mask
+    if (SSTC_SUPPORTED) begin
       assign MIP_WRITE_MASK = ENVCFG_STCE ? 12'h202 : 12'h222; // SEIP and SSIP are writable, but STIP is not writable when STIMECMP is implemented (see SSTC spec)
       assign STIP = ENVCFG_STCE ? STimerInt : MIP_REGW_writeable[5];
     end else begin
@@ -87,4 +87,5 @@ module csri import cvw::*;  #(parameter cvw_t P) (
   assign MIP_REGW = {MExtInt,   1'b0, SExtInt|MIP_REGW_writeable[9],  1'b0,
                      MTimerInt, 1'b0, STIP,                           1'b0,
                      MSwInt,    1'b0, MIP_REGW_writeable[1],          1'b0};
+endgenerate
 endmodule

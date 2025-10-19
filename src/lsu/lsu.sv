@@ -30,13 +30,13 @@
 // and limitations under the License.
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-module lsu import cvw::*;  #(parameter cvw_t P) (
+module lsu import config_pkg::*;   (
   input  logic                    clk, reset,
   input  logic                    StallM, FlushM, StallW, FlushW,
   output logic                    LSUStallM,                            // LSU stalls pipeline during a multicycle operation
   // connected to cpu (controls)
   input  logic [1:0]              MemRWE,                               // Read/Write control
-  input  logic [1:0]              MemRWM,                               // Read/Write control
+(* mark_debug = "true" *)  input  logic [1:0]              MemRWM,                               // Read/Write control
   input  logic [2:0]              Funct3M,                              // Size of memory operation
   input  logic [6:0]              Funct7M,                              // Atomic memory operation function
   input  logic [1:0]              AtomicM,                              // Atomic memory operation
@@ -48,18 +48,18 @@ module lsu import cvw::*;  #(parameter cvw_t P) (
   output logic                    DCacheMiss,                           // D cache miss for performance counters
   output logic                    DCacheAccess,                         // D cache memory access for performance counters
   // address and write data
-  input  logic [P.XLEN-1:0]       IEUAdrE,                              // Execution stage memory address
-  output logic [P.XLEN-1:0]       IEUAdrM,                              // Memory stage memory address
-  input  logic [P.XLEN-1:0]       WriteDataM,                           // Write data from IEU
-  output logic [P.LLEN-1:0]       ReadDataW,                            // Read data to IEU or FPU
+  input  logic [XLEN-1:0]       IEUAdrE,                              // Execution stage memory address
+(* mark_debug = "true" *)  output logic [XLEN-1:0]       IEUAdrM,                              // Memory stage memory address
+  input  logic [XLEN-1:0]       WriteDataM,                           // Write data from IEU
+  output logic [LLEN-1:0]       ReadDataW,                            // Read data to IEU or FPU
   // cpu privilege
   input  logic [1:0]              PrivilegeModeW,                       // Current privilege mode
   input  logic                    BigEndianM,                           // Swap byte order to big endian
   input  logic                    sfencevmaM,                           // Virtual memory address fence, invalidate TLB entries
   output logic                    DCacheStallM,                         // D$ busy with multicycle operation
-  output logic [P.XLEN-1:0]       IEUAdrxTvalM,                         // IEUAdrM, but could be spilled onto the next cacheline or virtual page.
+(* mark_debug = "true" *)  output logic [XLEN-1:0]       IEUAdrxTvalM,                         // IEUAdrM, but could be spilled onto the next cacheline or virtual page.
   // fpu
-  input  logic [P.FLEN-1:0]       FWriteDataM,                          // Write data from FPU
+  input  logic [FLEN-1:0]       FWriteDataM,                          // Write data from FPU
   input  logic                    FpLoadStoreM,                         // Selects FPU as store for write data
   // faults
   output logic                    LoadPageFaultM, StoreAmoPageFaultM,   // Page fault exceptions
@@ -71,37 +71,38 @@ module lsu import cvw::*;  #(parameter cvw_t P) (
   output logic                    StoreAmoMisalignedFaultM,             // Store or AMO address misaligned fault
   output logic                    StoreAmoAccessFaultM,                 // Store or AMO access fault
   // connect to ahb
-  output logic [P.PA_BITS-1:0]    LSUHADDR,                             // Bus address from LSU to EBU
-  input  logic [P.XLEN-1:0]       HRDATA,                               // Bus read data from LSU to EBU
-  output logic [P.XLEN-1:0]       LSUHWDATA,                            // Bus write data from LSU to EBU
+  output logic [PA_BITS-1:0]    LSUHADDR,                             // Bus address from LSU to EBU
+  input  logic [XLEN-1:0]       HRDATA,                               // Bus read data from LSU to EBU
+  output logic [XLEN-1:0]       LSUHWDATA,                            // Bus write data from LSU to EBU
   input  logic                    LSUHREADY,                            // Bus ready from LSU to EBU
   output logic                    LSUHWRITE,                            // Bus write operation from LSU to EBU
   output logic [2:0]              LSUHSIZE,                             // Bus operation size from LSU to EBU
   output logic [2:0]              LSUHBURST,                            // Bus burst from LSU to EBU
   output logic [1:0]              LSUHTRANS,                            // Bus transaction type from LSU to EBU
-  output logic [P.XLEN/8-1:0]     LSUHWSTRB,                            // Bus byte write enables from LSU to EBU
+  output logic [XLEN/8-1:0]     LSUHWSTRB,                            // Bus byte write enables from LSU to EBU
   // page table walker
-  input  logic [P.XLEN-1:0]       SATP_REGW,                            // SATP (supervisor address translation and protection) CSR
+  input  logic [XLEN-1:0]       SATP_REGW,                            // SATP (supervisor address translation and protection) CSR
   input  logic                    STATUS_MXR, STATUS_SUM, STATUS_MPRV,  // STATUS CSR bits: make executable readable, supervisor user memory, machine privilege
   input  logic [1:0]              STATUS_MPP,                           // Machine previous privilege mode
   input  logic                    ENVCFG_PBMTE,                         // Page-based memory types enabled
   input  logic                    ENVCFG_ADUE,                          // HPTW A/D Update enable
-  input  logic [P.XLEN-1:0]       PCSpillF,                             // Fetch PC 
+  input  logic [XLEN-1:0]       PCSpillF,                             // Fetch PC 
   input  logic                    ITLBMissOrUpdateAF,                   // ITLB miss causes HPTW (hardware pagetable walker) walk or update access bit
-  output logic [P.XLEN-1:0]       PTE,                                  // Page table entry write to ITLB
+  output logic [XLEN-1:0]       PTE,                                  // Page table entry write to ITLB
   output logic [1:0]              PageType,                             // Type of page table entry to write to ITLB
   output logic                    ITLBWriteF,                           // Write PTE to ITLB
   output logic                    SelHPTW,                              // During a HPTW walk the effective privilege mode becomes S_MODE
-  input var logic [7:0]           PMPCFG_ARRAY_REGW[P.PMP_ENTRIES-1:0], // PMP configuration from privileged unit
-  input var logic [P.PA_BITS-3:0] PMPADDR_ARRAY_REGW[P.PMP_ENTRIES-1:0] // PMP address from privileged unit
+  input var logic [7:0]           PMPCFG_ARRAY_REGW[PMP_ENTRIES-1:0], // PMP configuration from privileged unit
+  input var logic [PA_BITS-3:0] PMPADDR_ARRAY_REGW[PMP_ENTRIES-1:0] // PMP address from privileged unit
 );
-  localparam logic MISALIGN_SUPPORT = P.ZICCLSM_SUPPORTED & P.DCACHE_SUPPORTED;
-  localparam MLEN = MISALIGN_SUPPORT ? 2*P.LLEN : P.LLEN; // widen buffer for misaligned accessess
+generate
+  localparam logic MISALIGN_SUPPORT = ZICCLSM_SUPPORTED & DCACHE_SUPPORTED;
+  localparam MLEN = MISALIGN_SUPPORT ? 2*LLEN : LLEN; // widen buffer for misaligned accessess
 
-  logic [P.XLEN+1:0]     IEUAdrExtM;                             // Memory stage address zero-extended to PA_BITS or XLEN whichever is longer
-  logic [P.XLEN+1:0]     IEUAdrExtE;                             // Execution stage address zero-extended to PA_BITS or XLEN whichever is longer
-  logic [P.PA_BITS-1:0]  PAdrM;                                  // Physical memory address
-  logic [P.XLEN+1:0]     IHAdrM;                                 // Either IEU or HPTW memory address
+  logic [XLEN+1:0]     IEUAdrExtM;                             // Memory stage address zero-extended to PA_BITS or XLEN whichever is longer
+  logic [XLEN+1:0]     IEUAdrExtE;                             // Execution stage address zero-extended to PA_BITS or XLEN whichever is longer
+  logic [PA_BITS-1:0]  PAdrM;                                  // Physical memory address
+  logic [XLEN+1:0]     IHAdrM;                                 // Either IEU or HPTW memory address
 
   logic [1:0]            PreLSURWM;                              // IEU or HPTW Read/Write signal
   logic [1:0]            LSURWM;                                 // IEU or HPTW Read/Write signal gated by LR/SC
@@ -121,22 +122,22 @@ module lsu import cvw::*;  #(parameter cvw_t P) (
   logic                  BusCommittedM;                          // Bus memory operation in flight, delay interrupts
   logic                  DCacheCommittedM;                       // D$ memory operation started, delay interrupts
 
-  logic [P.LLEN-1:0]     DTIMReadDataWordM;                      // DTIM read data
+  logic [LLEN-1:0]     DTIMReadDataWordM;                      // DTIM read data
   logic [MLEN-1:0]       DCacheReadDataWordM;                    // D$ read data
   logic [MLEN-1:0]       LSUWriteDataSpillM;                     // Final write data
   logic [MLEN/8-1:0]     ByteMaskSpillM;                         // Selects which bytes within a word to write
-  logic [P.LLEN-1:0]     DCacheReadDataWordSpillM;               // D$ read data
-  logic [P.LLEN-1:0]     ReadDataWordMuxM;                       // DTIM or D$ read data
-  logic [P.LLEN-1:0]     LittleEndianReadDataWordM;              // Endian-swapped read data
-  logic [P.LLEN-1:0]     ReadDataM;                              // Final read data
+  logic [LLEN-1:0]     DCacheReadDataWordSpillM;               // D$ read data
+  logic [LLEN-1:0]     ReadDataWordMuxM;                       // DTIM or D$ read data
+  logic [LLEN-1:0]     LittleEndianReadDataWordM;              // Endian-swapped read data
+  logic [LLEN-1:0]     ReadDataM;                              // Final read data
 
-  logic [P.XLEN-1:0]     IHWriteDataM;                           // IEU or HPTW write data
-  logic [P.XLEN-1:0]     IMAWriteDataM;                          // IEU, HPTW, or AMO write data
-  logic [P.LLEN-1:0]     IMAFWriteDataM;                         // IEU, HPTW, AMO, or FPU write data
-  logic [P.LLEN-1:0]     LittleEndianWriteDataM;                 // Ending-swapped write data 
-  logic [P.LLEN-1:0]     LSUWriteDataM;                          // Final write data
-  logic [(P.LLEN-1)/8:0] ByteMaskM;                              // Selects which bytes within a word to write
-  logic [(P.LLEN-1)/8:0] ByteMaskExtendedM;                      // Selects which bytes within a word to write
+  logic [XLEN-1:0]     IHWriteDataM;                           // IEU or HPTW write data
+  logic [XLEN-1:0]     IMAWriteDataM;                          // IEU, HPTW, or AMO write data
+  logic [LLEN-1:0]     IMAFWriteDataM;                         // IEU, HPTW, AMO, or FPU write data
+  logic [LLEN-1:0]     LittleEndianWriteDataM;                 // Ending-swapped write data 
+  logic [LLEN-1:0]     LSUWriteDataM;                          // Final write data
+  logic [(LLEN-1)/8:0] ByteMaskM;                              // Selects which bytes within a word to write
+  logic [(LLEN-1)/8:0] ByteMaskExtendedM;                      // Selects which bytes within a word to write
   logic [1:0]            MemRWSpillM;
   logic                  SpillStallM;
   
@@ -147,7 +148,7 @@ module lsu import cvw::*;  #(parameter cvw_t P) (
   logic                  HPTWFlushW;                             // HPTW needs to flush operation
   logic                  LSUFlushW;                              // HPTW or hazard unit flushes operation
   logic                  SelDTIM;                                // Select DTIM rather than bus or D$
-  logic [P.XLEN-1:0]     WriteDataZM;
+  logic [XLEN-1:0]     WriteDataZM;
   logic                  LSULoadPageFaultM, LSUStoreAmoPageFaultM;
   logic 		 DTLBMissOrUpdateDAM;
    
@@ -157,11 +158,11 @@ module lsu import cvw::*;  #(parameter cvw_t P) (
   // Zero-extend address to 34 bits for XLEN=32
   /////////////////////////////////////////////////////////////////////////////////////////////
 
-  flopenrc #(P.XLEN) AddressMReg(clk, reset, FlushM, ~StallM, IEUAdrE, IEUAdrM);
+  flopenrc #(XLEN) AddressMReg(clk, reset, FlushM, ~StallM, IEUAdrE, IEUAdrM);
   if(MISALIGN_SUPPORT) begin : ziccslm_align
-    logic [P.XLEN-1:0] IEUAdrSpillE;
-    logic [P.XLEN-1:0] IEUAdrSpillM;
-    align #(P) align(.clk, .reset, .StallM, .FlushM, .IEUAdrE, .IEUAdrM, .Funct3M, .FpLoadStoreM, 
+    logic [XLEN-1:0] IEUAdrSpillE;
+    logic [XLEN-1:0] IEUAdrSpillM;
+    align  align(.clk, .reset, .StallM, .FlushM, .IEUAdrE, .IEUAdrM, .Funct3M, .FpLoadStoreM, 
                      .MemRWM,
                      .DCacheReadDataWordM, .CacheBusHPWTStall, .SelHPTW,
                      .ByteMaskM, .ByteMaskExtendedM, .LSUWriteDataM, .ByteMaskSpillM, .LSUWriteDataSpillM,
@@ -180,7 +181,7 @@ module lsu import cvw::*;  #(parameter cvw_t P) (
     assign IEUAdrxTvalM = IEUAdrM;
   end
 
-    if(P.ZICBOZ_SUPPORTED) begin : cboz
+    if(ZICBOZ_SUPPORTED) begin : cboz
       assign WriteDataZM = CMOpM[3] ? 0 : WriteDataM;
    end else begin : cboz
       assign WriteDataZM = WriteDataM;
@@ -191,12 +192,12 @@ module lsu import cvw::*;  #(parameter cvw_t P) (
   // MMU include PMP and is needed if any privileged supported
   /////////////////////////////////////////////////////////////////////////////////////////////
 
-  if(P.VIRTMEM_SUPPORTED) begin : hptw
-    hptw #(P) hptw(.clk, .reset, .MemRWM, .AtomicM, .ITLBMissOrUpdateAF, .ITLBWriteF,
+  if(VIRTMEM_SUPPORTED) begin : hptw
+    hptw  hptw(.clk, .reset, .MemRWM, .AtomicM, .ITLBMissOrUpdateAF, .ITLBWriteF,
       .DTLBMissOrUpdateDAM, .DTLBWriteM,
       .FlushW, .DCacheBusStallM, .SATP_REGW, .PCSpillF,
       .STATUS_MXR, .STATUS_SUM, .STATUS_MPRV, .STATUS_MPP, .ENVCFG_ADUE, .PrivilegeModeW,
-      .ReadDataM(ReadDataM[P.XLEN-1:0]), // ReadDataM is LLEN, but HPTW only needs XLEN
+      .ReadDataM(ReadDataM[XLEN-1:0]), // ReadDataM is LLEN, but HPTW only needs XLEN
       .WriteDataM(WriteDataZM), .Funct3M, .LSUFunct3M, .Funct7M, .LSUFunct7M,
       .IEUAdrExtM, .PTE, .IHWriteDataM, .PageType, .PreLSURWM, .LSUAtomicM,
       .IHAdrM, .HPTWStall, .SelHPTW, 
@@ -232,14 +233,14 @@ module lsu import cvw::*;  #(parameter cvw_t P) (
   /////////////////////////////////////////////////////////////////////////////////////////////
   // MMU and misalignment fault logic required if privileged unit exists
   /////////////////////////////////////////////////////////////////////////////////////////////
-  if(P.ZICSR_SUPPORTED == 1) begin : dmmu
+  if(ZICSR_SUPPORTED == 1) begin : dmmu
     logic DisableTranslation;                             // During HPTW walk or D$ flush disable virtual memory address translation
     logic WriteAccessM;
     logic DataUpdateDAM;                                  // DTLB hit needs to update dirty or access bits
 
     assign DisableTranslation = SelHPTW | FlushDCacheM;
     assign WriteAccessM = PreLSURWM[0];
-    mmu #(.P(P), .TLB_ENTRIES(P.DTLB_ENTRIES), .IMMU(0))
+    mmu #( .TLB_ENTRIES(DTLB_ENTRIES), .IMMU(0))
     dmmu(.clk, .reset, .SATP_REGW, .STATUS_MXR, .STATUS_SUM, .STATUS_MPRV, .STATUS_MPP, .ENVCFG_PBMTE, .ENVCFG_ADUE,
       .PrivilegeModeW, .DisableTranslation, .VAdr(IHAdrM), .Size(LSUFunct3M[1:0]),
       .PTE, .PageTypeWriteVal(PageType), .TLBWrite(DTLBWriteM), .TLBFlush(sfencevmaM),
@@ -253,14 +254,14 @@ module lsu import cvw::*;  #(parameter cvw_t P) (
       .WriteAccessM, .ReadAccessM(PreLSURWM[1]),
       .PMPCFG_ARRAY_REGW, .PMPADDR_ARRAY_REGW);
 
-    assign DTLBMissOrUpdateDAM = DTLBMissM | (P.SVADU_SUPPORTED & DataUpdateDAM);  
+    assign DTLBMissOrUpdateDAM = DTLBMissM | (SVADU_SUPPORTED & DataUpdateDAM);  
   end else begin  // No MMU, so no PMA/page faults and no address translation
     assign DTLBMissOrUpdateDAM = '0;
     assign {DTLBMissM, LSULoadAccessFaultM, LSUStoreAmoAccessFaultM, LoadMisalignedFaultM, StoreAmoMisalignedFaultM} = '0;
     assign {LSULoadPageFaultM, LSUStoreAmoPageFaultM} = '0;
-    assign PAdrM = IHAdrM[P.PA_BITS-1:0];
+    assign PAdrM = IHAdrM[PA_BITS-1:0];
     assign CacheableM = 1'b1;
-    assign SelDTIM = P.DTIM_SUPPORTED & ~P.BUS_SUPPORTED; // if no PMA then select dtim if there is a DTIM.  If there is 
+    assign SelDTIM = DTIM_SUPPORTED & ~BUS_SUPPORTED; // if no PMA then select dtim if there is a DTIM.  If there is 
     // a bus then this is always 0. Cannot have both without PMA.
   end
   
@@ -276,31 +277,31 @@ module lsu import cvw::*;  #(parameter cvw_t P) (
   // Discard memory request on pipeline flush
   assign LSUFlushW = HPTWFlushW | FlushW;
   
-  if (P.DTIM_SUPPORTED) begin : dtim
-    logic [P.PA_BITS-1:0] DTIMAdr;
-    logic [1:0]           DTIMMemRWM;
+  if (DTIM_SUPPORTED) begin : dtim
+    logic [PA_BITS-1:0] DTIMAdr;
+(* mark_debug = "true" *)    logic [1:0]           DTIMMemRWM;
     
     // The DTIM uses untranslated addresses, so it is not compatible with virtual memory.
-    mux2 #(P.PA_BITS) DTIMAdrMux(IEUAdrExtE[P.PA_BITS-1:0], IEUAdrExtM[P.PA_BITS-1:0], MemRWM[0], DTIMAdr);
+    mux2 #(PA_BITS) DTIMAdrMux(IEUAdrExtE[PA_BITS-1:0], IEUAdrExtM[PA_BITS-1:0], MemRWM[0], DTIMAdr);
     assign DTIMMemRWM = SelDTIM ? LSURWM : 0;
-    dtim #(P) dtim(.clk, .reset, .ce(~GatedStallW),
+    dtim  dtim(.clk, .reset, .ce(~GatedStallW),
               .MemRWM(DTIMMemRWM),
               .DTIMAdr, .FlushW(LSUFlushW), .WriteDataM(LSUWriteDataM), 
-              .ReadDataWordM(DTIMReadDataWordM[P.LLEN-1:0]), .ByteMaskM(ByteMaskM));
+              .ReadDataWordM(DTIMReadDataWordM[LLEN-1:0]), .ByteMaskM(ByteMaskM));
   end else
     assign DTIMReadDataWordM = '0;
-  if (P.BUS_SUPPORTED) begin : bus              
-    if(P.DCACHE_SUPPORTED) begin : dcache
-      localparam   LLENWORDSPERLINE = P.DCACHE_LINELENINBITS/P.LLEN;             // Number of LLEN words in cacheline
+  if (BUS_SUPPORTED) begin : bus              
+    if(DCACHE_SUPPORTED) begin : dcache
+      localparam   LLENWORDSPERLINE = DCACHE_LINELENINBITS/LLEN;             // Number of LLEN words in cacheline
       localparam   LLENLOGBWPL = $clog2(LLENWORDSPERLINE);                       // Log2 of ^
-      localparam   BEATSPERLINE = P.DCACHE_LINELENINBITS/P.AHBW;                 // Number of AHBW words (beats) in cacheline
+      localparam   BEATSPERLINE = DCACHE_LINELENINBITS/AHBW;                 // Number of AHBW words (beats) in cacheline
       localparam   AHBWLOGBWPL = $clog2(BEATSPERLINE);                           // Log2 of ^
-      localparam   LINELEN = P.DCACHE_LINELENINBITS;                             // Number of bits in cacheline
-      localparam   LLENPOVERAHBW = P.LLEN / P.AHBW;                              // Number of AHB beats in a LLEN word. AHBW cannot be larger than LLEN. (implementation limitation)
-      localparam   CACHEWORDLEN = P.ZICCLSM_SUPPORTED ? 2*P.LLEN : P.LLEN;       // Width of the cache's input and output data buses.  Misaligned doubles width for fast access
+      localparam   LINELEN = DCACHE_LINELENINBITS;                             // Number of bits in cacheline
+      localparam   LLENPOVERAHBW = LLEN / AHBW;                              // Number of AHB beats in a LLEN word. AHBW cannot be larger than LLEN. (implementation limitation)
+      localparam   CACHEWORDLEN = ZICCLSM_SUPPORTED ? 2*LLEN : LLEN;       // Width of the cache's input and output data buses.  Misaligned doubles width for fast access
 
       logic [LINELEN-1:0]      FetchBuffer;                                      // Temporary buffer to hold partially fetched cacheline
-      logic [P.PA_BITS-1:0]    DCacheBusAdr;                                     // Cacheline address to fetch or writeback.
+      logic [PA_BITS-1:0]    DCacheBusAdr;                                     // Cacheline address to fetch or writeback.
       logic [AHBWLOGBWPL-1:0]  BeatCount;                                        // Position within a cacheline.  ahbcacheinterface to cache
       logic                    DCacheBusAck;                                     // ahbcacheinterface completed fetch or writeback
       logic                    SelBusBeat;                                       // ahbcacheinterface selects position in cacheline with BeatCount
@@ -313,7 +314,7 @@ module lsu import cvw::*;  #(parameter cvw_t P) (
       logic [3:0]              CacheCMOpM;
       logic                    BusAtomic;
 
-      if(P.ZICBOZ_SUPPORTED) begin 
+      if(ZICBOZ_SUPPORTED) begin 
         assign BusCMOZero = CMOpM[3] & ~CacheableM;
         assign CacheCMOpM = (CacheableM & ~SelHPTW) ? CMOpM : '0;
         assign BusAtomic = AtomicM[1] & ~CacheableM;
@@ -327,8 +328,8 @@ module lsu import cvw::*;  #(parameter cvw_t P) (
       assign CacheRWM = (CacheableM & ~SelDTIM) ? LSURWM : '0;
       assign FlushDCache = FlushDCacheM & ~(SelHPTW);
       
-      cache #(.P(P), .PA_BITS(P.PA_BITS), .LINELEN(P.DCACHE_LINELENINBITS), .NUMSETS(P.DCACHE_WAYSIZEINBYTES*8/LINELEN),
-              .NUMWAYS(P.DCACHE_NUMWAYS), .LOGBWPL(LLENLOGBWPL), .WORDLEN(CACHEWORDLEN), .MUXINTERVAL(P.LLEN), .READ_ONLY_CACHE(0)) dcache(
+      cache #( .PA_BITS(PA_BITS), .LINELEN(DCACHE_LINELENINBITS), .NUMSETS(DCACHE_WAYSIZEINBYTES*8/LINELEN),
+              .NUMWAYS(DCACHE_NUMWAYS), .LOGBWPL(LLENLOGBWPL), .WORDLEN(CACHEWORDLEN), .MUXINTERVAL(LLEN), .READ_ONLY_CACHE(0)) dcache(
         .clk, .reset, .Stall(GatedStallW & ~SelSpillE), .SelBusBeat, .FlushStage(LSUFlushW),
         .CacheRW(CacheRWM), 
         .FlushCache(FlushDCache), .NextSet(IEUAdrExtE[11:0]), .PAdr(PAdrM), 
@@ -340,35 +341,35 @@ module lsu import cvw::*;  #(parameter cvw_t P) (
         .FetchBuffer, .CacheBusRW(CacheBusRW), 
         .CacheBusAck(DCacheBusAck), .InvalidateCache(1'b0), .CMOpM(CacheCMOpM));
 
-      ahbcacheinterface #(.P(P), .BEATSPERLINE(BEATSPERLINE), .AHBWLOGBWPL(AHBWLOGBWPL), .LINELEN(LINELEN),  .LLENPOVERAHBW(LLENPOVERAHBW), .READ_ONLY_CACHE(0)) ahbcacheinterface(
+      ahbcacheinterface #( .BEATSPERLINE(BEATSPERLINE), .AHBWLOGBWPL(AHBWLOGBWPL), .LINELEN(LINELEN),  .LLENPOVERAHBW(LLENPOVERAHBW), .READ_ONLY_CACHE(0)) ahbcacheinterface(
         .HCLK(clk), .HRESETn(~reset), .Flush(LSUFlushW),
         .HRDATA, .HWDATA(LSUHWDATA), .HWSTRB(LSUHWSTRB),
         .HSIZE(LSUHSIZE), .HBURST(LSUHBURST), .HTRANS(LSUHTRANS), .HWRITE(LSUHWRITE), .HREADY(LSUHREADY),
-        .BeatCount, .SelBusBeat, .CacheReadDataWordM(DCacheReadDataWordM[P.LLEN-1:0]), .WriteDataM(LSUWriteDataM),
+        .BeatCount, .SelBusBeat, .CacheReadDataWordM(DCacheReadDataWordM[LLEN-1:0]), .WriteDataM(LSUWriteDataM),
         .Funct3(LSUFunct3M), .HADDR(LSUHADDR), .CacheBusAdr(DCacheBusAdr), .CacheBusRW, .BusAtomic, .BusCMOZero, .CacheableOrFlushCacheM,
         .CacheBusAck(DCacheBusAck), .FetchBuffer, .PAdr(PAdrM),
         .Cacheable(CacheableOrFlushCacheM), .BusRW, .Stall(GatedStallW),
         .BusStall(LSUBusStallM), .BusCommitted(BusCommittedM));
 
-      mux3 #(P.LLEN) UnCachedDataMux(.d0(DCacheReadDataWordSpillM), .d1({LLENPOVERAHBW{FetchBuffer[P.XLEN-1:0]}}),
-                                    .d2({{P.LLEN-P.XLEN{1'b0}}, DTIMReadDataWordM[P.XLEN-1:0]}),
+      mux3 #(LLEN) UnCachedDataMux(.d0(DCacheReadDataWordSpillM), .d1({LLENPOVERAHBW{FetchBuffer[XLEN-1:0]}}),
+                                    .d2({{LLEN-XLEN{1'b0}}, DTIMReadDataWordM[XLEN-1:0]}),
                                     .s({SelDTIM, ~(CacheableOrFlushCacheM)}), .y(ReadDataWordMuxM));
     end else begin : passthrough // No Cache, use simple ahbinterface instead of ahbcacheinterface
       logic [1:0] BusRW;                    // Non-DTIM memory access, ignore cacheableM
-      logic [P.XLEN-1:0] FetchBuffer;
+      logic [XLEN-1:0] FetchBuffer;
       assign BusRW = ~SelDTIM ? LSURWM : 0;
       
       assign LSUHADDR = PAdrM;
       assign LSUHSIZE = LSUFunct3M;
 
-      ahbinterface #(P.XLEN, 1'b1) ahbinterface(.HCLK(clk), .HRESETn(~reset), .Flush(LSUFlushW), .HREADY(LSUHREADY), 
+      ahbinterface #(XLEN, 1'b1) ahbinterface(.HCLK(clk), .HRESETn(~reset), .Flush(LSUFlushW), .HREADY(LSUHREADY), 
         .HRDATA(HRDATA), .HTRANS(LSUHTRANS), .HWRITE(LSUHWRITE), .HWDATA(LSUHWDATA),
-        .HWSTRB(LSUHWSTRB), .BusRW, .BusAtomic(AtomicM[1]), .ByteMask(ByteMaskM[P.XLEN/8-1:0]), .WriteData(LSUWriteDataM[P.XLEN-1:0]),
+        .HWSTRB(LSUHWSTRB), .BusRW, .BusAtomic(AtomicM[1]), .ByteMask(ByteMaskM[XLEN/8-1:0]), .WriteData(LSUWriteDataM[XLEN-1:0]),
         .Stall(GatedStallW), .BusStall(LSUBusStallM), .BusCommitted(BusCommittedM), .FetchBuffer(FetchBuffer));
 
     // Mux between the 2 sources of read data, 0: Bus, 1: DTIM
-      if(P.DTIM_SUPPORTED) mux2 #(P.XLEN) ReadDataMux2(FetchBuffer, DTIMReadDataWordM[P.XLEN-1:0], SelDTIM, ReadDataWordMuxM[P.XLEN-1:0]);
-      else assign ReadDataWordMuxM[P.XLEN-1:0] = FetchBuffer[P.XLEN-1:0];
+      if(DTIM_SUPPORTED) mux2 #(XLEN) ReadDataMux2(FetchBuffer, DTIMReadDataWordM[XLEN-1:0], SelDTIM, ReadDataWordMuxM[XLEN-1:0]);
+      else assign ReadDataWordMuxM[XLEN-1:0] = FetchBuffer[XLEN-1:0];
       assign LSUHBURST = 3'b0;
       assign {DCacheStallM, DCacheCommittedM, DCacheMiss, DCacheAccess, DCacheReadDataWordM} = '0;
     end
@@ -385,8 +386,8 @@ module lsu import cvw::*;  #(parameter cvw_t P) (
   // Atomic operations
   /////////////////////////////////////////////////////////////////////////////////////////////
  
-  if (P.ZAAMO_SUPPORTED | P.ZALRSC_SUPPORTED) begin:atomic
-    atomic #(P) atomic(.clk, .reset, .StallW, .ReadDataM(ReadDataM[P.XLEN-1:0]), .IHWriteDataM, .PAdrM, 
+  if (ZAAMO_SUPPORTED | ZALRSC_SUPPORTED) begin:atomic
+    atomic atomic(.clk, .reset, .StallW, .ReadDataM(ReadDataM[XLEN-1:0]), .IHWriteDataM, .PAdrM, 
       .LSUFunct7M, .LSUFunct3M, .LSUAtomicM, .PreLSURWM, .LSUFlushW, 
       .IMAWriteDataM, .SquashSCW, .LSURWM);
   end else begin:lrsc
@@ -395,11 +396,11 @@ module lsu import cvw::*;  #(parameter cvw_t P) (
     assign IMAWriteDataM = IHWriteDataM;
   end
 
-  if (P.F_SUPPORTED) 
-    if (P.FLEN >= P.XLEN)
-      mux2 #(P.LLEN) datamux({{{P.LLEN-P.XLEN}{1'b0}}, IMAWriteDataM}, FWriteDataM, FpLoadStoreM, IMAFWriteDataM);
+  if (F_SUPPORTED) 
+    if (FLEN >= XLEN)
+      mux2 #(LLEN) datamux({{{LLEN-XLEN}{1'b0}}, IMAWriteDataM}, FWriteDataM, FpLoadStoreM, IMAFWriteDataM);
     else
-      mux2 #(P.LLEN) datamux(IMAWriteDataM, {{{P.XLEN-P.FLEN}{1'b0}}, FWriteDataM}, FpLoadStoreM, IMAFWriteDataM);
+      mux2 #(LLEN) datamux(IMAWriteDataM, {{{XLEN-FLEN}{1'b0}}, FWriteDataM}, FpLoadStoreM, IMAFWriteDataM);
 
   else assign IMAFWriteDataM = IMAWriteDataM;
   
@@ -407,18 +408,18 @@ module lsu import cvw::*;  #(parameter cvw_t P) (
   // Subword Accesses
   /////////////////////////////////////////////////////////////////////////////////////////////
   
-  subwordread #(P) subwordread(.ReadDataWordMuxM(LittleEndianReadDataWordM), .PAdrM(PAdrM[3:0]), .BigEndianM,
+  subwordread subwordread(.ReadDataWordMuxM(LittleEndianReadDataWordM), .PAdrM(PAdrM[3:0]), .BigEndianM,
     .FpLoadStoreM, .Funct3M(LSUFunct3M), .ReadDataM);
-  subwordwrite #(P.LLEN) subwordwrite(.LSUFunct3M, .IMAFWriteDataM, .LittleEndianWriteDataM);
+  subwordwrite #(LLEN) subwordwrite(.LSUFunct3M, .IMAFWriteDataM, .LittleEndianWriteDataM);
 
   // Compute byte masks
-  swbytemask #(P.LLEN, P.ZICCLSM_SUPPORTED) swbytemask(.Size(LSUFunct3M), .Adr(PAdrM[$clog2(P.LLEN/8)-1:0]), .ByteMask(ByteMaskM), .ByteMaskExtended(ByteMaskExtendedM));
+  swbytemask #(LLEN, ZICCLSM_SUPPORTED) swbytemask(.Size(LSUFunct3M), .Adr(PAdrM[$clog2(LLEN/8)-1:0]), .ByteMask(ByteMaskM), .ByteMaskExtended(ByteMaskExtendedM));
 
   /////////////////////////////////////////////////////////////////////////////////////////////
   // MW Pipeline Register
   /////////////////////////////////////////////////////////////////////////////////////////////
 
-  flopen #(P.LLEN) ReadDataMWReg(clk, ~StallW, ReadDataM, ReadDataW);
+  flopen #(LLEN) ReadDataMWReg(clk, ~StallW, ReadDataM, ReadDataW);
 
   /////////////////////////////////////////////////////////////////////////////////////////////
   // Big Endian Byte Swapper
@@ -426,11 +427,12 @@ module lsu import cvw::*;  #(parameter cvw_t P) (
   //  swap the bytes when read from big-endian memory
   /////////////////////////////////////////////////////////////////////////////////////////////
 
-  if (P.BIGENDIAN_SUPPORTED) begin:endian
-    endianswap #(P.LLEN) storeswap(.BigEndianM, .a(LittleEndianWriteDataM), .y(LSUWriteDataM));
-    endianswap #(P.LLEN) loadswap(.BigEndianM, .a(ReadDataWordMuxM), .y(LittleEndianReadDataWordM));
+  if (BIGENDIAN_SUPPORTED) begin:endian
+    endianswap #(LLEN) storeswap(.BigEndianM, .a(LittleEndianWriteDataM), .y(LSUWriteDataM));
+    endianswap #(LLEN) loadswap(.BigEndianM, .a(ReadDataWordMuxM), .y(LittleEndianReadDataWordM));
   end else begin
     assign LSUWriteDataM = LittleEndianWriteDataM;
     assign LittleEndianReadDataWordM = ReadDataWordMuxM;
   end
+endgenerate
 endmodule

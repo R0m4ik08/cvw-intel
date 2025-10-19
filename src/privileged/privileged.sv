@@ -28,18 +28,18 @@
 // SOFTWARE.
 ///////////////////////////////////////////
 
-module privileged import cvw::*;  #(parameter cvw_t P) (
+module privileged import config_pkg::*;   (
   input  logic              clk, reset,
   input  logic              StallD, StallE, StallM, StallW,
   input  logic              FlushD, FlushE, FlushM, FlushW, 
   // CSR Reads and Writes, and values needed for traps
   input  logic              CSRReadM, CSRWriteM,                            // Read or write CSRs
-  input  logic [P.XLEN-1:0] SrcAM,                                          // GPR register to write
+  input  logic [XLEN-1:0] SrcAM,                                          // GPR register to write
   input  logic [31:0]       InstrM,                                         // Instruction
   input  logic [31:0]       InstrOrigM,                                     // Original compressed or uncompressed instruction in Memory stage for Illegal Instruction MTVAL
-  input  logic [P.XLEN-1:0] IEUAdrxTvalM,                                   // address from IEU
-  input  logic [P.XLEN-1:0] PCM,                                            // program counter
-  input  logic [P.XLEN-1:0] PCSpillM,                                       // program counter
+  input  logic [XLEN-1:0] IEUAdrxTvalM,                                   // address from IEU
+  input  logic [XLEN-1:0] PCM,                                            // program counter
+  input  logic [XLEN-1:0] PCSpillM,                                       // program counter
   // control signals                                                       
   input  logic              InstrValidM,                                    // Current instruction is valid (not flushed)
   input  logic              CommittedM, CommittedF,                         // current instruction is using bus; don't interrupt
@@ -77,20 +77,20 @@ module privileged import cvw::*;  #(parameter cvw_t P) (
   input  logic [4:0]        SetFflagsM,                                     // set FCSR flags from FPU
   input  logic              SelHPTW,                                        // HPTW in use.  Causes system to use S-mode endianness for accesses
   // CSR outputs                                                           
-  output logic [P.XLEN-1:0] CSRReadValW,                                    // Value read from CSR
+  output logic [XLEN-1:0] CSRReadValW,                                    // Value read from CSR
   output logic [1:0]        PrivilegeModeW,                                 // current privilege mode
-  output logic [P.XLEN-1:0] SATP_REGW,                                      // supervisor address translation register
+  output logic [XLEN-1:0] SATP_REGW,                                      // supervisor address translation register
   output logic              STATUS_MXR, STATUS_SUM, STATUS_MPRV,            // status register bits
   output logic [1:0]        STATUS_MPP, STATUS_FS,                          // status register bits
-  output var logic [7:0]    PMPCFG_ARRAY_REGW[P.PMP_ENTRIES-1:0],           // PMP configuration entries to MMU
-  output var logic [P.PA_BITS-3:0] PMPADDR_ARRAY_REGW [P.PMP_ENTRIES-1:0],  // PMP address entries to MMU
+  output var logic [7:0]    PMPCFG_ARRAY_REGW[PMP_ENTRIES-1:0],           // PMP configuration entries to MMU
+  output var logic [PA_BITS-3:0] PMPADDR_ARRAY_REGW [PMP_ENTRIES-1:0],  // PMP address entries to MMU
   output logic [2:0]        FRM_REGW,                                       // FPU rounding mode
   output logic [3:0]        ENVCFG_CBE,                                     // Cache block operation enables
   output logic              ENVCFG_PBMTE,                                   // Page-based memory type enable
   output logic              ENVCFG_ADUE,                                    // HPTW A/D Update enable
   // PC logic output from privileged unit to IFU                                  
-  output logic [P.XLEN-1:0] EPCM,                                           // Exception Program counter to IFU PC logic
-  output logic [P.XLEN-1:0] TrapVectorM,                                    // Trap vector, to IFU PC logic
+  output logic [XLEN-1:0] EPCM,                                           // Exception Program counter to IFU PC logic
+  output logic [XLEN-1:0] TrapVectorM,                                    // Trap vector, to IFU PC logic
   // control outputs                                                       
   output logic              RetM, TrapM,                                    // return instruction, or trap
   output logic              sfencevmaM,                                     // sfence.vma instruction
@@ -123,17 +123,17 @@ module privileged import cvw::*;  #(parameter cvw_t P) (
   logic                     wfiW;
   
   // track the current privilege level
-  privmode #(P) privmode(.clk, .reset, .StallW, .TrapM, .mretM, .sretM, .DelegateM,
+  privmode  privmode(.clk, .reset, .StallW, .TrapM, .mretM, .sretM, .DelegateM,
     .STATUS_MPP, .STATUS_SPP, .NextPrivilegeModeM, .PrivilegeModeW);
 
   // decode privileged instructions
-  privdec #(P) pmd(.clk, .reset, .StallW, .FlushW, .InstrM(InstrM[31:7]), 
+  privdec  pmd(.clk, .reset, .StallW, .FlushW, .InstrM(InstrM[31:7]), 
     .PrivilegedM, .IllegalIEUFPUInstrM, .IllegalCSRAccessM, 
     .PrivilegeModeW, .STATUS_TSR, .STATUS_TVM, .STATUS_TW, .IllegalInstrFaultM, 
     .EcallFaultM, .BreakpointFaultM, .sretM, .mretM, .RetM, .wfiM, .wfiW, .sfencevmaM);
 
   // Control and Status Registers
-  csr #(P) csr(.clk, .reset, .FlushM, .FlushW, .StallE, .StallM, .StallW,
+  csr  csr(.clk, .reset, .FlushM, .FlushW, .StallE, .StallM, .StallW,
     .InstrM, .InstrOrigM, .PCM, .PCSpillM, .SrcAM, .IEUAdrxTvalM, 
     .CSRReadM, .CSRWriteM, .TrapM, .mretM, .sretM, .InterruptM,
     .MTimerInt, .MExtInt, .SExtInt, .MSwInt,
@@ -156,7 +156,7 @@ module privileged import cvw::*;  #(parameter cvw_t P) (
     .InstrPageFaultM, .InstrAccessFaultM, .HPTWInstrAccessFaultM, .HPTWInstrPageFaultM, .IllegalIEUFPUInstrM);
 
   // trap logic
-  trap #(P) trap(.reset,
+  trap  trap(.reset,
     .InstrMisalignedFaultM, .InstrAccessFaultM, .HPTWInstrAccessFaultM, .HPTWInstrPageFaultM, .IllegalInstrFaultM,
     .BreakpointFaultM, .LoadMisalignedFaultM, .StoreAmoMisalignedFaultM,
     .LoadAccessFaultM, .StoreAmoAccessFaultM, .EcallFaultM, .InstrPageFaultM,

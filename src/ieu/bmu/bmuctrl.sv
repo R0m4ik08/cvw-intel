@@ -28,7 +28,7 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module bmuctrl import cvw::*;  #(parameter cvw_t P) (
+module bmuctrl import config_pkg::*;   (
   input  logic        clk, reset,
   // Decode stage control signals
   input  logic [31:0] InstrD,                  // Instruction in Decode stage
@@ -75,13 +75,13 @@ module bmuctrl import cvw::*;  #(parameter cvw_t P) (
   always_comb begin
     // BALUSelect_BSelect_ZBBSelect_BRegWrite_BALUSrcB_BW64_BUW64_BALUOp_BSubArithD_RotateD_MaskD_PreShiftD_IllegalBitmanipInstrD
     BMUControlsD = `BMUCTRLW'b000_00_000_0_0_0_0_0_0_0_0_1;  // default: Illegal bmu instruction;
-    if (P.ZBA_SUPPORTED) begin
+    if (ZBA_SUPPORTED) begin
       casez({OpD, Funct7D, Funct3D})
         17'b0110011_0010000_010: BMUControlsD = `BMUCTRLW'b000_0001_0000_1_0_0_0_1_0_0_0_1_0;  // sh1add
         17'b0110011_0010000_100: BMUControlsD = `BMUCTRLW'b000_0001_0000_1_0_0_0_1_0_0_0_1_0;  // sh2add
         17'b0110011_0010000_110: BMUControlsD = `BMUCTRLW'b000_0001_0000_1_0_0_0_1_0_0_0_1_0;  // sh3add
       endcase
-      if (P.XLEN==64)
+      if (XLEN==64)
         casez({OpD, Funct7D, Funct3D})
           17'b0111011_0010000_010: BMUControlsD = `BMUCTRLW'b000_0001_0000_1_0_0_1_1_0_0_0_1_0;  // sh1add.uw
           17'b0111011_0010000_100: BMUControlsD = `BMUCTRLW'b000_0001_0000_1_0_0_1_1_0_0_0_1_0;  // sh2add.uw
@@ -91,7 +91,7 @@ module bmuctrl import cvw::*;  #(parameter cvw_t P) (
         endcase
     end
 
-    if (P.ZBB_SUPPORTED) begin
+    if (ZBB_SUPPORTED) begin
       casez({OpD, Funct7D, Funct3D})
         17'b0010011_0110000_001: if ((Rs2D[4:1] == 4'b0010))
                                   BMUControlsD = `BMUCTRLW'b000_0010_0001_1_1_0_0_1_0_0_0_0_0;  // sign extend instruction
@@ -104,11 +104,11 @@ module bmuctrl import cvw::*;  #(parameter cvw_t P) (
         17'b0110011_0000101_100: BMUControlsD = `BMUCTRLW'b000_0010_0011_1_0_0_0_1_1_0_0_0_0;  // min
         17'b0110011_0000101_101: BMUControlsD = `BMUCTRLW'b000_0010_0011_1_0_0_0_1_1_0_0_0_0;  // minu
       endcase
-      if (P.XLEN==32)
+      if (XLEN==32)
         casez({OpD, Funct7D, Funct3D})
           17'b0110011_0000100_100: BMUControlsD = `BMUCTRLW'b000_0010_0001_1_1_0_0_1_0_0_0_0_0;  // zexth (rv32)                       
         endcase
-      else if (P.XLEN==64)
+      else if (XLEN==64)
         casez({OpD, Funct7D, Funct3D})
           17'b0111011_0000100_100: BMUControlsD = `BMUCTRLW'b000_0010_0001_1_0_0_0_1_0_0_0_0_0;  // zexth (rv64)
           17'b0011011_0110000_001: if ((Rs2D[4:2]==3'b000) & ~(Rs2D[1] & Rs2D[0]))
@@ -116,32 +116,32 @@ module bmuctrl import cvw::*;  #(parameter cvw_t P) (
         endcase
     end
 
-    if (P.ZBC_SUPPORTED)
+    if (ZBC_SUPPORTED)
       casez({OpD, Funct7D, Funct3D})
         17'b0110011_0000101_010: BMUControlsD = `BMUCTRLW'b000_0011_0001_1_0_0_0_1_0_0_0_0_0;  // clmulr
         17'b0110011_0000101_0?1: BMUControlsD = `BMUCTRLW'b000_0011_0000_1_0_0_0_1_0_0_0_0_0;  // clmul/clmulh
       endcase
-    if (P.ZBKC_SUPPORTED) begin   
+    if (ZBKC_SUPPORTED) begin   
       casez({OpD, Funct7D, Funct3D})
         17'b0110011_0000101_0?1: BMUControlsD = `BMUCTRLW'b000_0011_0000_1_0_0_0_1_0_0_0_0_0;  // clmul/clmulh
       endcase
     end
 
-    if (P.ZBS_SUPPORTED) begin // ZBS
+    if (ZBS_SUPPORTED) begin // ZBS
       casez({OpD, Funct7D, Funct3D})
         17'b0110011_0100100_001: BMUControlsD = `BMUCTRLW'b111_0001_0000_1_0_0_0_1_1_0_1_0_0;  // bclr
         17'b0110011_0100100_101: BMUControlsD = `BMUCTRLW'b101_0001_0000_1_0_0_0_1_0_0_1_0_0;  // bext
         17'b0110011_0110100_001: BMUControlsD = `BMUCTRLW'b100_0001_0000_1_0_0_0_1_0_0_1_0_0;  // binv
         17'b0110011_0010100_001: BMUControlsD = `BMUCTRLW'b110_0001_0000_1_0_0_0_1_0_0_1_0_0;  // bset
       endcase
-      if (P.XLEN==32) // ZBS 64-bit
+      if (XLEN==32) // ZBS 64-bit
         casez({OpD, Funct7D, Funct3D})
           17'b0010011_0100100_001: BMUControlsD = `BMUCTRLW'b111_0001_0000_1_1_0_0_1_1_0_1_0_0;  // bclri
           17'b0010011_0100100_101: BMUControlsD = `BMUCTRLW'b101_0001_0000_1_1_0_0_1_0_0_1_0_0;  // bexti
           17'b0010011_0110100_001: BMUControlsD = `BMUCTRLW'b100_0001_0000_1_1_0_0_1_0_0_1_0_0;  // binvi
           17'b0010011_0010100_001: BMUControlsD = `BMUCTRLW'b110_0001_0000_1_1_0_0_1_0_0_1_0_0;  // bseti
         endcase
-      else if (P.XLEN==64) // ZBS 64-bit
+      else if (XLEN==64) // ZBS 64-bit
         casez({OpD, Funct7D, Funct3D})
           17'b0010011_010010?_001: BMUControlsD = `BMUCTRLW'b111_0001_0000_1_1_0_0_1_1_0_1_0_0;  // bclri (rv64)
           17'b0010011_010010?_101: BMUControlsD = `BMUCTRLW'b101_0001_0000_1_1_0_0_1_0_0_1_0_0;  // bexti (rv64)
@@ -149,55 +149,55 @@ module bmuctrl import cvw::*;  #(parameter cvw_t P) (
           17'b0010011_001010?_001: BMUControlsD = `BMUCTRLW'b110_0001_0000_1_1_0_0_1_0_0_1_0_0;  // bseti (rv64)
         endcase
     end
-    if (P.ZBB_SUPPORTED | P.ZBS_SUPPORTED) // rv32i/64i shift instructions need BMU ALUSelect when BMU shifter is used
+    if (ZBB_SUPPORTED | ZBS_SUPPORTED) // rv32i/64i shift instructions need BMU ALUSelect when BMU shifter is used
       casez({OpD, Funct7D, Funct3D})
         // variable shifts don't encode shift amount in funct7
         17'b0110011_0000000_001: BMUControlsD = `BMUCTRLW'b001_0000_0000_1_0_0_0_1_0_0_0_0_0;  // sll
         17'b0110011_0?00000_101: BMUControlsD = `BMUCTRLW'b001_0000_0000_1_0_0_0_1_0_0_0_0_0;  // sra, srl
         // Immediate Shifts by more than 32 (Funct7[0]) are only supported in RV64
-        17'b0010011_000000?_001: if (P.XLEN == 64 | !Funct7D[0]) BMUControlsD = `BMUCTRLW'b001_0000_0000_1_1_0_0_1_0_0_0_0_0;  // slli
-        17'b0010011_0?0000?_101: if (P.XLEN == 64 | !Funct7D[0]) BMUControlsD = `BMUCTRLW'b001_0000_0000_1_1_0_0_1_0_0_0_0_0;  // srai, srli
+        17'b0010011_000000?_001: if (XLEN == 64 | !Funct7D[0]) BMUControlsD = `BMUCTRLW'b001_0000_0000_1_1_0_0_1_0_0_0_0_0;  // slli
+        17'b0010011_0?0000?_101: if (XLEN == 64 | !Funct7D[0]) BMUControlsD = `BMUCTRLW'b001_0000_0000_1_1_0_0_1_0_0_0_0_0;  // srai, srli
         // w-type shifts only supported in RV64 and must have Funct7[0] = 0 because the shift amount is < 32
-        17'b0111011_0000000_001: if (P.XLEN == 64) BMUControlsD = `BMUCTRLW'b001_0000_0000_1_0_1_0_1_0_0_0_0_0;  // sllw
-        17'b0111011_0?00000_101: if (P.XLEN == 64) BMUControlsD = `BMUCTRLW'b001_0000_0000_1_0_1_0_1_0_0_0_0_0;  // sraw, srlw
-        17'b0011011_0000000_001: if (P.XLEN == 64) BMUControlsD = `BMUCTRLW'b001_0000_0000_1_1_1_0_1_0_0_0_0_0;  // slliw
-        17'b0011011_0?00000_101: if (P.XLEN == 64) BMUControlsD = `BMUCTRLW'b001_0000_0000_1_1_1_0_1_0_0_0_0_0;  // sraiw, srliw
+        17'b0111011_0000000_001: if (XLEN == 64) BMUControlsD = `BMUCTRLW'b001_0000_0000_1_0_1_0_1_0_0_0_0_0;  // sllw
+        17'b0111011_0?00000_101: if (XLEN == 64) BMUControlsD = `BMUCTRLW'b001_0000_0000_1_0_1_0_1_0_0_0_0_0;  // sraw, srlw
+        17'b0011011_0000000_001: if (XLEN == 64) BMUControlsD = `BMUCTRLW'b001_0000_0000_1_1_1_0_1_0_0_0_0_0;  // slliw
+        17'b0011011_0?00000_101: if (XLEN == 64) BMUControlsD = `BMUCTRLW'b001_0000_0000_1_1_1_0_1_0_0_0_0_0;  // sraiw, srliw
       endcase
     
-    if (P.ZBKB_SUPPORTED) begin // ZBKB Bitmanip
+    if (ZBKB_SUPPORTED) begin // ZBKB Bitmanip
       casez({OpD,Funct7D, Funct3D})
         17'b0110011_0000100_100: BMUControlsD = `BMUCTRLW'b000_0100_0001_1_0_0_0_1_0_0_0_0_0;  // pack
         17'b0110011_0000100_111: BMUControlsD = `BMUCTRLW'b000_0100_0001_1_0_0_0_1_0_0_0_0_0;  // packh
         17'b0010011_0110100_101: if (Rs2D == 5'b00111)
                                  BMUControlsD = `BMUCTRLW'b000_0100_0000_1_1_0_0_1_0_0_0_0_0;  // brev8
       endcase
-      if (P.XLEN==32)
+      if (XLEN==32)
         casez({OpD, Funct7D, Funct3D})
           17'b0010011_0000100_001: if (Rs2D == 5'b01111) 
                                    BMUControlsD = `BMUCTRLW'b000_0100_0011_1_1_0_0_1_0_0_0_0_0;  //zip
           17'b0010011_0000100_101: if (Rs2D == 5'b01111) 
                                    BMUControlsD = `BMUCTRLW'b000_0100_0011_1_1_0_0_1_0_0_0_0_0;  //unzip
         endcase
-      else if (P.XLEN==64)
+      else if (XLEN==64)
         casez({OpD,Funct7D, Funct3D})
           17'b0111011_0000100_100: BMUControlsD = `BMUCTRLW'b000_0100_0101_1_0_1_0_1_0_0_0_0_0; //packw
         endcase
     end
-    if (P.ZBB_SUPPORTED | P.ZBKB_SUPPORTED) begin  // ZBB and ZBKB shared instructions
+    if (ZBB_SUPPORTED | ZBKB_SUPPORTED) begin  // ZBB and ZBKB shared instructions
       casez({OpD, Funct7D, Funct3D})
         17'b0110011_0110000_001: BMUControlsD = `BMUCTRLW'b001_0001_0111_1_0_0_0_1_0_1_0_0_0;  // rol
         17'b0110011_0110000_101: BMUControlsD = `BMUCTRLW'b001_0001_0111_1_0_0_0_1_0_1_0_0_0;  // ror
         17'b0110011_0100000_111: BMUControlsD = `BMUCTRLW'b111_0001_0111_1_0_0_0_1_1_0_0_0_0;  // andn
         17'b0110011_0100000_110: BMUControlsD = `BMUCTRLW'b110_0001_0111_1_0_0_0_1_1_0_0_0_0;  // orn
         17'b0110011_0100000_100: BMUControlsD = `BMUCTRLW'b100_0001_0111_1_0_0_0_1_1_0_0_0_0;  // xnor
-        17'b0010011_011010?_101: if ((P.XLEN == 32 ^ Funct7D[0]) & (Rs2D == 5'b11000))
+        17'b0010011_011010?_101: if ((XLEN == 32 ^ Funct7D[0]) & (Rs2D == 5'b11000))
                                  BMUControlsD = `BMUCTRLW'b000_0010_0010_1_1_0_0_1_0_0_0_0_0;  // rev8
       endcase
-      if (P.XLEN==32)
+      if (XLEN==32)
         casez({OpD, Funct7D, Funct3D})
           17'b0010011_0110000_101: BMUControlsD = `BMUCTRLW'b001_0000_0111_1_1_0_0_1_0_1_0_0_0;  // rori (rv32)   
         endcase
-      else if (P.XLEN==64)
+      else if (XLEN==64)
         casez({OpD, Funct7D, Funct3D})
           17'b0111011_0110000_001: BMUControlsD = `BMUCTRLW'b001_0000_0111_1_0_1_0_1_0_1_0_0_0;  // rolw
           17'b0111011_0110000_101: BMUControlsD = `BMUCTRLW'b001_0000_0111_1_0_1_0_1_0_1_0_0_0;  // rorw
@@ -206,20 +206,20 @@ module bmuctrl import cvw::*;  #(parameter cvw_t P) (
         endcase
     end
 
-    if (P.ZBKX_SUPPORTED) begin  //ZBKX
+    if (ZBKX_SUPPORTED) begin  //ZBKX
       casez({OpD, Funct7D, Funct3D})
         17'b0110011_0010100_100: BMUControlsD = `BMUCTRLW'b000_0110_0000_1_0_0_0_1_0_0_0_0_0;  // xperm8
         17'b0110011_0010100_010: BMUControlsD = `BMUCTRLW'b000_0110_0001_1_0_0_0_1_0_0_0_0_0;  // xperm4
       endcase
     end
 
-    if (P.ZKND_SUPPORTED) begin //ZKND
-      if (P.XLEN==32)
+    if (ZKND_SUPPORTED) begin //ZKND
+      if (XLEN==32)
         casez({OpD, Funct7D, Funct3D})
           17'b0110011_??10101_000: BMUControlsD = `BMUCTRLW'b000_0111_0100_1_0_0_0_1_0_0_0_0_0;  // aes32dsi - final round decrypt
           17'b0110011_??10111_000: BMUControlsD = `BMUCTRLW'b000_0111_0000_1_0_0_0_1_0_0_0_0_0;  // aes32dsmi - mid round decrypt
         endcase
-      else if (P.XLEN==64)
+      else if (XLEN==64)
         casez({OpD, Funct7D, Funct3D})
           17'b0110011_0011101_000: BMUControlsD = `BMUCTRLW'b000_0111_0100_1_0_0_0_1_0_0_0_0_0;  // aes64ds - decrypt final round
           17'b0110011_0011111_000: BMUControlsD = `BMUCTRLW'b000_0111_0000_1_0_0_0_1_0_0_0_0_0;  // aes64dsm - decrypt mid round
@@ -228,20 +228,20 @@ module bmuctrl import cvw::*;  #(parameter cvw_t P) (
         endcase
     end
 
-    if (P.ZKNE_SUPPORTED) begin //ZKNE
-      if (P.XLEN==32)
+    if (ZKNE_SUPPORTED) begin //ZKNE
+      if (XLEN==32)
         casez({OpD, Funct7D, Funct3D})
           17'b0110011_??10001_000: BMUControlsD = `BMUCTRLW'b000_0111_0101_1_0_0_0_1_0_0_0_0_0;  // aes32esi - final round encrypt
           17'b0110011_??10011_000: BMUControlsD = `BMUCTRLW'b000_0111_0001_1_0_0_0_1_0_0_0_0_0;  // aes32esmi - mid round encrypt
         endcase
-      else if (P.XLEN==64)
+      else if (XLEN==64)
         casez({OpD, Funct7D, Funct3D})
           17'b0110011_0011001_000: BMUControlsD = `BMUCTRLW'b000_0111_0101_1_0_0_0_1_0_0_0_0_0;  // aes64es - encrypt final round
           17'b0110011_0011011_000: BMUControlsD = `BMUCTRLW'b000_0111_0001_1_0_0_0_1_0_0_0_0_0;  // aes64esm - encrypt mid round
         endcase
     end  
     
-    if ((P.ZKND_SUPPORTED | P.ZKNE_SUPPORTED) & P.XLEN == 64) begin // ZKND and ZKNE shared instructions
+    if ((ZKND_SUPPORTED | ZKNE_SUPPORTED) & XLEN == 64) begin // ZKND and ZKNE shared instructions
       casez({OpD, Funct7D, Funct3D})
         17'b0010011_0011000_001: if (Rs2D[4] == 1'b1 & $unsigned(Rs2D[3:0]) <= 10)
                                    BMUControlsD = `BMUCTRLW'b000_0111_0010_1_0_0_0_1_0_0_0_0_0;  // aes64ks1i - key schedule istr1
@@ -249,7 +249,7 @@ module bmuctrl import cvw::*;  #(parameter cvw_t P) (
       endcase
     end
 
-    if (P.ZKNH_SUPPORTED) begin // ZKNH
+    if (ZKNH_SUPPORTED) begin // ZKNH
       casez({OpD, Funct7D, Funct3D})
         17'b0010011_0001000_001: 
           if      (Rs2D == 5'b00010)   BMUControlsD = `BMUCTRLW'b000_1000_0000_1_0_0_0_1_0_0_0_0_0;  // sha256sig0
@@ -258,7 +258,7 @@ module bmuctrl import cvw::*;  #(parameter cvw_t P) (
           else if (Rs2D == 5'b00001)   BMUControlsD = `BMUCTRLW'b000_1000_0011_1_0_0_0_1_0_0_0_0_0;  // sha256sum1
       endcase
 
-      if (P.XLEN==32)
+      if (XLEN==32)
         casez({OpD, Funct7D, Funct3D})
           17'b0110011_0101110_000:     BMUControlsD = `BMUCTRLW'b000_1000_1000_1_0_0_0_1_0_0_0_0_0;  // sha512sig0h
           17'b0110011_0101010_000:     BMUControlsD = `BMUCTRLW'b000_1000_1001_1_0_0_0_1_0_0_0_0_0;  // sha512sig0l
@@ -268,7 +268,7 @@ module bmuctrl import cvw::*;  #(parameter cvw_t P) (
           17'b0110011_0101001_000:     BMUControlsD = `BMUCTRLW'b000_1000_1110_1_0_0_0_1_0_0_0_0_0;  // sha512sum1r
         endcase
 
-      else if (P.XLEN==64)
+      else if (XLEN==64)
         casez({OpD, Funct7D, Funct3D})
           17'b0010011_0001000_001: 
             if      (Rs2D == 5'b00110) BMUControlsD = `BMUCTRLW'b000_1000_1000_1_0_0_0_1_0_0_0_0_0;  // sha512sig0

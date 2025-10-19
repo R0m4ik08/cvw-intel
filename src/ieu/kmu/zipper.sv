@@ -30,7 +30,7 @@ module zipper #(parameter WIDTH=64) (
    input  logic 	          ZipSelect,
    output logic [WIDTH-1:0] ZipResult
 );
-   
+generate
    logic [WIDTH-1:0] 	     zip, unzip;
    genvar 		     i;
    
@@ -42,4 +42,5 @@ module zipper #(parameter WIDTH=64) (
    end
    
    mux2 #(WIDTH) ZipMux(zip, unzip, ZipSelect, ZipResult);   
+endgenerate
 endmodule

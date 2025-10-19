@@ -28,30 +28,30 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-module fdivsqrtstage2 import cvw::*;  #(parameter cvw_t P) (
-  input  logic [P.DIVb+3:0] D, DBar,        // Q4.DIVb
-  input  logic [P.DIVb:0]   U, UM,          // U1.DIVb
-  input  logic [P.DIVb+3:0] WS, WC,         // Q4.DIVb
-  input  logic [P.DIVb+1:0] C,              // Q2.DIVb
+module fdivsqrtstage2 import config_pkg::*;   (
+  input  logic [DIVb+3:0] D, DBar,        // Q4.DIVb
+  input  logic [DIVb:0]   U, UM,          // U1.DIVb
+  input  logic [DIVb+3:0] WS, WC,         // Q4.DIVb
+  input  logic [DIVb+1:0] C,              // Q2.DIVb
   input  logic              SqrtE,
   output logic              un,
-  output logic [P.DIVb+1:0] CNext,          // Q2.DIVb
-  output logic [P.DIVb:0]   UNext, UMNext,  // U1.DIVb
-  output logic [P.DIVb+3:0] WSNext, WCNext  // Q4.DIVb
+  output logic [DIVb+1:0] CNext,          // Q2.DIVb
+  output logic [DIVb:0]   UNext, UMNext,  // U1.DIVb
+  output logic [DIVb+3:0] WSNext, WCNext  // Q4.DIVb
 );
 
-  logic [P.DIVb+3:0]        Dsel;     // Q4.DIVb
+  logic [DIVb+3:0]        Dsel;     // Q4.DIVb
   logic                     up, uz;
-  logic [P.DIVb+3:0]        F;        // Q4.DIVb
-  logic [P.DIVb+3:0]        AddIn;    // Q4.DIVb
-  logic [P.DIVb+3:0]        WSA, WCA; // Q4.DIVb
+  logic [DIVb+3:0]        F;        // Q4.DIVb
+  logic [DIVb+3:0]        AddIn;    // Q4.DIVb
+  logic [DIVb+3:0]        WSA, WCA; // Q4.DIVb
 
   // Quotient Selection logic
   // Given partial remainder, select digit of +1, 0, or -1 (up, uz, un)
-  fdivsqrtuslc2 uslc2(.WS(WS[P.DIVb+3:P.DIVb]), .WC(WC[P.DIVb+3:P.DIVb]), .up, .uz, .un);
+  fdivsqrtuslc2 uslc2(.WS(WS[DIVb+3:DIVb]), .WC(WC[DIVb+3:DIVb]), .up, .uz, .un);
 
   // Sqrt F generation.  Extend C, U, UM to Q4.k
-  fdivsqrtfgen2 #(P) fgen2(.up, .uz, .C({2'b11, CNext}), .U({3'b000, U}), .UM({3'b000, UM}), .F);
+  fdivsqrtfgen2  fgen2(.up, .uz, .C({2'b11, CNext}), .U({3'b000, U}), .UM({3'b000, UM}), .F);
 
   // Divisor multiple
   always_comb
@@ -61,16 +61,16 @@ module fdivsqrtstage2 import cvw::*;  #(parameter cvw_t P) (
 
   // Residual Update
   //  WSA, WCA = WS + WC - qD
-  mux2 #(P.DIVb+4) addinmux(Dsel, F, SqrtE, AddIn);
-  csa #(P.DIVb+4) csa(WS, WC, AddIn, up&~SqrtE, WSA, WCA);
+  mux2 #(DIVb+4) addinmux(Dsel, F, SqrtE, AddIn);
+  csa #(DIVb+4) csa(WS, WC, AddIn, up&~SqrtE, WSA, WCA);
   assign WSNext = WSA << 1;
   assign WCNext = WCA << 1;
 
   // Shift thermometer code C
-  assign CNext = {1'b1, C[P.DIVb+1:1]};
+  assign CNext = {1'b1, C[DIVb+1:1]};
 
   // Unified On-The-Fly Converter to accumulate result
-  fdivsqrtuotfc2 #(P) uotfc2(.up, .un, .C(CNext), .U, .UM, .UNext, .UMNext);
+  fdivsqrtuotfc2  uotfc2(.up, .un, .C(CNext), .U, .UM, .UNext, .UMNext);
 endmodule
 
 

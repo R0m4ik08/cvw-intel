@@ -27,7 +27,7 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module localbpbasic import cvw::*; #(parameter cvw_t P,
+module localbpbasic import config_pkg::*; #(
                                      parameter XLEN,
                       parameter m = 6, // 2^m = number of local history branches 
                       parameter k = 10) ( // number of past branches stored
@@ -41,7 +41,7 @@ module localbpbasic import cvw::*; #(parameter cvw_t P,
   input logic [XLEN-1:0] PCNextF, PCM,
   input logic             BranchE, BranchM, PCSrcE
 );
-
+generate
   logic [k-1:0]           IndexNextF, IndexM;
   logic [1:0]             BPDirD, BPDirE;
   logic [1:0]             NewBPDirE, NewBPDirM;
@@ -57,8 +57,8 @@ module localbpbasic import cvw::*; #(parameter cvw_t P,
   assign IndexNextF = LHR;
   assign IndexM = LHRM;
   
-  ram2p1r1wbe #(.USE_SRAM(P.USE_SRAM), .DEPTH(2**k), .WIDTH(2)) PHT(.clk(clk),
-    .ce1(~StallF), .ce2(~StallW & ~FlushW),
+  ram2p1r1wbe #( .DEPTH(2**k), .WIDTH(2)) PHT(.clk(clk),
+    .ce0(1'b1), .ce1(~StallF), .ce2(~StallW & ~FlushW),
     .ra1(IndexNextF),
     .rd1(BPDirF),
     .wa2(IndexM),
@@ -103,5 +103,5 @@ module localbpbasic import cvw::*; #(parameter cvw_t P,
   flopenrc #(k) LHREReg(clk, reset, FlushE, ~StallE, LHRD, LHRE);
   flopenrc #(k) LHRMReg(clk, reset, FlushM, ~StallM, LHRE, LHRM);
 
-
+endgenerate
 endmodule

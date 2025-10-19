@@ -27,28 +27,28 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module cvtshiftcalc import cvw::*;  #(parameter cvw_t P) (
+module cvtshiftcalc import config_pkg::*;   (
   input  logic                     XZero,              // is the input zero?
   input  logic                     ToInt,              // to integer conversion?
   input  logic                     IntToFp,            // integer to floating point conversion?
-  input  logic [P.FMTBITS-1:0]     OutFmt,             // output format
-  input  logic [P.NE:0]            CvtCe,              // the calculated exponent
-  input  logic [P.NF:0]            Xm,                 // input mantissas
-  input  logic [P.CVTLEN-1:0]      CvtLzcIn,           // input to the Leading Zero Counter (without msb)
+  input  logic [FMTBITS-1:0]     OutFmt,             // output format
+  input  logic [NE:0]            CvtCe,              // the calculated exponent
+  input  logic [NF:0]            Xm,                 // input mantissas
+  input  logic [CVTLEN-1:0]      CvtLzcIn,           // input to the Leading Zero Counter (without msb)
   input  logic                     CvtResSubnormUf,    // is the conversion result subnormal or underflows
   output logic                     CvtResUf,           // does the cvt result unerflow
-  output logic [P.CVTLEN+P.NF:0]   CvtShiftIn          // number to be shifted
+  output logic [CVTLEN+NF:0]   CvtShiftIn          // number to be shifted
 );
-
-  logic [$clog2(P.NF):0]           ResNegNF;           // the result's fraction length negated (-NF)
-
+generate
+  logic signed [$clog2(NF):0]    ResNegNF;           // the result's fraction length negated (-NF)
+  
   ///////////////////////////////////////////////////////////////////////////
   // shifter
   ///////////////////////////////////////////////////////////////////////////
 
   // seclect the input to the shifter
   //      fp  -> int:
-  //          |  P.XLEN  zeros |     mantissa      | 0's if necessary |
+  //          |  XLEN  zeros |     mantissa      | 0's if necessary |
   //                          .
   //          Other problems:
   //              - if shifting to the right (neg CalcExp) then don't a 1 in the round bit (to prevent an incorrect plus 1 later during rounding)
@@ -56,7 +56,7 @@ module cvtshiftcalc import cvw::*;  #(parameter cvw_t P) (
   //                  - ex: for the case 0010000.... (double)
   //      ??? -> fp:
   //          - if result is subnormal or underflowed then we want to shift right i.e. shift right then shift left:
-  //              |  P.NF-1  zeros   |     mantissa      | 0's if necessary | 
+  //              |  NF-1  zeros   |     mantissa      | 0's if necessary | 
   //              .
   //          - otherwise:
   //              |      LzcInM      |  0's if necessary | 
@@ -66,39 +66,39 @@ module cvtshiftcalc import cvw::*;  #(parameter cvw_t P) (
   //                                                        get rid of round bit if needed
   //                                                        |                    add sticky bit if needed
   //                                                        |                    |
-      if (ToInt)                CvtShiftIn = {{P.XLEN{1'b0}}, Xm[P.NF]&~CvtCe[P.NE], Xm[P.NF-1]|(CvtCe[P.NE]&Xm[P.NF]), Xm[P.NF-2:0], {P.CVTLEN-P.XLEN{1'b0}}};
-      else if (CvtResSubnormUf) CvtShiftIn = {{P.NF-1{1'b0}}, Xm, {P.CVTLEN-P.NF+1{1'b0}}};
-      else                      CvtShiftIn = {CvtLzcIn, {P.NF+1{1'b0}}};
+      if (ToInt)                CvtShiftIn = {{XLEN{1'b0}}, Xm[NF]&~CvtCe[NE], Xm[NF-1]|(CvtCe[NE]&Xm[NF]), Xm[NF-2:0], {CVTLEN-XLEN{1'b0}}};
+      else if (CvtResSubnormUf) CvtShiftIn = {{NF-1{1'b0}}, Xm, {CVTLEN-NF+1{1'b0}}};
+      else                      CvtShiftIn = {CvtLzcIn, {NF+1{1'b0}}};
   
-  // choose the negative of the fraction size
-  if (P.FPSIZES == 1) begin
-      assign ResNegNF = -($clog2(P.NF)+1)'(P.NF); 
-
-  end else if (P.FPSIZES == 2) begin
-      assign ResNegNF = OutFmt ? -($clog2(P.NF)+1)'(P.NF) : -($clog2(P.NF)+1)'(P.NF1);
-
-  end else if (P.FPSIZES == 3) begin
+  // select the negative of the fraction size
+  if (FPSIZES == 1) begin
+      assign ResNegNF = -$signed(NF);
+ 
+  end else if (FPSIZES == 2) begin
+      assign ResNegNF = OutFmt ? -$signed(NF) : -$signed(NF1);
+ 
+  end else if (FPSIZES == 3) begin
       always_comb
           case (OutFmt)
-              P.FMT:  ResNegNF  = -($clog2(P.NF)+1)'(P.NF);
-              P.FMT1: ResNegNF  = -($clog2(P.NF)+1)'(P.NF1);
-              P.FMT2: ResNegNF  = -($clog2(P.NF)+1)'(P.NF2);
+              FMT:  ResNegNF  = -$signed(NF);
+              FMT1: ResNegNF  = -$signed(NF1);
+              FMT2: ResNegNF  = -$signed(NF2);
               default: ResNegNF = '0; // Not used for floating-point so don't care, but convert to unsigned long has OutFmt = 11.
           endcase
-
-  end else if (P.FPSIZES == 4) begin        
+ 
+  end else if (FPSIZES == 4) begin        
       always_comb
           case (OutFmt)
-              2'h3: ResNegNF = -($clog2(P.NF)+1)'(P.Q_NF);
-              2'h1: ResNegNF = -($clog2(P.NF)+1)'(P.D_NF);
-              2'h0: ResNegNF = -($clog2(P.NF)+1)'(P.S_NF);
-              2'h2: ResNegNF = -($clog2(P.NF)+1)'(P.H_NF);
+              2'h3: ResNegNF = -$signed(Q_NF);
+              2'h1: ResNegNF = -$signed(D_NF);
+              2'h0: ResNegNF = -$signed(S_NF);
+              2'h2: ResNegNF = -$signed(H_NF);
           endcase
   end
 
   // determine if the result underflows ??? -> fp
   //      - if the first 1 is shifted out of the result then the result underflows
   //      - can't underflow an integer to fp conversions
-  assign CvtResUf = ($signed(CvtCe) < $signed({{P.NE-$clog2(P.NF){1'b1}}, ResNegNF}))&~XZero&~IntToFp; 
-  
+  assign CvtResUf = ($signed(CvtCe) < $signed({{NE-$clog2(NF){1'b1}}, ResNegNF}))&~XZero&~IntToFp; 
+endgenerate  
 endmodule

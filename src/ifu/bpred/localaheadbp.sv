@@ -26,7 +26,7 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module localaheadbp import cvw::*; #(parameter cvw_t P, 
+module localaheadbp import config_pkg::*; #( 
                                      parameter XLEN,
                       parameter m = 6, // 2^m = number of local history branches 
                       parameter k = 10) ( // number of past branches stored
@@ -60,8 +60,8 @@ module localaheadbp import cvw::*; #(parameter cvw_t P,
   //assign IndexNextF = LHR;
   assign IndexM = LHRW;
   
-  ram2p1r1wbe #(.USE_SRAM(P.USE_SRAM), .DEPTH(2**k), .WIDTH(2)) PHT(.clk(clk),
-    .ce1(~StallD), .ce2(~StallW & ~FlushW),
+  ram2p1r1wbe #(.DEPTH(2**k), .WIDTH(2)) PHT(.clk(clk),
+    .ce0(1'b1), .ce1(~StallD), .ce2(~StallW & ~FlushW),
     .ra1(LHRF),
     .rd1(BPDirD),
     .wa2(IndexM),
@@ -93,8 +93,8 @@ module localaheadbp import cvw::*; #(parameter cvw_t P,
   assign IndexLHRM = {PCW[m+1] ^ PCW[1], PCW[m:2]};
   assign IndexLHRNextF = {PCNextF[m+1] ^ PCNextF[1], PCNextF[m:2]};
 
-  ram2p1r1wbe #(.USE_SRAM(P.USE_SRAM), .DEPTH(2**m), .WIDTH(k)) BHT(.clk(clk),
-    .ce1(~StallF), .ce2(~StallW & ~FlushW),
+  ram2p1r1wbe #( .DEPTH(2**m), .WIDTH(k)) BHT(.clk(clk),
+    .ce0(1'b1), .ce1(~StallF), .ce2(~StallW & ~FlushW),
     .ra1(IndexLHRNextF),
     .rd1(LHRF),
     .wa2(IndexLHRM),

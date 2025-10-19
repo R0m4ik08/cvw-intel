@@ -52,7 +52,7 @@ module ahbinterface #(
   output logic                          BusCommitted, // Bus is busy with an in flight memory operation and it is not safe to take an interrupt
   output logic [XLEN-1:0]  FetchBuffer   // Register to hold HRDATA after arriving from the bus
 );
-  
+generate
   logic                                 CaptureEn;
 
   flopen #(XLEN) fb(.clk(HCLK), .en(CaptureEn), .d(HRDATA), .q(FetchBuffer));
@@ -69,5 +69,5 @@ module ahbinterface #(
   busfsm #(~LSU) busfsm(.HCLK, .HRESETn, .Flush, .BusRW, .BusAtomic,
     .BusCommitted, .Stall, .BusStall, .CaptureEn, .HREADY,
     .HTRANS, .HWRITE);
-
+endgenerate
 endmodule

@@ -28,7 +28,7 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module trickbox_apb import cvw::*;  #(parameter XLEN = 64, NUM_HARTS = 1) (
+module trickbox_apb import config_pkg::*;  #(parameter XLEN = 64, NUM_HARTS = 1) (
   input  logic                PCLK, PRESETn,
   input  logic                PSEL,
   input  logic [15:0]         PADDR, 
@@ -89,74 +89,82 @@ module trickbox_apb import cvw::*;  #(parameter XLEN = 64, NUM_HARTS = 1) (
     endcase
   end
 
-  // word aligned reads
-  if (XLEN == 64) assign PRDATA = RD;
-  else            assign PRDATA = RD[PADDR[2]*32 +: 32]; // 32-bit register access to upper or lower half
-  
-  // write circuitry
-  always_ff @(posedge PCLK)
-    if (~PRESETn) begin
-      MSIP <= '0;
-      SSIP <= '0;
-      MEIP <= '0;
-      SEIP <= '0;
-      TOHOST <= '0;
-      TRICKEN <= '0;
-    end else if (memwrite) begin
-      case (PADDR[15:13])
-        3'b000: MSIP[hart] <= PWDATA[0];
-        3'b001: SSIP[hart] <= PWDATA[0];
-        3'b011: MEIP[hart] <= PWDATA[0];
-        3'b100: SEIP[hart] <= PWDATA[0];
-        3'b101: case (hart) 
-          10'b0000000000: TOHOST <= PWDATA;
-          10'b0000000001: $display("%c", PWDATA[7:0]); // COM1 prints to simulation console.  Eventually allow it to be redirected to a UART, and provide a busy bit.
-          10'b0000000010: TRICKEN <= PWDATA[7:0];
+  generate
+    
+    // word aligned reads
+    if (XLEN == 64) assign PRDATA = RD;
+    else            assign PRDATA = RD[PADDR[2]*32 +: 32]; // 32-bit register access to upper or lower half
+    
+    // write circuitry
+    always_ff @(posedge PCLK)
+      if (~PRESETn) begin
+        MSIP <= '0;
+        SSIP <= '0;
+        MEIP <= '0;
+        SEIP <= '0;
+        TOHOST <= '0;
+        TRICKEN <= '0;
+      end else if (memwrite) begin
+        case (PADDR[15:13])
+          3'b000: MSIP[hart] <= PWDATA[0];
+          3'b001: SSIP[hart] <= PWDATA[0];
+          3'b011: MEIP[hart] <= PWDATA[0];
+          3'b100: SEIP[hart] <= PWDATA[0];
+          3'b101: case (hart) 
+            10'b0000000000: TOHOST <= PWDATA;
+            10'b0000000001: $display("%c", PWDATA[7:0]); // COM1 prints to simulation console.  Eventually allow it to be redirected to a UART, and provide a busy bit.
+            10'b0000000010: TRICKEN <= PWDATA[7:0];
+          endcase
         endcase
-      endcase
+      end
+      
+      // generate loop write circuits for MTIMECMP and HGEIP
+      for (i=0; i<NUM_HARTS; i++) begin : gen_mtimecmp_hgeip_write 
+        always_ff @(posedge PCLK) 
+          if (~PRESETn) begin
+            MTIMECMP[i] <= 64'hFFFFFFFFFFFFFFFF; // Spec says MTIMECMP is not reset, but we reset to maximum value to prevent spurious timer interrupts
+            HGEIP[i] <= 0;
+          end else if (memwrite & (hart == i)) begin
+            if (PADDR[15:13] == 3'b010) begin
+              if (XLEN == 64) MTIMECMP[hart] <= PWDATA; // 64-bit write
+              else            MTIMECMP[hart][PADDR[2]*32 +: 32] <= PWDATA; // 32-bit write
+            end else if (PADDR[15:13] == 3'b110) begin
+              HGEIP[hart] <= PWDATA;
+            end
+          end 
+        end
+  
+    // mtime register
+    always_ff @(posedge PCLK) 
+      if (~PRESETn) begin
+        MTIME <= '0;
+      end else if (memwrite & (PADDR[15:13] == 3'b101 && hart == 10'b1111111111)) begin
+        if (XLEN == 64) MTIME <= PWDATA; // 64-bit write
+        else            MTIME <= MTIME[PADDR[2]*32 +: 32]; // 32-bit write
+      end else          MTIME <= MTIME + 1; 
+  
+    // timer interrupt when MTIME >= MTIMECMP (unsigned)
+    for (i=0;i<NUM_HARTS;i++) begin : bn_for1
+      assign MTIP[i] = ({1'b0, MTIME} >= {1'b0, MTIMECMP[i]}); 
+    end 
+  
+    // TRICKEN controls whether outputs come from TrickBox or are daisy-chained from elsewhere 
+    always_comb begin
+      MSIP_OUT = TRICKEN[0] ? MSIP : MSIP_IN;
+      SSIP_OUT = TRICKEN[1] ? SSIP : SSIP_IN;
+      MEIP_OUT = TRICKEN[2] ? MEIP : MEIP_IN; 
+      SEIP_OUT = TRICKEN[3] ? SEIP : SEIP_IN;
+      MTIP_OUT = TRICKEN[4] ? MTIP : MTIP_IN;
+      MTIME_OUT = TRICKEN[5] ? MTIME : MTIME_IN;
+      TOHOST_OUT = TRICKEN[7] ? TOHOST : '0;
+      // NO COM1
     end
-    // generate loop write circuits for MTIMECMP and HGEIP
-    for (i=0; i<NUM_HARTS; i++) 
-      always_ff @(posedge PCLK) 
-        if (~PRESETn) begin
-          MTIMECMP[i] <= 64'hFFFFFFFFFFFFFFFF; // Spec says MTIMECMP is not reset, but we reset to maximum value to prevent spurious timer interrupts
-          HGEIP[i] <= 0;
-        end else if (memwrite & (hart == i)) begin
-          if (PADDR[15:13] == 3'b010) begin
-            if (XLEN == 64) MTIMECMP[hart] <= PWDATA; // 64-bit write
-            else            MTIMECMP[hart][PADDR[2]*32 +: 32] <= PWDATA; // 32-bit write
-          end else if (PADDR[15:13] == 3'b110) begin
-            HGEIP[hart] <= PWDATA;
-          end
-        end 
-
-  // mtime register
-  always_ff @(posedge PCLK) 
-    if (~PRESETn) begin
-      MTIME <= '0;
-    end else if (memwrite & (PADDR[15:13] == 3'b101 && hart == 10'b1111111111)) begin
-      if (XLEN == 64) MTIME <= PWDATA; // 64-bit write
-      else            MTIME <= MTIME[PADDR[2]*32 +: 32]; // 32-bit write
-    end else          MTIME <= MTIME + 1; 
-
-  // timer interrupt when MTIME >= MTIMECMP (unsigned)
-  for (i=0;i<NUM_HARTS;i++) 
-    assign MTIP[i] = ({1'b0, MTIME} >= {1'b0, MTIMECMP[i]}); 
-
-  // TRICKEN controls whether outputs come from TrickBox or are daisy-chained from elsewhere 
-  always_comb begin
-    MSIP_OUT = TRICKEN[0] ? MSIP : MSIP_IN;
-    SSIP_OUT = TRICKEN[1] ? SSIP : SSIP_IN;
-    MEIP_OUT = TRICKEN[2] ? MEIP : MEIP_IN; 
-    SEIP_OUT = TRICKEN[3] ? SEIP : SEIP_IN;
-    MTIP_OUT = TRICKEN[4] ? MTIP : MTIP_IN;
-    MTIME_OUT = TRICKEN[5] ? MTIME : MTIME_IN;
-    TOHOST_OUT = TRICKEN[7] ? TOHOST : '0;
-    // NO COM1
-  end
-
-  for (i=0; i<NUM_HARTS;i++) 
-    assign HGEIP_OUT[i] = TRICKEN[6] ? HGEIP[i] : HGEIP_IN[i];
+  
+    for (i=0; i<NUM_HARTS;i++) begin : bn_for2
+      assign HGEIP_OUT[i] = TRICKEN[6] ? HGEIP[i] : HGEIP_IN[i];
+    end
+    
+  endgenerate
 
 endmodule
 

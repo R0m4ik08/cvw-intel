@@ -28,31 +28,32 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module zbc import cvw::*; #(parameter cvw_t P) (
-  input  logic [P.XLEN-1:0] A, RevA, B,       // Operands
+module zbc import config_pkg::*;  (
+  input  logic [XLEN-1:0] A, RevA, B,       // Operands
   input  logic [1:0]        Funct3,           // Indicates operation to perform
-  output logic [P.XLEN-1:0] ZBCResult);       // ZBC result
+  output logic [XLEN-1:0] ZBCResult);       // ZBC result
+generate
+  logic [XLEN-1:0] ClmulResult, RevClmulResult;
+  logic [XLEN-1:0] RevB;
+  logic [XLEN-1:0] X, Y;
 
-  logic [P.XLEN-1:0] ClmulResult, RevClmulResult;
-  logic [P.XLEN-1:0] RevB;
-  logic [P.XLEN-1:0] X, Y;
-
-  bitreverse #(P.XLEN) brB(B, RevB);
+  bitreverse #(XLEN) brB(B, RevB);
 
   // choose X = A for clmul, Rev(A) << 1 for clmulh, Rev(A) for clmulr
   // unshifted Rev(A) source is only needed for clmulr in ZBC, not in ZBKC
-  if (P.ZBC_SUPPORTED)
-    mux3 #(P.XLEN) xmux({RevA[P.XLEN-2:0], {1'b0}}, RevA, A, ~Funct3[1:0], X);
+  if (ZBC_SUPPORTED)
+    mux3 #(XLEN) xmux({RevA[XLEN-2:0], {1'b0}}, RevA, A, ~Funct3[1:0], X);
   else
-    mux2 #(P.XLEN) xmux(A, {RevA[P.XLEN-2:0], {1'b0}}, Funct3[1], X);
+    mux2 #(XLEN) xmux(A, {RevA[XLEN-2:0], {1'b0}}, Funct3[1], X);
 
   // choose X = B for clmul, Rev(B) for clmulH
-  mux2 #(P.XLEN) ymux(B, RevB, Funct3[1], Y);
+  mux2 #(XLEN) ymux(B, RevB, Funct3[1], Y);
 
   // carry free multiplier
-  clmul #(P.XLEN) clm(.X, .Y, .ClmulResult);
+  clmul #(XLEN) clm(.X, .Y, .ClmulResult);
 
   // choose result = rev(X @ Y) for clmulh/clmulr
-  bitreverse #(P.XLEN) brClmulResult(ClmulResult, RevClmulResult);
-  mux2 #(P.XLEN) zbcresultmux(ClmulResult, RevClmulResult, Funct3[1], ZBCResult);
+  bitreverse #(XLEN) brClmulResult(ClmulResult, RevClmulResult);
+  mux2 #(XLEN) zbcresultmux(ClmulResult, RevClmulResult, Funct3[1], ZBCResult);
+endgenerate
 endmodule

@@ -29,8 +29,8 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module pmachecker import cvw::*;  #(parameter cvw_t P) (
-  input  logic [P.PA_BITS-1:0] PhysicalAddress,
+module pmachecker import config_pkg::*;   (
+  input  logic [PA_BITS-1:0] PhysicalAddress,
   input  logic [1:0]           Size,
   input  logic [3:0]           CMOpM,
   input  logic                 AtomicAccessM,  // Atomic access
@@ -56,7 +56,7 @@ module pmachecker import cvw::*;  #(parameter cvw_t P) (
   assign AccessRX  = ReadAccessM | ExecuteAccessF;
 
   // Determine which region of physical memory (if any) is being accessed
-  adrdecs #(P) adrdecs(PhysicalAddress, AccessRW, AccessRX, AccessRWXC, Size, SelRegions);
+  adrdecs adrdecs(PhysicalAddress, AccessRW, AccessRX, AccessRWXC, Size, SelRegions);
 
   // Only non-core RAM/ROM memory regions are cacheable. PBMT can override cacheable; NC and IO are uncachable
   assign CacheableRegion = SelRegions[3] | SelRegions[4] | SelRegions[5];  // exclusion-tag: unused-cacheable

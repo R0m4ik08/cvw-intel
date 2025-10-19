@@ -28,7 +28,7 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module csrc  import cvw::*;  #(parameter cvw_t P) (
+module csrc  import config_pkg::*;   (
   input  logic              clk, reset,
   input  logic              StallE, StallM, 
   input  logic              FlushM, 
@@ -54,13 +54,13 @@ module csrc  import cvw::*;  #(parameter cvw_t P) (
   input  logic              FDivBusyE,                                 // floating point divide busy
   input  logic [11:0]       CSRAdrM,
   input  logic [1:0]        PrivilegeModeW,
-  input  logic [P.XLEN-1:0] CSRWriteValM,
+  input  logic [XLEN-1:0] CSRWriteValM,
   input  logic [31:0]       MCOUNTINHIBIT_REGW, MCOUNTEREN_REGW, SCOUNTEREN_REGW,
   input  logic [63:0]       MTIME_CLINT, 
-  output logic [P.XLEN-1:0] CSRCReadValM,
+  output logic [XLEN-1:0] CSRCReadValM,
   output logic              IllegalCSRCAccessM
 );
-
+generate
   localparam MHPMCOUNTERBASE  = 12'hB00;
   localparam MTIME            = 12'hB01;               // this is a memory-mapped register; no such CSR exists, and access should faul;
   localparam MHPMCOUNTERHBASE = 12'hB80;
@@ -73,14 +73,14 @@ module csrc  import cvw::*;  #(parameter cvw_t P) (
   localparam TIMEH            = 12'hC81;
 
   logic [4:0]              CounterNumM;
-  logic [P.XLEN-1:0]       HPMCOUNTER_REGW[P.COUNTERS-1:0];
-  logic [P.XLEN-1:0]       HPMCOUNTERH_REGW[P.COUNTERS-1:0];
+  logic [XLEN-1:0]       HPMCOUNTER_REGW[COUNTERS-1:0];
+  logic [XLEN-1:0]       HPMCOUNTERH_REGW[COUNTERS-1:0];
   logic                    LoadStallE, LoadStallM;
   logic                    StoreStallE, StoreStallM;
-  logic [P.COUNTERS-1:0]   WriteHPMCOUNTERM;
-  logic [P.COUNTERS-1:0]   CounterEvent;
-  logic [63:0]             HPMCOUNTERPlusM[P.COUNTERS-1:0];
-  logic [P.XLEN-1:0]       NextHPMCOUNTERM[P.COUNTERS-1:0];
+  logic [COUNTERS-1:0]   WriteHPMCOUNTERM;
+  logic [COUNTERS-1:0]   CounterEvent;
+  logic [63:0]             HPMCOUNTERPlusM[COUNTERS-1:0];
+  logic [XLEN-1:0]       NextHPMCOUNTERM[COUNTERS-1:0];
   genvar                   i;
 
   // Interface signals
@@ -94,7 +94,7 @@ module csrc  import cvw::*;  #(parameter cvw_t P) (
   assign CounterEvent[0]    = 1'b1;                                                      // MCYCLE always increments
   assign CounterEvent[1]    = 1'b0;                                                      // Counter 1 doesn't exist
   assign CounterEvent[2]    = InstrValidNotFlushedM;                                     // MINSTRET instructions retired
-  if (P.ZIHPM_SUPPORTED) begin: cevent                                                   // User-defined counters
+  if (ZIHPM_SUPPORTED) begin: cevent                                                   // User-defined counters
     // Ideally all events would be counted in the M stage, but the pipelining is costly. The counters may
     // count an event in a previous pipeline stage.
     assign CounterEvent[3]  = IClassM[0] & InstrValidNotFlushedM;                        // branch instruction
@@ -122,28 +122,28 @@ module csrc  import cvw::*;  #(parameter cvw_t P) (
     // DivBusyE will never be asserted high because the RV64GC configuration uses the FPU to do integer division
     assign CounterEvent[24] = DivBusyE | FDivBusyE;                                      // division cycles
     // coverage on
-    assign CounterEvent[P.COUNTERS-1:25] = '0; // eventually give these sources, including FP instructions, I$/D$ misses, branches and mispredictions
+    assign CounterEvent[COUNTERS-1:25] = '0; // eventually give these sources, including FP instructions, I$/D$ misses, branches and mispredictions
   end else begin: cevent
-    assign CounterEvent[P.COUNTERS-1:3] = '0;
+    assign CounterEvent[COUNTERS-1:3] = '0;
   end
   
   // Counter update and write logic
-  for (i = 0; $unsigned(i) < P.COUNTERS; i = i+1) begin:cntr
+  for (i = 0; $unsigned(i) < COUNTERS; i = i+1) begin:cntr
       assign WriteHPMCOUNTERM[i] = CSRMWriteM & (CSRAdrM == MHPMCOUNTERBASE + i); // coverage tag: MTIME traps
-      assign NextHPMCOUNTERM[i][P.XLEN-1:0] = WriteHPMCOUNTERM[i] ? CSRWriteValM : HPMCOUNTERPlusM[i][P.XLEN-1:0];
+      assign NextHPMCOUNTERM[i][XLEN-1:0] = WriteHPMCOUNTERM[i] ? CSRWriteValM : HPMCOUNTERPlusM[i][XLEN-1:0];
       always_ff @(posedge clk) //, posedge reset) // ModelSim doesn't like syntax of passing array element to flop
-        if (reset) HPMCOUNTER_REGW[i][P.XLEN-1:0] <= '0;
-        else       HPMCOUNTER_REGW[i][P.XLEN-1:0] <= NextHPMCOUNTERM[i];
+        if (reset) HPMCOUNTER_REGW[i][XLEN-1:0] <= '0;
+        else       HPMCOUNTER_REGW[i][XLEN-1:0] <= NextHPMCOUNTERM[i];
 
-      if (P.XLEN==32) begin // write high and low separately
-        logic [P.COUNTERS-1:0] WriteHPMCOUNTERHM;
-        logic [P.XLEN-1:0] NextHPMCOUNTERHM[P.COUNTERS-1:0];
+      if (XLEN==32) begin // write high and low separately
+        logic [COUNTERS-1:0] WriteHPMCOUNTERHM;
+        logic [XLEN-1:0] NextHPMCOUNTERHM[COUNTERS-1:0];
         assign HPMCOUNTERPlusM[i] = {HPMCOUNTERH_REGW[i], HPMCOUNTER_REGW[i]} + {63'b0, CounterEvent[i] & ~MCOUNTINHIBIT_REGW[i]};
         assign WriteHPMCOUNTERHM[i] = CSRMWriteM & (CSRAdrM == MHPMCOUNTERHBASE + i);
         assign NextHPMCOUNTERHM[i] = WriteHPMCOUNTERHM[i] ? CSRWriteValM : HPMCOUNTERPlusM[i][63:32];
         always_ff @(posedge clk) //, posedge reset) // ModelSim doesn't like syntax of passing array element to flop
-            if (reset) HPMCOUNTERH_REGW[i][P.XLEN-1:0] <= '0;
-            else       HPMCOUNTERH_REGW[i][P.XLEN-1:0] <= NextHPMCOUNTERHM[i];
+            if (reset) HPMCOUNTERH_REGW[i][XLEN-1:0] <= '0;
+            else       HPMCOUNTERH_REGW[i][XLEN-1:0] <= NextHPMCOUNTERHM[i];
       end else begin // XLEN=64; write entire register
           assign HPMCOUNTERPlusM[i] = HPMCOUNTER_REGW[i] + {63'b0, CounterEvent[i] & ~MCOUNTINHIBIT_REGW[i]};
           assign HPMCOUNTERH_REGW[i] = '0; // disregard for RV64
@@ -153,20 +153,20 @@ module csrc  import cvw::*;  #(parameter cvw_t P) (
   // Read Counters, or cause excepiton if insufficient privilege in light of COUNTEREN flags
   assign CounterNumM = CSRAdrM[4:0]; // which counter to read?
   always_comb 
-    if (PrivilegeModeW == P.M_MODE | 
-        MCOUNTEREN_REGW[CounterNumM] & (!P.S_SUPPORTED | PrivilegeModeW == P.S_MODE | SCOUNTEREN_REGW[CounterNumM])) begin
+    if (PrivilegeModeW == M_MODE | 
+        MCOUNTEREN_REGW[CounterNumM] & (!S_SUPPORTED | PrivilegeModeW == S_MODE | SCOUNTEREN_REGW[CounterNumM])) begin
       IllegalCSRCAccessM = 1'b0;
       if (CSRAdrM >= MHPMEVENTBASE & CSRAdrM <= MHPMEVENTLAST) begin
         CSRCReadValM = '0; // mphmevent[3:31] tied to read-only zero
       end else begin
-        if (P.XLEN==64) begin // 64-bit counter reads
+        if (XLEN==64) begin // 64-bit counter reads
           // Veri lator doesn't realize this only occurs for XLEN=64
           /* verilator lint_off WIDTH */  
           if      (CSRAdrM == TIME & ~CSRWriteM)  CSRCReadValM = MTIME_CLINT; // TIME register is a shadow of the memory-mapped MTIME from the CLINT
           /* verilator lint_on WIDTH */  
-          else if (CSRAdrM >= MHPMCOUNTERBASE & CSRAdrM < MHPMCOUNTERBASE+P.COUNTERS & CSRAdrM != MTIME) 
+          else if (CSRAdrM >= MHPMCOUNTERBASE & CSRAdrM < MHPMCOUNTERBASE+COUNTERS & CSRAdrM != MTIME) 
                   CSRCReadValM = HPMCOUNTER_REGW[CounterNumM];
-          else if (CSRAdrM >= HPMCOUNTERBASE  & CSRAdrM  < HPMCOUNTERBASE+P.COUNTERS & ~CSRWriteM)  // read-only
+          else if (CSRAdrM >= HPMCOUNTERBASE  & CSRAdrM  < HPMCOUNTERBASE+COUNTERS & ~CSRWriteM)  // read-only
                   CSRCReadValM = HPMCOUNTER_REGW[CounterNumM];
           else begin
               CSRCReadValM = '0;
@@ -178,13 +178,13 @@ module csrc  import cvw::*;  #(parameter cvw_t P) (
           if      (CSRAdrM == TIME & ~CSRWriteM)  CSRCReadValM = MTIME_CLINT[31:0];// TIME register is a shadow of the memory-mapped MTIME from the CLINT
           else if (CSRAdrM == TIMEH & ~CSRWriteM) CSRCReadValM = MTIME_CLINT[63:32];
           /* verilator lint_on WIDTH */  
-          else if (CSRAdrM >= MHPMCOUNTERBASE  & CSRAdrM < MHPMCOUNTERBASE+P.COUNTERS & CSRAdrM != MTIME)   
+          else if (CSRAdrM >= MHPMCOUNTERBASE  & CSRAdrM < MHPMCOUNTERBASE+COUNTERS & CSRAdrM != MTIME)   
                   CSRCReadValM = HPMCOUNTER_REGW[CounterNumM];
-          else if (CSRAdrM >= HPMCOUNTERBASE   & CSRAdrM < HPMCOUNTERBASE+P.COUNTERS  & ~CSRWriteM)    // read-only
+          else if (CSRAdrM >= HPMCOUNTERBASE   & CSRAdrM < HPMCOUNTERBASE+COUNTERS  & ~CSRWriteM)    // read-only
                   CSRCReadValM = HPMCOUNTER_REGW[CounterNumM];
-          else if (CSRAdrM >= MHPMCOUNTERHBASE & CSRAdrM < MHPMCOUNTERHBASE+P.COUNTERS & CSRAdrM != MTIMEH)  
+          else if (CSRAdrM >= MHPMCOUNTERHBASE & CSRAdrM < MHPMCOUNTERHBASE+COUNTERS & CSRAdrM != MTIMEH)  
                   CSRCReadValM = HPMCOUNTERH_REGW[CounterNumM];
-          else if (CSRAdrM >= HPMCOUNTERHBASE  & CSRAdrM < HPMCOUNTERHBASE+P.COUNTERS  & ~CSRWriteM)   // read-only
+          else if (CSRAdrM >= HPMCOUNTERHBASE  & CSRAdrM < HPMCOUNTERHBASE+COUNTERS  & ~CSRWriteM)   // read-only
                   CSRCReadValM = HPMCOUNTERH_REGW[CounterNumM];
           else begin
             CSRCReadValM = '0;
@@ -196,6 +196,7 @@ module csrc  import cvw::*;  #(parameter cvw_t P) (
       CSRCReadValM = '0;
       IllegalCSRCAccessM = 1'b1; // no privileges for this csr
     end
+endgenerate
 endmodule
 
 //  mounteren should only exist if u-mode exists
