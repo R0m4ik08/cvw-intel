@@ -12,10 +12,10 @@ all: build
 
 create:
 	mkdir -p $(BUILD_DIR)
-	quartus_sh -t scripts/create_project.tcl
+	cd $(BUILD_DIR) && quartus_sh -t ../scripts/wlly_ip.tcl
 
 build:
-	quartus_sh --flow compile $(PROJECT)
+	cd $(BUILD_DIR) && quartus_sh --flow compile $(PROJECT)
 
 program:
 	quartus_pgm -c USB-Blaster -m jtag -o "p;output_files/$(REVISION).sof"

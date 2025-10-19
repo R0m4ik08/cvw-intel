@@ -1,1 +1,16 @@
-build
+/build
+
+# Quartus temporary and output files
+db/
+incremental_db/
+output_files/
+simulation/
+
+*.rpt
+*.sof
+*.pof
+*.qdb
+*.smsg
+*.srf
+*.log
+*.bak
