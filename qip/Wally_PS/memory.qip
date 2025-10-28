@@ -1,0 +1,6 @@
+set_global_assignment -name IP_TOOL_VERSION "24.1"
+set_global_assignment -name IP_GENERATED_DEVICE_FAMILY "{Cyclone IV E}"
+
+set_global_assignment -name QIP_FILE ../ip_cores/ram1p1rwbe/ram1p1rwbe.qip
+set_global_assignment -name QIP_FILE ../ip_cores/rom1p1r_/rom1p1r_.qip
+set_global_assignment -name QIP_FILE ../ip_cores/ram2p1r1wbe/ram2p1r1wbe.qip
