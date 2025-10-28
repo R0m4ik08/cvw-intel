@@ -4,7 +4,7 @@
 
 
 # 
-# wally_wrapper "wally_wrapper" v1.0
+# wallypipelinedsocwrapper "wallypipelinedsocwrapper" v1.0
 #  2025.09.22.20:03:09
 # 
 # 
@@ -16,15 +16,15 @@ package require -exact qsys 16.1
 
 
 # 
-# module wally_wrapper
+# module wallypipelinedsocwrapper
 # 
 set_module_property DESCRIPTION ""
-set_module_property NAME wally_wrapper
+set_module_property NAME wallypipelinedsocwrapper
 set_module_property VERSION 1.0
 set_module_property INTERNAL false
 set_module_property OPAQUE_ADDRESS_MAP true
 set_module_property AUTHOR ""
-set_module_property DISPLAY_NAME wally_wrapper
+set_module_property DISPLAY_NAME wallypipelinedsocwrapper
 set_module_property INSTANTIATE_IN_SYSTEM_MODULE true
 set_module_property EDITABLE true
 set_module_property REPORT_TO_TALKBACK false
@@ -36,10 +36,10 @@ set_module_property REPORT_HIERARCHY false
 # file sets
 # 
 add_fileset QUARTUS_SYNTH QUARTUS_SYNTH "" ""
-set_fileset_property QUARTUS_SYNTH TOP_LEVEL wally_wrapper
+set_fileset_property QUARTUS_SYNTH TOP_LEVEL wallypipelinedsocwrapper
 set_fileset_property QUARTUS_SYNTH ENABLE_RELATIVE_INCLUDE_PATHS false
 set_fileset_property QUARTUS_SYNTH ENABLE_FILE_OVERWRITE_MODE false
-add_fileset_file wally_wrapper.sv SYSTEM_VERILOG PATH ../../src/wallypipelinedsocwrapper.sv TOP_LEVEL_FILE
+add_fileset_file wallypipelinedsocwrapper.sv SYSTEM_VERILOG PATH ../../src/wallypipelinedsocwrapper.sv TOP_LEVEL_FILE
 
 
 # 
@@ -52,8 +52,8 @@ set_parameter_property AHBW TYPE INTEGER
 set_parameter_property AHBW UNITS None
 set_parameter_property AHBW ALLOWED_RANGES -2147483648:2147483647
 set_parameter_property AHBW HDL_PARAMETER true
-add_parameter PA_BITS INTEGER 32
-set_parameter_property PA_BITS DEFAULT_VALUE 32
+add_parameter PA_BITS INTEGER 34
+set_parameter_property PA_BITS DEFAULT_VALUE 34
 set_parameter_property PA_BITS DISPLAY_NAME PA_BITS
 set_parameter_property PA_BITS TYPE INTEGER
 set_parameter_property PA_BITS UNITS None

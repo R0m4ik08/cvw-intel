@@ -47,7 +47,7 @@ module ahb_to_ext_bridge #(
     // Compute byteenable function (handles EXT_DATA_W >= AHB_DATA_W)
     function automatic [(EXT_DATA_W/8)-1:0] calc_byteenable;
         integer bs, i, byte_index;
-
+        integer total_bytes;
         input [AHB_ADDR_W-1:0] addr;
         input [2:0] size;
         begin
@@ -55,13 +55,14 @@ module ahb_to_ext_bridge #(
             calc_byteenable = '0;
             // number of bytes for transfer
             bs = 1 << size; // 1<<HSIZE gives bytes (HSIZE:0->1,1->2,2->4 etc.)
-            // assume AHB_DATA_W <= EXT_DATA_W
+            // total bytes in EXT word (constant)
+            total_bytes = EXT_DATA_W/8;
             // byte_offset = addr[log2(EXT_DATA_W/8)-1:0]
             byte_index = addr[$clog2(EXT_DATA_W/8)-1:0];
-            // set bs ones starting at byte_index
-            for (i=0;i<bs;i=i+1) begin
-                if ((byte_index + i) < (EXT_DATA_W/8))
-                    calc_byteenable[byte_index + i] = 1'b1;
+            // iterate over constant bound total_bytes to satisfy synthesizer
+            for (i = 0; i < total_bytes; i = i + 1) begin
+                if ((i >= byte_index) && (i < byte_index + bs))
+                    calc_byteenable[i] = 1'b1;
             end
         end
     endfunction
