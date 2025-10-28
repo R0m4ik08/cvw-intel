@@ -86,12 +86,12 @@ set_connection_parameter_value ahb_to_ext_bridge_0.ExtBus_m/bridge_0.external_in
 
 add_connection bridge_0.avalon_master SRAM.avalon_sram_slave
 set_connection_parameter_value bridge_0.avalon_master/SRAM.avalon_sram_slave arbitrationPriority {1}
-set_connection_parameter_value bridge_0.avalon_master/SRAM.avalon_sram_slave baseAddress {0x08000000}
+set_connection_parameter_value bridge_0.avalon_master/SRAM.avalon_sram_slave baseAddress {0x02000000}
 set_connection_parameter_value bridge_0.avalon_master/SRAM.avalon_sram_slave defaultConnection {0}
 
 add_connection bridge_0.avalon_master sdram_128mb_0.s1
 set_connection_parameter_value bridge_0.avalon_master/sdram_128mb_0.s1 arbitrationPriority {1}
-set_connection_parameter_value bridge_0.avalon_master/sdram_128mb_0.s1 baseAddress {0x0000}
+set_connection_parameter_value bridge_0.avalon_master/sdram_128mb_0.s1 baseAddress {0x08000000}
 set_connection_parameter_value bridge_0.avalon_master/sdram_128mb_0.s1 defaultConnection {0}
 
 add_connection wallypipelinedsocwrapper_0.AHB_m ahb_to_ext_bridge_0.AHB_s
