@@ -26,7 +26,7 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-`include "src/BranchPredictorType.vh"
+`include "../../src/BranchPredictorType.vh"
 
 package config_pkg;
 
@@ -228,6 +228,6 @@ localparam DIVCOPIES = 32'd4;
 // Memory synthesis configuration
 localparam logic USE_SRAM = 0;
 
-`include "src/config-shared.vh"
+`include "../../src/config-shared.vh"
 
 endpackage

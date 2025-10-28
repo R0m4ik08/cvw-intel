@@ -29,7 +29,7 @@
 
 `define INSTR_CLASS_PRED 1
 
-`include "src/BranchPredictorType.vh"
+`include "../src/BranchPredictorType.vh"
 
 module bpred import config_pkg::*;   (
   input  logic             clk, reset,

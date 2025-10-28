@@ -25,7 +25,9 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module wallypipelinedsocwrapper import config_pkg::*; (
+`include "../src/config/config.vh"
+module wallypipelinedsocwrapper import config_pkg::*; 
+(
   input  logic                clk, 
   input  logic                reset_ext,        // external asynchronous reset pin
   output logic                reset,            // reset synchronized to clk to prevent races on release
