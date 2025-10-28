@@ -20,7 +20,7 @@ create: build_dir
 	cd $(BUILD_DIR) && quartus_sh -t ../scripts/Wally_CS_quartus.tcl
 
 qsys_prep: build_dir
-	cp -r ip_cores/*  $(BUILD_DIR)/qsys
+	cp -r ip_cores/qsys/*  $(BUILD_DIR)/qsys
 
 qsys_prj: qsys_prep
 	cd $(BUILD_DIR)/qsys && qsys-script --script=../../scripts/Wally_CS_qsys.tcl
