@@ -54,11 +54,15 @@ module wallypipelinedsocwrapper import config_pkg::*;
   output logic [  31  :   0 ] GPIOEN,           // output enables for GPIO
   input  logic                UARTSin,          // UART serial data input
   output logic                UARTSout,         // UART serial data output
-  input  logic                SDCIntr
 );
+
+`ifdef QARTUS_PRJ
+
   wallypipelinedsoc wallypipelinedsoc(.clk, .reset_ext, .reset, .HRDATAEXT,.HREADYEXT, .HRESPEXT, .HSELEXT,
     .HCLK, .HRESETn, .HADDR, .HWDATA, .HWSTRB, .HWRITE, .HSIZE, .HBURST, .HPROT,
     .HTRANS, .HMASTLOCK, .HREADY, .TIMECLK(1'b0), .GPIOIN, .GPIOOUT, .GPIOEN,
     .UARTSin, .UARTSout); 
+
+`endif
 
 endmodule
