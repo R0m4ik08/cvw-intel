@@ -1,7 +1,9 @@
 # qsys scripting (.tcl) file for Wally_CS
 package require -exact qsys 16.0
 
-
+# === Глобальные параметры системы ===
+set XLEN 32
+set PA_BITS 34
 
 create_system {Wally_CS}
 
@@ -25,10 +27,10 @@ set_instance_parameter_value System_PLL {gui_refclk} {50.0}
 set_instance_parameter_value System_PLL {other_boards} {None}
 
 add_instance ahb_to_ext_bridge_0 ahb_to_ext_bridge 1.0
-set_instance_parameter_value ahb_to_ext_bridge_0 {AHB_ADDR_W} {32}
-set_instance_parameter_value ahb_to_ext_bridge_0 {AHB_DATA_W} {32}
+set_instance_parameter_value ahb_to_ext_bridge_0 {AHB_ADDR_W} $PA_BITS
+set_instance_parameter_value ahb_to_ext_bridge_0 {AHB_DATA_W} $XLEN
 set_instance_parameter_value ahb_to_ext_bridge_0 {EXT_ADDR_W} {30}
-set_instance_parameter_value ahb_to_ext_bridge_0 {EXT_DATA_W} {32}
+set_instance_parameter_value ahb_to_ext_bridge_0 {EXT_DATA_W} $XLEN
 
 add_instance bridge_0 altera_up_external_bus_to_avalon_bridge 18.0
 set_instance_parameter_value bridge_0 {addr_size} {1024}
@@ -38,9 +40,9 @@ set_instance_parameter_value bridge_0 {data_size} {32}
 add_instance sdram_128mb_0 sdram_128mb 1.0
 
 add_instance wallypipelinedsocwrapper_0 wallypipelinedsocwrapper 1.0
-set_instance_parameter_value wallypipelinedsocwrapper_0 {AHBW} {32}
-set_instance_parameter_value wallypipelinedsocwrapper_0 {PA_BITS} {34}
-set_instance_parameter_value wallypipelinedsocwrapper_0 {XLEN} {32}
+set_instance_parameter_value wallypipelinedsocwrapper_0 {AHBW} $XLEN
+set_instance_parameter_value wallypipelinedsocwrapper_0 {PA_BITS} $PA_BITS
+set_instance_parameter_value wallypipelinedsocwrapper_0 {XLEN} $XLEN
 
 # exported interfaces
 add_interface sdram conduit end
