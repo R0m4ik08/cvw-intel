@@ -37,10 +37,10 @@ set_instance_parameter_value bridge_0 {data_size} {32}
 
 add_instance sdram_128mb_0 sdram_128mb 1.0
 
-add_instance wally_wrapper_0 wally_wrapper 1.0
-set_instance_parameter_value wally_wrapper_0 {AHBW} {32}
-set_instance_parameter_value wally_wrapper_0 {PA_BITS} {32}
-set_instance_parameter_value wally_wrapper_0 {XLEN} {32}
+add_instance wallypipelinedsocwrapper_0 wallypipelinedsocwrapper 1.0
+set_instance_parameter_value wallypipelinedsocwrapper_0 {AHBW} {32}
+set_instance_parameter_value wallypipelinedsocwrapper_0 {PA_BITS} {34}
+set_instance_parameter_value wallypipelinedsocwrapper_0 {XLEN} {32}
 
 # exported interfaces
 add_interface sdram conduit end
@@ -54,16 +54,16 @@ set_interface_property system_pll_ref_clk EXPORT_OF System_PLL.ref_clk
 add_interface system_pll_ref_reset reset sink
 set_interface_property system_pll_ref_reset EXPORT_OF System_PLL.ref_reset
 add_interface wally_gpio conduit end
-set_interface_property wally_gpio EXPORT_OF wally_wrapper_0.GPIO
+set_interface_property wally_gpio EXPORT_OF wallypipelinedsocwrapper_0.GPIO
 add_interface wally_sdc conduit end
-set_interface_property wally_sdc EXPORT_OF wally_wrapper_0.SDC
+set_interface_property wally_sdc EXPORT_OF wallypipelinedsocwrapper_0.SDC
 add_interface wally_spi conduit end
-set_interface_property wally_spi EXPORT_OF wally_wrapper_0.SPI
+set_interface_property wally_spi EXPORT_OF wallypipelinedsocwrapper_0.SPI
 add_interface wally_uart conduit end
-set_interface_property wally_uart EXPORT_OF wally_wrapper_0.UART
+set_interface_property wally_uart EXPORT_OF wallypipelinedsocwrapper_0.UART
 
 # connections and connection parameters
-add_connection System_PLL.reset_source wally_wrapper_0.reset_inp
+add_connection System_PLL.reset_source wallypipelinedsocwrapper_0.reset_inp
 
 add_connection System_PLL.sys_clk SRAM.clk
 
@@ -73,7 +73,7 @@ add_connection System_PLL.sys_clk bridge_0.clk
 
 add_connection System_PLL.sys_clk sdram_128mb_0.clk
 
-add_connection System_PLL.sys_clk wally_wrapper_0.clock
+add_connection System_PLL.sys_clk wallypipelinedsocwrapper_0.clock
 
 add_connection ahb_to_ext_bridge_0.ExtBus_m bridge_0.external_interface
 set_connection_parameter_value ahb_to_ext_bridge_0.ExtBus_m/bridge_0.external_interface endPort {}
@@ -92,20 +92,20 @@ set_connection_parameter_value bridge_0.avalon_master/sdram_128mb_0.s1 arbitrati
 set_connection_parameter_value bridge_0.avalon_master/sdram_128mb_0.s1 baseAddress {0x0000}
 set_connection_parameter_value bridge_0.avalon_master/sdram_128mb_0.s1 defaultConnection {0}
 
-add_connection wally_wrapper_0.AHB_m ahb_to_ext_bridge_0.AHB_s
-set_connection_parameter_value wally_wrapper_0.AHB_m/ahb_to_ext_bridge_0.AHB_s endPort {}
-set_connection_parameter_value wally_wrapper_0.AHB_m/ahb_to_ext_bridge_0.AHB_s endPortLSB {0}
-set_connection_parameter_value wally_wrapper_0.AHB_m/ahb_to_ext_bridge_0.AHB_s startPort {}
-set_connection_parameter_value wally_wrapper_0.AHB_m/ahb_to_ext_bridge_0.AHB_s startPortLSB {0}
-set_connection_parameter_value wally_wrapper_0.AHB_m/ahb_to_ext_bridge_0.AHB_s width {0}
+add_connection wallypipelinedsocwrapper_0.AHB_m ahb_to_ext_bridge_0.AHB_s
+set_connection_parameter_value wallypipelinedsocwrapper_0.AHB_m/ahb_to_ext_bridge_0.AHB_s endPort {}
+set_connection_parameter_value wallypipelinedsocwrapper_0.AHB_m/ahb_to_ext_bridge_0.AHB_s endPortLSB {0}
+set_connection_parameter_value wallypipelinedsocwrapper_0.AHB_m/ahb_to_ext_bridge_0.AHB_s startPort {}
+set_connection_parameter_value wallypipelinedsocwrapper_0.AHB_m/ahb_to_ext_bridge_0.AHB_s startPortLSB {0}
+set_connection_parameter_value wallypipelinedsocwrapper_0.AHB_m/ahb_to_ext_bridge_0.AHB_s width {0}
 
-add_connection wally_wrapper_0.reset_out SRAM.reset
+add_connection wallypipelinedsocwrapper_0.reset_out SRAM.reset
 
-add_connection wally_wrapper_0.reset_out ahb_to_ext_bridge_0.reset_sink
+add_connection wallypipelinedsocwrapper_0.reset_out ahb_to_ext_bridge_0.reset_sink
 
-add_connection wally_wrapper_0.reset_out bridge_0.reset
+add_connection wallypipelinedsocwrapper_0.reset_out bridge_0.reset
 
-add_connection wally_wrapper_0.reset_out sdram_128mb_0.reset
+add_connection wallypipelinedsocwrapper_0.reset_out sdram_128mb_0.reset
 
 # interconnect requirements
 set_interconnect_requirement {$system} {qsys_mm.clockCrossingAdapter} {HANDSHAKE}
