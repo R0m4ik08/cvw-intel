@@ -90,6 +90,9 @@ assign wally_gpio_export2_internal = { {(32 - w_key - w_sw){1'b0}}, KEY, SW };
 // ---------------------------------------------------------------------------
 // Instantiate generated SoC (Wally_CS) and connect ports
 Wally_CS Wally_CS_inst (
+    //Reset
+    .reset_export_reset       (KEY[0]),
+
     // SDRAM
     .sdram_ba                 (SDRAM_BA),
     .sdram_addr               (SDRAM_ADDR),

@@ -37,6 +37,32 @@ set_instance_parameter_value bridge_0 {addr_size} {1024}
 set_instance_parameter_value bridge_0 {addr_size_multiplier} {Mbytes}
 set_instance_parameter_value bridge_0 {data_size} {32}
 
+add_instance reset_controller_0 altera_reset_controller 23.1
+set_instance_parameter_value reset_controller_0 {MIN_RST_ASSERTION_TIME} {3}
+set_instance_parameter_value reset_controller_0 {NUM_RESET_INPUTS} {2}
+set_instance_parameter_value reset_controller_0 {OUTPUT_RESET_SYNC_EDGES} {deassert}
+set_instance_parameter_value reset_controller_0 {RESET_REQUEST_PRESENT} {0}
+set_instance_parameter_value reset_controller_0 {RESET_REQ_EARLY_DSRT_TIME} {1}
+set_instance_parameter_value reset_controller_0 {RESET_REQ_WAIT_TIME} {1}
+set_instance_parameter_value reset_controller_0 {SYNC_DEPTH} {2}
+set_instance_parameter_value reset_controller_0 {USE_RESET_REQUEST_IN0} {0}
+set_instance_parameter_value reset_controller_0 {USE_RESET_REQUEST_IN1} {0}
+set_instance_parameter_value reset_controller_0 {USE_RESET_REQUEST_IN10} {0}
+set_instance_parameter_value reset_controller_0 {USE_RESET_REQUEST_IN11} {0}
+set_instance_parameter_value reset_controller_0 {USE_RESET_REQUEST_IN12} {0}
+set_instance_parameter_value reset_controller_0 {USE_RESET_REQUEST_IN13} {0}
+set_instance_parameter_value reset_controller_0 {USE_RESET_REQUEST_IN14} {0}
+set_instance_parameter_value reset_controller_0 {USE_RESET_REQUEST_IN15} {0}
+set_instance_parameter_value reset_controller_0 {USE_RESET_REQUEST_IN2} {0}
+set_instance_parameter_value reset_controller_0 {USE_RESET_REQUEST_IN3} {0}
+set_instance_parameter_value reset_controller_0 {USE_RESET_REQUEST_IN4} {0}
+set_instance_parameter_value reset_controller_0 {USE_RESET_REQUEST_IN5} {0}
+set_instance_parameter_value reset_controller_0 {USE_RESET_REQUEST_IN6} {0}
+set_instance_parameter_value reset_controller_0 {USE_RESET_REQUEST_IN7} {0}
+set_instance_parameter_value reset_controller_0 {USE_RESET_REQUEST_IN8} {0}
+set_instance_parameter_value reset_controller_0 {USE_RESET_REQUEST_IN9} {0}
+set_instance_parameter_value reset_controller_0 {USE_RESET_REQUEST_INPUT} {0}
+
 add_instance sdram_128mb_0 sdram_128mb 1.0
 
 add_instance wallypipelinedsocwrapper_0 wallypipelinedsocwrapper 1.0
@@ -45,6 +71,8 @@ set_instance_parameter_value wallypipelinedsocwrapper_0 {PA_BITS} $PA_BITS
 set_instance_parameter_value wallypipelinedsocwrapper_0 {XLEN} $XLEN
 
 # exported interfaces
+add_interface reset_export reset sink
+set_interface_property reset_export EXPORT_OF reset_controller_0.reset_in1
 add_interface sdram conduit end
 set_interface_property sdram EXPORT_OF sdram_128mb_0.wire
 add_interface sdram_clk clock source
@@ -65,13 +93,15 @@ add_interface wally_uart conduit end
 set_interface_property wally_uart EXPORT_OF wallypipelinedsocwrapper_0.UART
 
 # connections and connection parameters
-add_connection System_PLL.reset_source wallypipelinedsocwrapper_0.reset_inp
+add_connection System_PLL.reset_source reset_controller_0.reset_in0
 
 add_connection System_PLL.sys_clk SRAM.clk
 
 add_connection System_PLL.sys_clk ahb_to_ext_bridge_0.clock
 
 add_connection System_PLL.sys_clk bridge_0.clk
+
+add_connection System_PLL.sys_clk reset_controller_0.clk
 
 add_connection System_PLL.sys_clk sdram_128mb_0.clk
 
@@ -94,6 +124,8 @@ set_connection_parameter_value bridge_0.avalon_master/sdram_128mb_0.s1 arbitrati
 set_connection_parameter_value bridge_0.avalon_master/sdram_128mb_0.s1 baseAddress {0x08000000}
 set_connection_parameter_value bridge_0.avalon_master/sdram_128mb_0.s1 defaultConnection {0}
 
+add_connection reset_controller_0.reset_out wallypipelinedsocwrapper_0.reset_inp
+
 add_connection wallypipelinedsocwrapper_0.AHB_m ahb_to_ext_bridge_0.AHB_s
 set_connection_parameter_value wallypipelinedsocwrapper_0.AHB_m/ahb_to_ext_bridge_0.AHB_s endPort {}
 set_connection_parameter_value wallypipelinedsocwrapper_0.AHB_m/ahb_to_ext_bridge_0.AHB_s endPortLSB {0}
@@ -113,6 +145,7 @@ add_connection wallypipelinedsocwrapper_0.reset_out sdram_128mb_0.reset
 set_interconnect_requirement {$system} {qsys_mm.clockCrossingAdapter} {HANDSHAKE}
 set_interconnect_requirement {$system} {qsys_mm.enableEccProtection} {FALSE}
 set_interconnect_requirement {$system} {qsys_mm.enableInstrumentation} {FALSE}
+set_interconnect_requirement {$system} {qsys_mm.insertDefaultSlave} {FALSE}
 set_interconnect_requirement {$system} {qsys_mm.maxAdditionalLatency} {1}
 
 save_system {Wally_CS.qsys}
