@@ -7,8 +7,8 @@ module fpgaTop
     parameter clk_mhz = 50,
     parameter w_key   = 4,
     parameter w_sw    = 18,
-    parameter w_led   = 27,
-    parameter w_gpio  = 36
+    parameter w_ledr  = 18,
+    parameter w_ledg  = 9
 )
 (
     // Board clock / reset
@@ -55,11 +55,6 @@ module fpgaTop
     // PLL reset (top-level input so user can reset PLL)
     input  wire                 system_pll_ref_reset_reset,
 
-    // GPIO exposed to SoC
-    output wire [31:0]          wally_gpio_export1, // SoC -> external (driven to LEDs)
-    // wally_gpio_export2 will be driven internally from KEY/SW
-    output wire [31:0]          wally_gpio_export3, // SoC -> external
-
     // SD Card
     inout  wire [3:0]           SD_DAT,
     output wire                 SD_CLK,
@@ -82,10 +77,10 @@ module fpgaTop
 // Connect PLL ref clock internally to board 50 MHz clock as requested
 wire system_pll_ref_clk_clk_internal = CLOCK_50;
 
-// Build the 32-bit GPIO input to SoC from KEY and SW
-// Layout: [31:22]=0, [21:18]=KEY[w_key-1:0] (padded), [17:0]=SW
-wire [31:0] wally_gpio_export2_internal;
-assign wally_gpio_export2_internal = { {(32 - w_key - w_sw){1'b0}}, KEY, SW };
+// GPIOEN from SoC to external (not used in this example)
+wire [31:0]          wally_gpio_en; // SoC -> external
+
+
 
 // ---------------------------------------------------------------------------
 // Instantiate generated SoC (Wally_CS) and connect ports
@@ -119,9 +114,9 @@ Wally_CS Wally_CS_inst (
     .system_pll_ref_reset_reset (system_pll_ref_reset_reset),
 
     // GPIO
-    .wally_gpio_export1       (wally_gpio_export1),
-    .wally_gpio_export2       (wally_gpio_export2_internal),
-    .wally_gpio_export3       (wally_gpio_export3),
+    .wally_gpio_export1       (wally_gpio_en),
+    .wally_gpio_export2       ({ {(32 - w_key - w_sw){1'b0}}, SW, KEY[w_key-1:1], 1'b0}),
+    .wally_gpio_export3       ({ {(32 - w_ledg - w_ledr){1'b0}}, LEDR, LEDG}),
 
     // SD Card
     .wally_sdc_export1        (SD_CLK),
@@ -140,20 +135,14 @@ Wally_CS Wally_CS_inst (
     .wally_uart_export2       (UART_TXD)
 );
 
-// ---------------------------------------------------------------------------
-// Simple user glue
-// Drive LEDs from wally_gpio_export1 (simple mapping)
-assign LEDR = wally_gpio_export1[17:0];
-assign LEDG = wally_gpio_export1[26:18];
-
 // Tie HEX displays off by default (safe inactive value)
-assign HEX0 = 7'b1111111;
-assign HEX1 = 7'b1111111;
-assign HEX2 = 7'b1111111;
-assign HEX3 = 7'b1111111;
-assign HEX4 = 7'b1111111;
-assign HEX5 = 7'b1111111;
-assign HEX6 = 7'b1111111;
-assign HEX7 = 7'b1111111;
+assign HEX0 = 7'b0;
+assign HEX1 = 7'b0;
+assign HEX2 = 7'b0;
+assign HEX3 = 7'b0;
+assign HEX4 = 7'b0;
+assign HEX5 = 7'b0;
+assign HEX6 = 7'b0;
+assign HEX7 = 7'b0;
 
 endmodule
