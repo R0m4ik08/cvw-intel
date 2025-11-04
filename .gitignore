@@ -5,6 +5,9 @@ db/
 incremental_db/
 output_files/
 simulation/
+/tmp
+/zsbl/OBJ
+/zsbl/bin
 
 *.rpt
 *.sof

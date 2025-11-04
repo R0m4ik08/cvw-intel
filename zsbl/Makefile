@@ -22,13 +22,13 @@ ROOT		:= ..
 LIBRARY_DIRS	:= 
 LIBRARY_FILES	:=
 
-MARCH           :=-march=rv64imfdc_zifencei
-MABI            :=-mabi=lp64d
+MARCH           :=-march=rv32e
+MABI            :=-mabi=ilp32e
 LINK_FLAGS      :=$(MARCH) $(MABI) -nostartfiles -L $(RISCV)/riscv64-unknown-elf/lib
 LINKER		:=linker1000.x
 
 # FGPA parameters
-SYSTEMCLOCK   ?= 20000000
+SYSTEMCLOCK   ?= 50000000
 MAXSDCCLOCK   ?=  5000000
 EXT_MEM_BASE  ?= 0x80000000
 EXT_MEM_RANGE ?= 0x10000000
@@ -37,14 +37,14 @@ EXT_MEM_RANGE ?= 0x10000000
 AFLAGS =$(MARCH) $(MABI) -W
 # Override directive allows us to prepend other options on the command line
 # e.g. $ make CFLAGS=-g
-override CFLAGS +=$(MARCH) $(MABI) -mcmodel=medany -O2 -g  -DSYSTEMCLOCK=${SYSTEMCLOCK} -DMAXSDCCLOCK=${MAXSDCCLOCK} -DEXT_MEM_BASE=${EXT_MEM_BASE} -DEXT_MEM_RANGE=${EXT_MEM_RANGE}
+override CFLAGS +=$(MARCH) $(MABI) -mcmodel=medany -O0 -g  -DSYSTEMCLOCK=${SYSTEMCLOCK} -DMAXSDCCLOCK=${MAXSDCCLOCK} -DEXT_MEM_BASE=${EXT_MEM_BASE} -DEXT_MEM_RANGE=${EXT_MEM_RANGE}
 AS=riscv64-unknown-elf-as
 CC=riscv64-unknown-elf-gcc
 AR=riscv64-unknown-elf-ar
 
 
 #Default Make
-all: directories $(TARGET).memfile
+all: directories $(TARGET).hex
 
 #Remake
 remake: clean all
@@ -55,7 +55,7 @@ directories:
 	@mkdir -p $(BUILDDIR)
 
 clean:
-	rm -rf $(BUILDDIR) $(TARGETDIR) *.memfile *.objdump boot.mem data.mem
+	rm -rf $(BUILDDIR) $(TARGETDIR) *.hex *.objdump boot.mem data.mem
 
 
 #Needed for building additional library projects
@@ -111,13 +111,8 @@ $(BUILDDIR)/%.$(OBJEXT): $(SRCDIR)/%.$(CPPEXT)
 	@rm -f $(BUILDDIR)/$*.$(DEPEXT).tmp
 
 # convert to hex
-$(TARGET).memfile: $(TARGET)
+$(TARGET).hex: $(TARGET)
 	@echo 'Making object dump file.'
 	riscv64-unknown-elf-objdump -DS $< > $<.objdump
-	@echo 'Making memory file'
-	riscv64-unknown-elf-elf2hex --bit-width 64 --input $^ --output $@
-	extractFunctionRadix.sh $<.objdump
-	@echo 'Splitting memfile.'
-	./splitfile.sh $@
-	mv boot.mem ../src/boot.mem
-	mv data.mem ../src/data.mem
+	@echo 'Making memory file 2'
+	riscv64-unknown-elf-objcopy -O ihex $^ $@
