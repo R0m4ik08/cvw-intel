@@ -91,12 +91,7 @@ module rom1p1r_
 		altsyncram_component.address_aclr_a = "NONE",
 		altsyncram_component.clock_enable_input_a = "NORMAL",
 		altsyncram_component.clock_enable_output_a = "NORMAL",
-`ifdef NO_PLI
-		altsyncram_component.init_file = "../zsbl/rom_init.rif"
-`else
-		altsyncram_component.init_file = "../zsbl/rom_init.hex"
-`endif
-,
+		altsyncram_component.init_file = "../zsbl/bin/boot.mif",
 		altsyncram_component.intended_device_family = "Cyclone IV E",
 		altsyncram_component.lpm_hint = "ENABLE_RUNTIME_MOD=NO",
 		altsyncram_component.lpm_type = "altsyncram",

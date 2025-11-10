@@ -44,7 +44,7 @@ AR=riscv64-unknown-elf-ar
 
 
 #Default Make
-all: directories $(TARGET).hex
+all: directories $(TARGET).mif
 
 #Remake
 remake: clean all
@@ -111,8 +111,10 @@ $(BUILDDIR)/%.$(OBJEXT): $(SRCDIR)/%.$(CPPEXT)
 	@rm -f $(BUILDDIR)/$*.$(DEPEXT).tmp
 
 # convert to hex
-$(TARGET).hex: $(TARGET)
+$(TARGET).mif: $(TARGET)
 	@echo 'Making object dump file.'
 	riscv64-unknown-elf-objdump -DS $< > $<.objdump
 	@echo 'Making memory file 2'
-	riscv64-unknown-elf-objcopy -O ihex $^ $@
+	riscv64-unknown-elf-elf2hex --bit-width 32 --input $^ --output $^.hex
+	@echo 'Generate .mif file'
+	python hex2mif/hex2mif.py $^.hex $@ --width 32
