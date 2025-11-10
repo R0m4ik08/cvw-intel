@@ -136,13 +136,13 @@ Wally_CS Wally_CS_inst (
 );
 
 // Tie HEX displays off by default (safe inactive value)
-assign HEX0 = 7'b0;
-assign HEX1 = 7'b0;
-assign HEX2 = 7'b0;
-assign HEX3 = 7'b0;
-assign HEX4 = 7'b0;
-assign HEX5 = 7'b0;
-assign HEX6 = 7'b0;
-assign HEX7 = 7'b0;
+assign HEX0 = 7'h7f;
+assign HEX1 = 7'h7f;
+assign HEX2 = 7'h7f;
+assign HEX3 = 7'h7f;
+assign HEX4 = 7'h7f;
+assign HEX5 = 7'h7f;
+assign HEX6 = 7'h7f;
+assign HEX7 = 7'h7f;
 
 endmodule
