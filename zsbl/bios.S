@@ -3,28 +3,33 @@
 .section .init
 .global _start
 .type _start, @function
-	
+
 _start:
-	
-	li x1, 0
-	li x2, 0
-	li x4, 0
-	li x5, 0
-	li x6, 0
-	li x7, 0
-	li x8, 0
-	li x9, 0
-	li x10, 0
-	li x11, 0
-	li x12, 0
-	li x13, 0
-	li x14, 0
-	li x15, 0
+        addi    sp,sp,-32
+        sw      ra,28(sp)
+        sw      s0,24(sp)
+        addi    s0,sp,32
+        sw      zero,-20(s0)
+        j       .L2
+.L3:
+        lui     a5,%hi(gpio_base)
+        lw      a4,%lo(gpio_base)(a5)
+        lw      a5,-20(s0)
+        add     a5,a4,a5
+        sw      a5,-24(s0)
+        lw      a5,-24(s0)
+        li      a4,0x55
+        sb      a4,0(a5)
+        lw      a5,-20(s0)
+        addi    a5,a5,1
+        sw      a5,-20(s0)
+.L2:
+        lw      a4,-20(s0)
+        li      a5,255
+        ble     a4,a5,.L3
+.L4:
+        j       .L4
 
-	jal x0, _zsbl_main
-
-end_of_bios:	
-
-	
-
+gpio_base:
+        .word   0x10060000
 

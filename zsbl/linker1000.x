@@ -3,8 +3,7 @@ ENTRY(_start)
 
 MEMORY
 {
-  ROM (rx) : ORIGIN = 0x00001000, LENGTH = 512
-  RAM (rwx) : ORIGIN = 0x80000000, LENGTH = 2048K
+  ROM (rx) : ORIGIN = 0x00001000, LENGTH = 4K
 }
 
 SECTIONS
@@ -17,25 +16,5 @@ SECTIONS
     KEEP(*(.init))
   } 
   _start_end = .;
-  
-  .init :
-  {
-    KEEP(*(.init))
-  } > ROM
-
-  .data : {
-    __data_start__ = .;
-    *(.data*)
-    __data_end__ = .;
-  } > RAM AT > ROM
-
-  .bss : {
-    __bss_start__ = .;
-    *(.bss*)
-    *(COMMON)
-    __bss_end__ = .;
-  } > RAM
-
-  _stack_top = ORIGIN(RAM) + LENGTH(RAM);
 
 }
