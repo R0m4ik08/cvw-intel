@@ -10,7 +10,7 @@ PATH +=;$(QSYS_BIN);
 
 .PHONY: all quartus_build qsys_generate clean
 
-all: quartus_build 
+all: qsys_generate quartus_create 
 
 build_dir:
 	mkdir -p $(BUILD_DIR)
