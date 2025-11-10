@@ -5,7 +5,7 @@ SEXT		:= S
 SRCEXT 		:= \([$(CEXT)$(AEXT)$(SEXT)]\|$(CPPEXT)\)
 OBJEXT		:= o
 DEPEXT		:= d
-SRCDIR		:= .
+SRCDIR		:= ./src
 BUILDDIR	:= OBJ
 
 SOURCES		?= $(shell find $(SRCDIR) -type f -regex ".*\.$(SRCEXT)" | sort)
@@ -25,7 +25,7 @@ LIBRARY_FILES	:=
 MARCH           :=-march=rv32e
 MABI            :=-mabi=ilp32e
 LINK_FLAGS      :=$(MARCH) $(MABI) -nostartfiles -L $(RISCV)/riscv64-unknown-elf/lib
-LINKER		:=linker1000.x
+LINKER		:=$(SRCDIR)/linker1000.x
 
 # FGPA parameters
 SYSTEMCLOCK   ?= 50000000
