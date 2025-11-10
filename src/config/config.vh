@@ -38,17 +38,17 @@ localparam logic IEEE754 = 0;
 
 // RISC-V configuration per specification
 // Base instruction set (defaults to I if E is not supported)
-localparam logic E_SUPPORTED = 1;
+localparam logic E_SUPPORTED = 0;
 
 // Integer instruction set extensions
-localparam logic ZIFENCEI_SUPPORTED = 0; // Instruction-Fetch fence
-localparam logic ZICSR_SUPPORTED    = 0; // CSR Instructions
-localparam logic ZICCLSM_SUPPORTED  = 0; // Misaligned loads/stores
-localparam logic ZICOND_SUPPORTED   = 0; // Integer conditional operations
+localparam logic ZIFENCEI_SUPPORTED = 1; // Instruction-Fetch fence
+localparam logic ZICSR_SUPPORTED    = 0; // CSR Instructions // Включение этого флага вызывает ошибку синтеза Quartus проекта
+localparam logic ZICCLSM_SUPPORTED  = 1; // Misaligned loads/stores
+localparam logic ZICOND_SUPPORTED   = 1; // Integer conditional operations
 
 // Multiplication & division extensions
 // M implies (and in the configuration file requires) Zmmul
-localparam logic M_SUPPORTED     = 0;
+localparam logic M_SUPPORTED     = 1;
 localparam logic ZMMUL_SUPPORTED = 0;
 
 // Atomic extensions
@@ -77,7 +77,7 @@ localparam logic ZKNH_SUPPORTED = 0;
 // All compressed extensions require Zca
 localparam logic ZCA_SUPPORTED = 0;
 localparam logic ZCB_SUPPORTED = 0;
-localparam logic ZCF_SUPPORTED = 0; // RV32 only, requires F
+localparam logic ZCF_SUPPORTED = 1; // RV32 only, requires F
 localparam logic ZCD_SUPPORTED = 0; // requires D
 
 // Floating point extensions
@@ -101,7 +101,7 @@ localparam COUNTERS = 12'd0;
 
 // Cache-management operation extensions
 localparam logic ZICBOM_SUPPORTED = 0;
-localparam logic ZICBOZ_SUPPORTED = 0;
+localparam logic ZICBOZ_SUPPORTED = 1;
 localparam logic ZICBOP_SUPPORTED = 0;
 
 // Virtual memory extensions
