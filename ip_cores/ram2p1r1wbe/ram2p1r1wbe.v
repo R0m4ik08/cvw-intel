@@ -37,7 +37,7 @@
 // synopsys translate_off
 `timescale 1 ps / 1 ps
 // synopsys translate_on
-module ram2p1r1wbe #(DEPTH=1024, WIDTH=32)
+module ram2p1r1wbe #(parameter DEPTH=1024, WIDTH=32)
 (
 	bwe2,
 	clk,
