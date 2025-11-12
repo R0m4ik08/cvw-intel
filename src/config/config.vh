@@ -26,9 +26,10 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-`include "../../src/BranchPredictorType.vh"
 
 package config_pkg;
+
+`include "../../src/BranchPredictorType.vh"
 
 // RV32 or RV64: XLEN = 32 or 64
 localparam XLEN = 32'd32;
@@ -214,7 +215,7 @@ localparam PLIC_SDC_ID = 32'd20;
 
 // Branch prediction
 localparam logic BPRED_SUPPORTED = 0;
-localparam BPRED_TYPE = `BP_GSHARE; // BP_GSHARE_BASIC, BP_GLOBAL, BP_GLOBAL_BASIC, BP_TWOBIT
+localparam BPRED_TYPE = BP_GSHARE; // BP_GSHARE_BASIC, BP_GLOBAL, BP_GLOBAL_BASIC, BP_TWOBIT
 localparam BPRED_SIZE = 32'd12;
 localparam BPRED_NUM_LHR = 32'd6;
 localparam BTB_SIZE = 32'd10;

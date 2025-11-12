@@ -25,8 +25,6 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-`include "../src/config/config.vh"
-
 module wallypipelinedsocwrapper import config_pkg::*; 
 #(
   parameter integer AHBW, PA_BITS, XLEN
@@ -69,13 +67,11 @@ module wallypipelinedsocwrapper import config_pkg::*;
   output logic                SDCCLK            // SDC Clock       from   SPI Clock
 );
 
-`ifdef QARTUS_PRJ
-
   wallypipelinedsoc wallypipelinedsoc(.clk, .reset_ext, .reset, .HRDATAEXT,.HREADYEXT, .HRESPEXT, .HSELEXT,
     .HCLK, .HRESETn, .HADDR, .HWDATA, .HWSTRB, .HWRITE, .HSIZE, .HBURST, .HPROT,
     .HTRANS, .HMASTLOCK, .HREADY, .TIMECLK(1'b0), .GPIOIN, .GPIOOUT, .GPIOEN,
     .UARTSin, .UARTSout);
 
-`endif
+
 
 endmodule

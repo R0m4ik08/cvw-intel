@@ -58,6 +58,11 @@ module ebufsmarb (
   logic              BeatCntReset;
   logic [3:0]        Threshold;                  // Number of beats derived from HBURST
 
+  logic [1:0] CurrState_raw, NextState_raw;
+
+  assign CurrState = statetype'(CurrState_raw);
+  assign NextState_raw = NextState;
+
   ////////////////////////////////////////////////////////////////////////////////////////////////////
   // Arbitration scheme
   // FSM decides if arbitration needed.  Arbitration is held until the last beat of
@@ -65,7 +70,7 @@ module ebufsmarb (
   ////////////////////////////////////////////////////////////////////////////////////////////////////
 
   assign both = LSUReq & IFUReq;
-  flopenl #(2) busreg(HCLK, ~HRESETn, 1'b1, NextState, IDLE, CurrState);
+  flopenl #(2) busreg(HCLK, ~HRESETn, 1'b1, NextState_raw, IDLE, CurrState_raw);
   always_comb 
     case (CurrState) 
       IDLE:      if (both)                                      NextState = ARBITRATE; 

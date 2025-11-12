@@ -60,21 +60,23 @@ if {$make_assignments} {
 	set_global_assignment -name VHDL_INPUT_VERSION VHDL_2008
 	set_global_assignment -name VHDL_SHOW_LMF_MAPPING_MESSAGES OFF
 	set_global_assignment -name ERROR_CHECK_FREQUENCY_DIVISOR 1
-	set_global_assignment -name EDA_SIMULATION_TOOL "<None>"
+	set_global_assignment -name EDA_SIMULATION_TOOL "QuestaSim (SystemVerilog)"
 	set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
 	set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
 
 	set_global_assignment -name EDA_GENERATE_FUNCTIONAL_NETLIST OFF -section_id eda_board_design_boundary_scan
-	set_global_assignment -name EDA_OUTPUT_DATA_FORMAT NONE -section_id eda_simulation
+	set_global_assignment -name EDA_OUTPUT_DATA_FORMAT "SYSTEMVERILOG HDL" -section_id eda_simulation
 	set_global_assignment -name EDA_GENERATE_FUNCTIONAL_NETLIST OFF -section_id eda_board_design_timing
 	set_global_assignment -name EDA_GENERATE_FUNCTIONAL_NETLIST OFF -section_id eda_board_design_symbol
 	set_global_assignment -name EDA_GENERATE_FUNCTIONAL_NETLIST OFF -section_id eda_board_design_signal_integrity
 	set_global_assignment -name EDA_INPUT_DATA_FORMAT "VERILOG HDL" -section_id eda_design_synthesis
+	set_global_assignment -name EDA_TIME_SCALE "1 ns" -section_id eda_simulation
 
-	set_global_assignment -name VERILOG_MACRO "QARTUS_PRJ=1"
+	set_global_assignment -name VERILOG_MACRO "QUARTUS_PRJ=1"
 
 	set_global_assignment -name TOP_LEVEL_ENTITY fpgaTop
 	set_global_assignment -name SYSTEMVERILOG_FILE ../src/fpgaTop.sv
+	set_global_assignment -name SYSTEMVERILOG_FILE ../src/testbench.sv
 	set_global_assignment -name QIP_FILE Wally_CS/synthesis/Wally_CS.qip
 	set_global_assignment -name QIP_FILE ../qip/Wally_PS.qip
 	
