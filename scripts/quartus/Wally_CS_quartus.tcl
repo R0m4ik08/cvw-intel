@@ -71,7 +71,7 @@ if {$make_assignments} {
 	set_global_assignment -name EDA_GENERATE_FUNCTIONAL_NETLIST OFF -section_id eda_board_design_signal_integrity
 	set_global_assignment -name EDA_INPUT_DATA_FORMAT "VERILOG HDL" -section_id eda_design_synthesis
 
-	set_global_assignment -name VERILOG_MACRO "QARTUS_PRJ=1"
+	set_global_assignment -name VERILOG_MACRO "QUARTUS_PRJ=1"
 
 	set_global_assignment -name TOP_LEVEL_ENTITY fpgaTop
 	set_global_assignment -name SYSTEMVERILOG_FILE ../src/fpgaTop.sv
