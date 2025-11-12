@@ -91,7 +91,13 @@ module rom1p1r_
 		altsyncram_component.address_aclr_a = "NONE",
 		altsyncram_component.clock_enable_input_a = "NORMAL",
 		altsyncram_component.clock_enable_output_a = "NORMAL",
+`ifdef QARTUS_PRJ
 		altsyncram_component.init_file = "../zsbl/bin/boot.mif",
+`endif 
+`ifndef QARTUS_PRJ
+		altsyncram_component.init_file = "./boot.mif",
+`endif 
+
 		altsyncram_component.intended_device_family = "Cyclone IV E",
 		altsyncram_component.lpm_hint = "ENABLE_RUNTIME_MOD=NO",
 		altsyncram_component.lpm_type = "altsyncram",
