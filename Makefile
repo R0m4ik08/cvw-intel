@@ -4,6 +4,7 @@ BUILD_DIR = build
 
 QUARTUS_BIN := $(QUARTUS_ROOTDIR)\bin64
 QSYS_BIN := $(QUARTUS_ROOTDIR)\sopc_builder\bin
+QUESTA_BIN := $(QUARTUS_ROOTDIR)\..\..\questa_sim_2024.1\win64
 
 PRJ_QSYS_DIR := ip_cores/qsys
 
@@ -67,6 +68,18 @@ $(BUILD_DIR)/output_files/$(PROJECT).sof: | qsys_generate quartus_create
 
 quartus_build: | $(BUILD_DIR)/output_files/$(PROJECT).sof
 	@echo "Quartus project is builded"
+
+$(BUILD_DIR)/simulation/questa/modelsim.ini: $(BUILD_DIR)/$(PROJECT).qpf
+	cd $(BUILD_DIR) && quartus_map --read_settings_files=on --write_settings_files=off Wally_CS -c Wally_CS --analysis_and_elaboration
+	cd $(BUILD_DIR) && quartus_sh -t "$(QUARTUS_ROOTDIR)/common/tcl/internal/nativelink/qnativesim.tcl" --rtl_sim --no_gui "$(PROJECT)" "$(PROJECT)"
+	cd $(BUILD_DIR)/simulation/questa && vopt work.testbench +acc -o _testbench -L $(PROJECT) -L altera_mf_ver
+
+qsim_create: | qsys_generate quartus_create $(BUILD_DIR)/simulation/questa/modelsim.ini
+	@echo "Questasim project is created"
+
+qsim_open: | qsim_create
+	@echo "Openning Questasim project in gui"
+	cd $(BUILD_DIR)/simulation/questa && vsim work._testbench -do ../../../scripts/questa/set_def_waveforme.do &
 
 quartus_program: quartus_build
 	quartus_pgm -c USB-Blaster -m jtag -o "p;output_files/$(REVISION).sof"
