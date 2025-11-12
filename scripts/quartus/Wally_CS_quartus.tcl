@@ -60,7 +60,7 @@ if {$make_assignments} {
 	set_global_assignment -name VHDL_INPUT_VERSION VHDL_2008
 	set_global_assignment -name VHDL_SHOW_LMF_MAPPING_MESSAGES OFF
 	set_global_assignment -name ERROR_CHECK_FREQUENCY_DIVISOR 1
-	set_global_assignment -name EDA_SIMULATION_TOOL "<None>"
+	set_global_assignment -name EDA_SIMULATION_TOOL "QuestaSim (SystemVerilog)"
 	set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
 	set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
 
@@ -75,6 +75,7 @@ if {$make_assignments} {
 
 	set_global_assignment -name TOP_LEVEL_ENTITY fpgaTop
 	set_global_assignment -name SYSTEMVERILOG_FILE ../src/fpgaTop.sv
+	set_global_assignment -name SYSTEMVERILOG_FILE ../src/testbench.sv
 	set_global_assignment -name QIP_FILE Wally_CS/synthesis/Wally_CS.qip
 	set_global_assignment -name QIP_FILE ../qip/Wally_PS.qip
 	
