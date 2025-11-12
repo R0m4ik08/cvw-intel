@@ -24,6 +24,8 @@ qsys_prj: qsys_prep
 
 qsys_generate: qsys_prj
 	cd $(BUILD_DIR)/qsys && qsys-generate Wally_CS.qsys --synthesis=VERILOG --output-directory=../Wally_CS
+# 	Удаляет повторное включение модуля wallypipelinedsocwrapper из сгенерированного Qsys проекта
+	quartus_sh -t scripts/deleteStrOnPattern.tcl $(BUILD_DIR)/$(PROJECT)/synthesis/$(PROJECT).qip "submodules/wallypipelinedsocwrapper.sv"
 
 quartus_create: build_dir
 	cd $(BUILD_DIR) && quartus_sh -t ../scripts/quartus/Wally_CS_quartus.tcl
