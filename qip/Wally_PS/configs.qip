@@ -1,5 +1,5 @@
 set_global_assignment -name IP_TOOL_VERSION "24.1"
 set_global_assignment -name IP_GENERATED_DEVICE_FAMILY "{Cyclone IV E}"
 
-set_global_assignment -name VERILOG_INCLUDE_FILE    ../src/BranchPredictorType.vh
-# set_global_assignment -name SYSTEMVERILOG_FILE      ../src/config/config.vh
+# set_global_assignment -name VERILOG_INCLUDE_FILE    ../src/BranchPredictorType.vh
+set_global_assignment -name SYSTEMVERILOG_FILE      ../src/config/config.vh
