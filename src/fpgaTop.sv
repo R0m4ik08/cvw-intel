@@ -80,7 +80,7 @@ wire system_pll_ref_clk_clk_internal = CLOCK_50;
 // GPIOEN from SoC to external (not used in this example)
 wire [31:0]          wally_gpio_en; // SoC -> external
 
-
+wire [31:0] wally_gpio_out3;
 
 // ---------------------------------------------------------------------------
 // Instantiate generated SoC (Wally_CS) and connect ports
@@ -116,7 +116,7 @@ Wally_CS Wally_CS_inst (
     // GPIO
     .wally_gpio_export1       (wally_gpio_en),
     .wally_gpio_export2       ({ {(32 - w_key - w_sw){1'b0}}, SW, KEY[w_key-1:1], 1'b0}),
-    .wally_gpio_export3       ({ {(32 - w_ledg - w_ledr){1'b0}}, LEDR, LEDG}),
+    .wally_gpio_export3       (wally_gpio_out3),
 
     // SD Card
     .wally_sdc_export1        (SD_CLK),
@@ -134,6 +134,9 @@ Wally_CS Wally_CS_inst (
     .wally_uart_export1       (UART_RXD),
     .wally_uart_export2       (UART_TXD)
 );
+
+assign LEDR = wally_gpio_out3[w_ledr-1 : 0];
+assign LEDG = wally_gpio_out3[w_ledr + w_ledg - 1 : w_ledr];
 
 // Tie HEX displays off by default (safe inactive value)
 assign HEX0 = 7'h7f;
