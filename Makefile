@@ -83,6 +83,11 @@ qsim_open: | qsim_create
 	@echo "Openning Questasim project in gui"
 	cd $(BLD_QSYS_PRJ) && vsim work._testbench -do ../../../scripts/questa/set_def_waveforme.do &
 
+qsim_clean:
+	rm -rf $(BLD_QSYS_PRJ)
+
+qsim_rebuild: qsim_clean qsim_create
+
 quartus_program: quartus_build
 	quartus_pgm -c USB-Blaster -m jtag -o "p;output_files/$(REVISION).sof"
 
