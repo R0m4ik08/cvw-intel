@@ -83,6 +83,8 @@ add_interface system_pll_ref_clk clock sink
 set_interface_property system_pll_ref_clk EXPORT_OF System_PLL.ref_clk
 add_interface system_pll_ref_reset reset sink
 set_interface_property system_pll_ref_reset EXPORT_OF System_PLL.ref_reset
+add_interface wally_control conduit end
+set_interface_property wally_control EXPORT_OF wallypipelinedsocwrapper_0.control
 add_interface wally_gpio conduit end
 set_interface_property wally_gpio EXPORT_OF wallypipelinedsocwrapper_0.GPIO
 add_interface wally_sdc conduit end

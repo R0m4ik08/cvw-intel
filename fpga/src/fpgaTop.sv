@@ -132,7 +132,10 @@ Wally_CS Wally_CS_inst (
 
     // UART
     .wally_uart_export1       (UART_RXD),
-    .wally_uart_export2       (UART_TXD)
+    .wally_uart_export2       (UART_TXD),
+
+    // Control
+    .wally_control_export1   (1'b0)
 );
 
 assign LEDR = wally_gpio_out3[w_ledr-1 : 0];
