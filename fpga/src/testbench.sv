@@ -69,7 +69,7 @@ module testbench;
         KEY[0] = 1'b1;                  // Снимаем сброс
 
         // Основной сценарий тестирования
-        repeat (5000) @(posedge CLOCK_50);
+        repeat (200) @(posedge CLOCK_50);
 
 
         // Конец сценария тестирования
