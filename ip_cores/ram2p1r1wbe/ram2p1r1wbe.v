@@ -114,7 +114,7 @@ module ram2p1r1wbe #(parameter DEPTH=1024, WIDTH=32)
 		altsyncram_component.numwords_b = DEPTH,
 		altsyncram_component.operation_mode = "DUAL_PORT",
 		altsyncram_component.outdata_aclr_b = "NONE",
-		altsyncram_component.outdata_reg_b = "CLOCK0",
+		altsyncram_component.outdata_reg_b = "UNREGISTERED",
 		altsyncram_component.power_up_uninitialized = "TRUE",
 		altsyncram_component.read_during_write_mode_mixed_ports = "DONT_CARE",
 		altsyncram_component.widthad_a = $clog2(DEPTH),
