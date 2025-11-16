@@ -22,8 +22,8 @@ ROOT		:= ..
 LIBRARY_DIRS	:= 
 LIBRARY_FILES	:=
 
-MARCH           :=-march=rv32e
-MABI            :=-mabi=ilp32e
+MARCH           :=-march=rv32g
+MABI            :=-mabi=ilp32
 LINK_FLAGS      :=$(MARCH) $(MABI) -nostartfiles -L $(RISCV)/riscv64-unknown-elf/lib
 LINKER		:=$(SRCDIR)/linker1000.x
 

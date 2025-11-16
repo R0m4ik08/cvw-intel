@@ -1,35 +1,50 @@
-#include "system.h"
+
+
+.global _bios_ini_c
 
 .section .init
 .global _start
 .type _start, @function
 
 _start:
-        addi    sp,sp,-32
-        sw      ra,28(sp)
-        sw      s0,24(sp)
-        addi    s0,sp,32
-        sw      zero,-20(s0)
-        j       .L2
-.L3:
-        lui     a5,%hi(gpio_base)
-        lw      a4,%lo(gpio_base)(a5)
-        lw      a5,-20(s0)
-        add     a5,a4,a5
-        sw      a5,-24(s0)
-        lw      a5,-24(s0)
-        li      a4,0x55
-        sb      a4,0(a5)
-        lw      a5,-20(s0)
-        addi    a5,a5,1
-        sw      a5,-20(s0)
+        mv	x1, zero
+        mv	x2, zero
+        mv	x3, zero
+        mv	x4, zero
+        mv	x5, zero
+        mv	x6, zero
+        mv	x7, zero
+        mv	x8, zero
+        mv	x9, zero
+        mv	x10, zero
+        mv	x11, zero
+        mv	x12, zero
+        mv	x13, zero
+        mv	x14, zero
+        mv	x15, zero
+        mv	x16, zero
+        mv	x18, zero
+        mv	x19, zero
+        mv	x20, zero
+        mv	x21, zero
+        mv	x22, zero
+        mv	x23, zero
+        mv	x24, zero
+        mv	x25, zero
+        mv	x26, zero
+        mv	x27, zero
+        mv	x28, zero
+        mv	x29, zero
+        mv	x30, zero
+        mv	x31, zero
+        
+        lui     sp, %hi(_stack_top)
+        addi    sp, sp, %lo(_stack_top)
+        addi    sp,sp,-16
+        sw      ra,12(sp)
+        sw      s0,8(sp)
+        addi    s0,sp,16
+        call    _bios_ini_c
 .L2:
-        lw      a4,-20(s0)
-        li      a5,255
-        ble     a4,a5,.L3
-.L4:
-        j       .L4
-
-gpio_base:
-        .word   0x10060000
+        j       .L2	
 
