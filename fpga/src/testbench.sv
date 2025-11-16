@@ -57,7 +57,7 @@ module testbench;
     // Начальные условия и сброс
     initial begin
         KEY = 4'hF;                     // Все кнопки отпущены (активный уровень 0)
-        SW  = 18'h0;
+        SW  = 18'h2CE32;
         UART_RXD = 1'b1;                // Линия RX в "idle"
         SD_WP_N  = 1'b1;                // SD не заблокирована
         system_pll_ref_reset_reset = 1'b0;
@@ -69,7 +69,7 @@ module testbench;
         KEY[0] = 1'b1;                  // Снимаем сброс
 
         // Основной сценарий тестирования
-        repeat (5000) @(posedge CLOCK_50);
+        repeat (10000) @(posedge CLOCK_50);
 
 
         // Конец сценария тестирования

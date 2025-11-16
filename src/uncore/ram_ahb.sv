@@ -69,7 +69,7 @@ module ram_ahb import config_pkg::*;  #(parameter RANGE = 65535, PRELOAD = 0) (
   mux2 #(PA_BITS) adrmux(HADDR, HADDRD, memwriteD | ~HREADY, RamAddr);
 
   // single-ported RAM
-  ram1p1rwbe #(.DEPTH(ADDR_WIDTH), .WIDTH(XLEN))	ram1p1rwbe_inst (
+  ram1p1rwbe #(.DEPTH(2**ADDR_WIDTH), .WIDTH(XLEN))	ram1p1rwbe_inst (
     .address  ( RamAddr[ADDR_WIDTH+OFFSET-1:OFFSET] ),
     .byteena  ( HWSTRB ),
     .clock  ( HCLK ),

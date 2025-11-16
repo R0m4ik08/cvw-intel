@@ -9,6 +9,8 @@ simulation/
 /zsbl/OBJ
 /zsbl/bin
 
+/.*
+
 *.rpt
 *.sof
 *.pof

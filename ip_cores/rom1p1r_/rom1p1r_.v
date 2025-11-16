@@ -104,7 +104,7 @@ module rom1p1r_
 		altsyncram_component.numwords_a = DEPTH,
 		altsyncram_component.operation_mode = "ROM",
 		altsyncram_component.outdata_aclr_a = "NONE",
-		altsyncram_component.outdata_reg_a = "CLOCK0",
+		altsyncram_component.outdata_reg_a = "UNREGISTERED",
 		altsyncram_component.widthad_a = $clog2(DEPTH),
 		altsyncram_component.width_a = WIDTH,
 		altsyncram_component.width_byteena_a = 1;

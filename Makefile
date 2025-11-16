@@ -6,10 +6,12 @@ QUARTUS_BIN := $(QUARTUS_ROOTDIR)\bin64
 QSYS_BIN := $(QUARTUS_ROOTDIR)\sopc_builder\bin
 QUESTA_BIN := $(QUARTUS_ROOTDIR)\..\..\questa_sim_2024.1\win64
 
-PRJ_QSYS_DIR := ip_cores/qsys
+SRC_QSYS_DIR := ip_cores/qsys
 
-FILE_NAME_QSYS_IPS_TCL := $(notdir $(wildcard $(PRJ_QSYS_DIR)/*.tcl ) )
-FILE_NAME_QSYS_IPS_SRC := $(notdir $(wildcard $(PRJ_QSYS_DIR)/src/* ) )
+BLD_QSYS_PRJ := $(BUILD_DIR)/simulation/questa
+
+FILE_NAME_QSYS_IPS_TCL := $(notdir $(wildcard $(SRC_QSYS_DIR)/*.tcl ) )
+FILE_NAME_QSYS_IPS_SRC := $(notdir $(wildcard $(SRC_QSYS_DIR)/src/* ) )
 
 PATH +=;$(QUARTUS_BIN);
 PATH +=;$(QSYS_BIN);
@@ -23,10 +25,10 @@ $(BUILD_DIR):
 	mkdir -p $@/qsys
 	mkdir -p $@/qsys/src
 
-$(BUILD_DIR)/qsys/%.tcl: $(PRJ_QSYS_DIR)/%.tcl | $(BUILD_DIR)
+$(BUILD_DIR)/qsys/%.tcl: $(SRC_QSYS_DIR)/%.tcl | $(BUILD_DIR)
 	cp $< $@
 
-$(BUILD_DIR)/qsys/src/%: $(PRJ_QSYS_DIR)/src/% | $(BUILD_DIR)
+$(BUILD_DIR)/qsys/src/%: $(SRC_QSYS_DIR)/src/% | $(BUILD_DIR)
 	cp $< $@
 
 qsys_prep: $(patsubst %, $(BUILD_DIR)/qsys/% ,$(FILE_NAME_QSYS_IPS_TCL)) $(patsubst %, $(BUILD_DIR)/qsys/src/% ,$(FILE_NAME_QSYS_IPS_SRC))
@@ -69,17 +71,22 @@ $(BUILD_DIR)/output_files/$(PROJECT).sof: | qsys_generate quartus_create
 quartus_build: | $(BUILD_DIR)/output_files/$(PROJECT).sof
 	@echo "Quartus project is builded"
 
-$(BUILD_DIR)/simulation/questa/modelsim.ini: $(BUILD_DIR)/$(PROJECT).qpf
+$(BLD_QSYS_PRJ)/modelsim.ini: $(BUILD_DIR)/$(PROJECT).qpf
 	cd $(BUILD_DIR) && quartus_map --read_settings_files=on --write_settings_files=off Wally_CS -c Wally_CS --analysis_and_elaboration
 	cd $(BUILD_DIR) && quartus_sh -t "$(QUARTUS_ROOTDIR)/common/tcl/internal/nativelink/qnativesim.tcl" --rtl_sim --no_gui "$(PROJECT)" "$(PROJECT)"
-	cd $(BUILD_DIR)/simulation/questa && vopt work.testbench +acc -o _testbench -L $(PROJECT) -L altera_mf_ver
+	cd $(BLD_QSYS_PRJ) && vopt work.testbench +acc -o _testbench -L $(PROJECT) -L altera_mf_ver
 
-qsim_create: | qsys_generate quartus_create $(BUILD_DIR)/simulation/questa/modelsim.ini
+qsim_create: | qsys_generate quartus_create $(BLD_QSYS_PRJ)/modelsim.ini $(BLD_QSYS_PRJ)/rtl_work/@_testbench
 	@echo "Questasim project is created"
 
 qsim_open: | qsim_create
 	@echo "Openning Questasim project in gui"
-	cd $(BUILD_DIR)/simulation/questa && vsim work._testbench -do ../../../scripts/questa/set_def_waveforme.do &
+	cd $(BLD_QSYS_PRJ) && vsim work._testbench -do ../../../scripts/questa/set_def_waveforme.do &
+
+qsim_clean:
+	rm -rf $(BLD_QSYS_PRJ)
+
+qsim_rebuild: qsim_clean qsim_create
 
 quartus_program: quartus_build
 	quartus_pgm -c USB-Blaster -m jtag -o "p;output_files/$(REVISION).sof"
