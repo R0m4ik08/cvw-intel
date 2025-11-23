@@ -115,7 +115,7 @@ Wally_CS Wally_CS_inst (
 
     // GPIO
     .wally_gpio_export1       (wally_gpio_en),
-    .wally_gpio_export2       ({ {(32 - w_key - w_sw){1'b0}}, SW, KEY[w_key-1:1], 1'b0}),
+    .wally_gpio_export2       ({ {(32 - w_key - w_sw){1'b0}}, KEY,SW}),
     .wally_gpio_export3       (wally_gpio_out3),
 
     // SD Card
