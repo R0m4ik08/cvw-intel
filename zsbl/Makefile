@@ -22,9 +22,9 @@ ROOT		:= ..
 LIBRARY_DIRS	:= 
 LIBRARY_FILES	:=
 
-MARCH           :=-march=rv32g
+MARCH           :=-march=rv32i
 MABI            :=-mabi=ilp32
-LINK_FLAGS      :=$(MARCH) $(MABI) -nostartfiles -L $(RISCV)/riscv64-unknown-elf/lib
+LINK_FLAGS      :=$(MARCH) $(MABI) -nostartfiles -L $(RISCV)/riscv64-unknown-elf/lib/rv32i/ilp32
 LINKER		:=$(SRCDIR)/linker1000.x
 
 # FGPA parameters

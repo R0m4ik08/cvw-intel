@@ -2,7 +2,7 @@
 #define __system_H
 
 #ifndef SYSTEMCLOCK
-#define SYSTEMCLOCK  100000000
+#define SYSTEMCLOCK  50000000
 #endif
 
 #ifndef MAXSDCCLOCK

@@ -1,10 +1,12 @@
+OUTPUT_FORMAT("elf32-littleriscv", "elf32-littleriscv",
+	      "elf32-littleriscv")
 OUTPUT_ARCH(riscv)
 ENTRY(_start)
 
 MEMORY
 {
-  ROM (rx) : ORIGIN = 0x00001000, LENGTH = 4K
-  RAM (rwx) : ORIGIN = 0x00002000, LENGTH = 4K
+  ROM (rw) : ORIGIN = 0x00001000, LENGTH = 64K
+  RAM (rwx) : ORIGIN = 0x00011000, LENGTH = 4K
 }
 
 SECTIONS

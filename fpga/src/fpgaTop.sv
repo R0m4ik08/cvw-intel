@@ -69,7 +69,10 @@ module fpgaTop
 
     // UART
     input  wire                 UART_RXD,
-    output wire                 UART_TXD
+    output wire                 UART_TXD,
+    
+    // UART_2
+    output wire [0:6]           EXT_IO
 );
 
 // ---------------------------------------------------------------------------
@@ -131,8 +134,8 @@ Wally_CS Wally_CS_inst (
     .wally_spi_export4        (SPI_CS),
 
     // UART
-    .wally_uart_export1       (UART_RXD),
-    .wally_uart_export2       (UART_TXD),
+    .wally_uart_export1       (EXT_IO[0]), // RX
+    .wally_uart_export2       (EXT_IO[1]), // TX
 
     // Control
     .wally_control_export1   (1'b0)
