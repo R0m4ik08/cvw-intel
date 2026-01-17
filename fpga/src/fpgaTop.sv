@@ -85,6 +85,8 @@ wire [31:0]          wally_gpio_en; // SoC -> external
 
 wire [31:0] wally_gpio_out3;
 
+wire [31:0] hex3_hex0_out;
+
 // ---------------------------------------------------------------------------
 // Instantiate generated SoC (Wally_CS) and connect ports
 Wally_CS Wally_CS_inst (
@@ -137,6 +139,9 @@ Wally_CS Wally_CS_inst (
     .wally_uart_export1       (EXT_IO[0]), // RX
     .wally_uart_export2       (EXT_IO[1]), // TX
 
+    // HEX
+    .hex3_hex0_export         (~hex3_hex0_out),
+
     // Control
     .wally_control_export1   (1'b0)
 );
@@ -145,10 +150,10 @@ assign LEDR = wally_gpio_out3[w_ledr-1 : 0];
 assign LEDG = wally_gpio_out3[w_ledr + w_ledg - 1 : w_ledr];
 
 // Tie HEX displays off by default (safe inactive value)
-assign HEX0 = 7'h7f;
-assign HEX1 = 7'h7f;
-assign HEX2 = 7'h7f;
-assign HEX3 = 7'h7f;
+assign HEX0 = hex3_hex0_out[6:0];
+assign HEX1 = hex3_hex0_out[14:8];
+assign HEX2 = hex3_hex0_out[22:16];
+assign HEX3 = hex3_hex0_out[30:24];
 assign HEX4 = 7'h7f;
 assign HEX5 = 7'h7f;
 assign HEX6 = 7'h7f;
