@@ -140,7 +140,7 @@ Wally_CS Wally_CS_inst (
     .wally_uart_export2       (EXT_IO[1]), // TX
 
     // HEX
-    .hex3_hex0_export         (~hex3_hex0_out),
+    .hex3_hex0_export         (hex3_hex0_out),
 
     // Control
     .wally_control_export1   (1'b0)
@@ -150,10 +150,10 @@ assign LEDR = wally_gpio_out3[w_ledr-1 : 0];
 assign LEDG = wally_gpio_out3[w_ledr + w_ledg - 1 : w_ledr];
 
 // Tie HEX displays off by default (safe inactive value)
-assign HEX0 = hex3_hex0_out[6:0];
-assign HEX1 = hex3_hex0_out[14:8];
-assign HEX2 = hex3_hex0_out[22:16];
-assign HEX3 = hex3_hex0_out[30:24];
+assign HEX0 = ~hex3_hex0_out[6:0];
+assign HEX1 = ~hex3_hex0_out[14:8];
+assign HEX2 = ~hex3_hex0_out[22:16];
+assign HEX3 = ~hex3_hex0_out[30:24];
 assign HEX4 = 7'h7f;
 assign HEX5 = 7'h7f;
 assign HEX6 = 7'h7f;
