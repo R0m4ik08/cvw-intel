@@ -39,12 +39,16 @@ module rom_ahb import config_pkg::*;  #(parameter RANGE = 65535, PRELOAD = 0) (
 
   localparam ADDR_WIDTH = $clog2(RANGE/8);
   localparam OFFSET     = $clog2(XLEN/8);   
- 
+
+  wire [XLEN-1:0] correct_addr;
+
   // Never stalls
   assign HREADYRom = 1'b1;
   assign HRESPRom  = 1'b0; // OK
 
+  assign correct_addr = HADDR - BOOTROM_BASE;
+
   // single-ported ROM
   rom1p1r #(ADDR_WIDTH, XLEN, PRELOAD)
-    memory(.clk(HCLK), .ce(1'b1), .addr(HADDR[ADDR_WIDTH+OFFSET-1:OFFSET]), .dout(HREADRom));  
+    memory(.clk(HCLK), .ce(1'b1), .addr(correct_addr[ADDR_WIDTH+OFFSET-1:OFFSET]), .dout(HREADRom));  
 endmodule
