@@ -88,8 +88,15 @@ qsim_clean:
 
 qsim_rebuild: qsim_clean qsim_create
 
+## Не работает
 quartus_program: quartus_build
-	quartus_pgm -c USB-Blaster -m jtag -o "p;output_files/$(REVISION).sof"
+	quartus_pgm -c USB-Blaster -m jtag -o "$(BUILD_DIR)/output_files/$(REVISION).sof"
+
+sc_write_firmware:
+	system-console --project_dir=./$(BUILD_DIR) --rc_script=scripts/system_console/sc_rc.tcl --script=scripts/system_console/write_firmware.tcl
+
+sc_terminal:
+	system-console --project_dir=./$(BUILD_DIR) --rc_script=scripts/system_console/sc_rc.tcl -cli
 
 clean:
 	rm -rf $(BUILD_DIR)
