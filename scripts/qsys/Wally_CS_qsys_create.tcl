@@ -131,10 +131,6 @@ set_connection_parameter_value JTAG_to_FPGA_Bridge.master/sdram_128mb_0.s1 arbit
 set_connection_parameter_value JTAG_to_FPGA_Bridge.master/sdram_128mb_0.s1 baseAddress {0x08000000}
 set_connection_parameter_value JTAG_to_FPGA_Bridge.master/sdram_128mb_0.s1 defaultConnection {0}
 
-add_connection System_PLL.reset_source HEX3_HEX0.reset
-
-add_connection System_PLL.reset_source JTAG_to_FPGA_Bridge.clk_reset
-
 add_connection System_PLL.reset_source reset_controller_0.reset_in0
 
 add_connection System_PLL.sys_clk HEX3_HEX0.clk
@@ -183,6 +179,10 @@ set_connection_parameter_value wallypipelinedsocwrapper_0.AHB_m/ahb_to_ext_bridg
 set_connection_parameter_value wallypipelinedsocwrapper_0.AHB_m/ahb_to_ext_bridge_0.AHB_s startPort {}
 set_connection_parameter_value wallypipelinedsocwrapper_0.AHB_m/ahb_to_ext_bridge_0.AHB_s startPortLSB {0}
 set_connection_parameter_value wallypipelinedsocwrapper_0.AHB_m/ahb_to_ext_bridge_0.AHB_s width {0}
+
+add_connection wallypipelinedsocwrapper_0.reset_out HEX3_HEX0.reset
+
+add_connection wallypipelinedsocwrapper_0.reset_out JTAG_to_FPGA_Bridge.clk_reset
 
 add_connection wallypipelinedsocwrapper_0.reset_out SRAM.reset
 

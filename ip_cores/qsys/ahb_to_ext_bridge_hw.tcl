@@ -156,5 +156,5 @@ set_interface_property reset_sink PORT_NAME_MAP ""
 set_interface_property reset_sink CMSIS_SVD_VARIABLES ""
 set_interface_property reset_sink SVD_ADDRESS_GROUP ""
 
-add_interface_port reset_sink rst_n reset Input 1
+add_interface_port reset_sink rst_n reset_n Input 1
 
