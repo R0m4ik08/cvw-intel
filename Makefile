@@ -74,6 +74,9 @@ quartus_build: | $(BUILD_DIR)/output_files/$(PROJECT).sof
 $(BLD_QSYS_PRJ)/modelsim.ini: $(BUILD_DIR)/$(PROJECT).qpf
 	cd $(BUILD_DIR) && quartus_map --read_settings_files=on --write_settings_files=off Wally_CS -c Wally_CS --analysis_and_elaboration
 	cd $(BUILD_DIR) && quartus_sh -t "$(QUARTUS_ROOTDIR)/common/tcl/internal/nativelink/qnativesim.tcl" --rtl_sim --no_gui "$(PROJECT)" "$(PROJECT)"
+# => Костыль, после добавления sram_model.sv в проект в qsim перестал автоматически добавлятся	testbench.sv
+	cd $(BLD_QSYS_PRJ) && vlog -sv -work work ../../../fpga/src/testbench.sv
+# ==
 	cd $(BLD_QSYS_PRJ) && vopt work.testbench +acc -o _testbench -L $(PROJECT) -L altera_mf_ver
 
 qsim_create: | qsys_generate quartus_create $(BLD_QSYS_PRJ)/modelsim.ini $(BLD_QSYS_PRJ)/rtl_work/@_testbench
