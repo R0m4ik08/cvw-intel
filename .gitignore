@@ -1,15 +1,9 @@
-/build
 
 # Quartus temporary and output files
 db/
 incremental_db/
 output_files/
 simulation/
-/tmp
-/zsbl/OBJ
-/zsbl/bin
-
-/.*
 
 *.rpt
 *.sof
@@ -19,3 +13,14 @@ simulation/
 *.srf
 *.log
 *.bak
+
+###
+
+/.*
+
+/build
+
+/zsbl/OBJ
+/zsbl/bin
+
+/sdk/build
