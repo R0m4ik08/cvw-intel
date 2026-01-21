@@ -143,6 +143,34 @@ sc_write_firmware:
 sc_terminal:
 	system-console --project_dir=./$(BUILD_DIR) --rc_script=scripts/system_console/sc_rc.tcl -cli
 
+# ========================================
+#	Zero Stage Boot Loader
+# ========================================
+
+zsbl/bin/boot.mif: zsbl/src/*
+	@echo "Run docker and do make..."
+	docker run --rm -v ./zsbl:/zsbl -w /zsbl -w /zsbl -it riscv-gnu-toolchain make
+
+zsbl_build: | zsbl/bin/boot.mif
+	@echo "boot.mif was generated"
+
+# ========================================
+#	Run docker riscv-gnu-toolchain enviroment
+# ========================================
+run_docker_gnu_toolchain:
+	@if docker ps -q -f name=riscv-dev | grep -q .; then \
+		echo "Stopping running container riscv-dev..."; \
+		docker stop riscv-dev; \
+	fi
+	@if docker ps -aq -f name=riscv-dev | grep -q .; then \
+		echo "Removing container riscv-dev..."; \
+		docker rm riscv-dev; \
+	fi
+	docker run -v ./zsbl:/work/zsbl -v ./sdk:/work/sdk -w /work --name riscv-dev -it riscv-gnu-toolchain
+
+# ========================================
+#	Other
+# ========================================
 clean:
 	rm -rf $(BUILD_DIR)
 
