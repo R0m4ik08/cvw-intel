@@ -117,4 +117,4 @@ $(TARGET).mif: $(TARGET)
 	@echo 'Making memory file 2'
 	riscv64-unknown-elf-elf2hex --bit-width 32 --input $^ --output $^.hex
 	@echo 'Generate .mif file'
-	python hex2mif/hex2mif.py $^.hex $@ --width 32
+	python3 hex2mif/hex2mif.py $^.hex $@ --width 32
