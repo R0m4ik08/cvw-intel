@@ -43,7 +43,7 @@
  * Параметры GPIO
  * ============================================================================ */
 
-#define GPIO_WIDTH      (4 + 18)    /* Количество GPIO пинов для тестирования */
+#define GPIO_WIDTH      (18)    /* Количество GPIO пинов для тестирования */
 
 /* ============================================================================
  * Типы данных
@@ -165,11 +165,10 @@ static test_result_t test_sram(void) {
  * @return TEST_OK после записи тестовых данных
  */
 static test_result_t test_hex_display(void) {
-    volatile uint8_t *hex_ptr = (volatile uint8_t *)HEX_BASE;
+    volatile uint32_t *hex_ptr = (volatile uint32_t *)HEX_BASE;
     
-    /* Записываем тестовый паттерн */
-    hex_ptr[0] = 0x55;
-    hex_ptr[1] = 0xAA;
+    /* Записываем тестовый паттерн: (boot) */
+    hex_ptr[0] = 0x7c3f3f78;
     
     return TEST_OK;
 }
@@ -265,6 +264,13 @@ int _bios_ini_c(void) {
         print_uart("All tests passed.\n");
     }
     
+    /* === Если зажата KEY1 то передача основной программы отменяется (для возможности прошить программу)=== */
+    pinMode(19, INPUT);
+    if (digitalRead(19) == LOW){
+        print_uart("\nKEY1 pressed - Halting!\n");
+        return 0;
+    }
+
     /* === Передача управления основной программе === */
     check_and_jump_to_program();
     
