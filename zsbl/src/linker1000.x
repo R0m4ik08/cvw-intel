@@ -14,7 +14,7 @@ SECTIONS
   .init : {
     KEEP(*(.init))
     _start_end = .;
-    . = 0x200;
+    . = 0x100;
   } > ROM
   
   .text : {
