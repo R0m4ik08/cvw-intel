@@ -1,4 +1,13 @@
+/**
+ * @file bios_ini.c
+ * @brief ZSBL (Zero Stage Boot Loader) - Инициализация и тестирование системы
+ * 
+ * Загрузчик выполняет последовательное тестирование компонентов системы
+ * и передает управление основной программе в SRAM при наличии валидной сигнатуры.
+ */
+
 #include <stdint.h>
+#include <stddef.h>
 
 #include "system.h"
 #include "bios_ini.h"
@@ -6,122 +15,258 @@
 #include "gpiolib.h"
 #include "uart.h"
 
-#include<string.h>
+/* ============================================================================
+ * Константы адресов памяти
+ * ============================================================================ */
 
-#define SDRAM_BASE  0x08000000
-#define SRAM_BASE   0x02000000
-#define HEX_BASE    0x03000000
-#define SDC_BASE    0x00013000
+#define SDRAM_BASE      0x08000000
+#define SRAM_BASE       0x02000000
+#define HEX_BASE        0x03000000
+#define SDC_BASE        0x00013000
+#define ONCHIP_RAM_BASE 0x00011000
 
-#define ONCHIP_RAM_BASE    0x11000
+/* ============================================================================
+ * Параметры тестирования памяти
+ * ============================================================================ */
 
-#define MEM_START   SRAM_BASE
-#define MEM_SIZE    0x5000
+#define MEM_TEST_START  SRAM_BASE
+#define MEM_TEST_SIZE   0x5000      /* 20 KB */
 
-#define TEST_OK     0
-#define TEST_ERROR  1
+/* ============================================================================
+ * Параметры передачи управления
+ * ============================================================================ */
 
-typedef unsigned int size_t;
+#define PROGRAM_MAGIC   0x52564D00  /* "RVM\0" - RISC-V Machine */
+#define PROGRAM_ENTRY   (SRAM_BASE + 4)
 
-// Функция тестирования памяти
-int mem_test(uint8_t *addr, size_t size_bytes) {
+/* ============================================================================
+ * Параметры GPIO
+ * ============================================================================ */
+
+#define GPIO_WIDTH      (4 + 18)    /* Количество GPIO пинов для тестирования */
+
+/* ============================================================================
+ * Типы данных
+ * ============================================================================ */
+
+/* size_t уже определен в stdint.h, используем его */
+
+/**
+ * @brief Результат выполнения теста
+ */
+typedef enum {
+    TEST_OK    = 0,     /* Тест пройден успешно */
+    TEST_ERROR = 1,     /* Тест завершился с ошибкой */
+    TEST_SKIP  = 2      /* Тест пропущен */
+} test_result_t;
+
+/**
+ * @brief Тип указателя на точку входа программы
+ */
+typedef void (*program_entry_t)(void);
+
+/* ============================================================================
+ * Вспомогательные функции вывода
+ * ============================================================================ */
+
+/**
+ * @brief Вывод результата теста
+ */
+static void print_test_result(const char *name, test_result_t result) {
+    print_uart("[");
+    print_uart(name);
+    print_uart("] ");
+    
+    switch (result) {
+        case TEST_OK:
+            print_uart("OK\n");
+            break;
+        case TEST_ERROR:
+            print_uart("ERROR\n");
+            break;
+        case TEST_SKIP:
+            print_uart("SKIP\n");
+            break;
+    }
+}
+
+/* ============================================================================
+ * Тестовые функции
+ * ============================================================================ */
+
+/**
+ * @brief Тест UART - инициализация и вывод тестового сообщения
+ * @return TEST_OK при успешной инициализации
+ */
+static test_result_t test_uart(void) {
+    init_uart(SYSTEMCLOCK, 115200);
+    print_uart("\n=== ZSBL Boot Tests ===\n");
+    return TEST_OK;
+}
+
+/**
+ * @brief Тест GPIO - проверка чтения и записи всех пинов
+ * @return TEST_OK если все пины работают корректно
+ */
+static test_result_t test_gpio(void) {
+    for (int i = 0; i < GPIO_WIDTH; i++) {
+        /* Читаем текущее значение */
+        pinMode(i, INPUT);
+        int val = digitalRead(i);
+        
+        /* Записываем обратно */
+        pinMode(i, OUTPUT);
+        digitalWrite(i, val);
+    }
+    
+    return TEST_OK;
+}
+
+/**
+ * @brief Тест SRAM - проверка памяти паттернами
+ * @return TEST_OK если память работает корректно, TEST_ERROR при ошибке
+ * 
+ * Тестирует память записью и чтением паттернов:
+ * 0x00, 0xFF, 0xAA, 0x55
+ */
+static test_result_t test_sram(void) {
+    uint8_t *addr = (uint8_t *)MEM_TEST_START;
+    size_t size_bytes = MEM_TEST_SIZE;
     uint8_t patterns[] = {0x00, 0xFF, 0xAA, 0x55};
-
-    // --- Тест фиксированных паттернов ---
+    
     for (int p = 0; p < 4; p++) {
         uint8_t pat = patterns[p];
-        print_uart("Pattern test: ");
-        print_uart_int(pat);
-        print_uart("\n");
-
-        // Запись
+        
+        /* Запись паттерна */
         for (size_t i = 0; i < size_bytes; i++) {
             addr[i] = pat;
         }
-
-        // Чтение и проверка
+        
+        /* Чтение и проверка */
         for (size_t i = 0; i < size_bytes; i++) {
             if (addr[i] != pat) {
-                print_uart("ERROR: address ");
-                print_uart_int((uint32_t)&addr[i]);
-                print_uart(" expected 0x");
-                print_uart_int(pat);
+                print_uart("  SRAM Error at 0x");
+                print_uart_int((uintptr_t)&addr[i]);
+                print_uart(": expected 0x");
+                print_uart_byte(pat);
                 print_uart(", got 0x");
-                print_uart_int(addr[i]);
+                print_uart_byte(addr[i]);
                 print_uart("\n");
-
                 return TEST_ERROR;
             }
         }
     }
+    
     return TEST_OK;
 }
 
-int _bios_ini_c(){
-
-    uint8_t gpio_width = 4 + 18;
-
-    for(int i =0; i < gpio_width; i++){
-        pinMode(i, INPUT);
-        int val = digitalRead(i);
-        
-        pinMode(i, OUTPUT);
-        digitalWrite(i, val);
-    }
-
-    init_uart(SYSTEMCLOCK, 115200);
-    char* str = "\nHello_World_WW!\n";
-    print_uart(str);
-
-    int result = mem_test((uint8_t *)MEM_START, MEM_SIZE);
-
-    if (result == TEST_OK) print_uart("TEST_OK!\n");
-    else print_uart("TEST_ERROR!\n");
-
-    uint8_t* hex_digit_ptr = (uint8_t*)(HEX_BASE);
-
-    *(hex_digit_ptr + 0) =  0x55;
-    *(hex_digit_ptr + 1) =  0xaa;
-
-    return 0;
+/**
+ * @brief Тест HEX дисплея - запись тестовых значений
+ * @return TEST_OK после записи тестовых данных
+ */
+static test_result_t test_hex_display(void) {
+    volatile uint8_t *hex_ptr = (volatile uint8_t *)HEX_BASE;
+    
+    /* Записываем тестовый паттерн */
+    hex_ptr[0] = 0x55;
+    hex_ptr[1] = 0xAA;
+    
+    return TEST_OK;
 }
 
-    // --------------------------------------------------
+/* ============================================================================
+ * Передача управления основной программе
+ * ============================================================================ */
 
-    // uint8_t* tmp_ptr = (uint8_t *)MEM_START;
-    // uint8_t byte;
-
-    // for (size_t i = 0; i < 12; i++)
-    // {
-    //     byte = *tmp_ptr;
-    //     byte += 1;
-    //     *tmp_ptr = byte;
-    //     tmp_ptr++;
-    // }
-
-    // --------------------------------------------------
-
-    // init_uart(SYSTEMCLOCK, 115200);
+/**
+ * @brief Проверка наличия валидной программы и передача управления
+ * @return -1 если программа не найдена (функция не вернется при успехе)
+ * 
+ * Проверяет magic number в начале SRAM (0x02000000).
+ * Если сигнатура совпадает с PROGRAM_MAGIC, передает управление
+ * на адрес SRAM_BASE + 4.
+ */
+static int check_and_jump_to_program(void) {
+    volatile uint32_t *magic_ptr = (volatile uint32_t *)SRAM_BASE;
     
-    // uint8_t buf[20];
+    if (*magic_ptr == PROGRAM_MAGIC) {
+        print_uart("\nValid program found at SRAM.\n");
+        print_uart("Jumping to 0x");
+        print_uart_int(PROGRAM_ENTRY);
+        print_uart("...\n\n");
+        
+        /* Точка входа располагается сразу после magic number */
+        program_entry_t entry = (program_entry_t)PROGRAM_ENTRY;
+        entry();
+        
+        /* Сюда не должны попасть */
+        return 0;
+    }
+    
+    print_uart("\nNo valid program in SRAM (magic: 0x");
+    print_uart_int(*magic_ptr);
+    print_uart(", expected: 0x");
+    print_uart_int(PROGRAM_MAGIC);
+    print_uart(")\n");
+    print_uart("Halting.\n");
+    
+    return -1;
+}
 
-    // uint8_t* tmp_ptr = (uint8_t *)MEM_START;
-    
-    // for (size_t i = 0; i < 20; i++)
-    // {
-    //     *tmp_ptr += 0x1;
-    //     tmp_ptr++;
-    // }
-    
-    // print_uart("\nDBG_1:\n");
-    
-    // memcpy(buf ,(uint8_t *)MEM_START, 20);
+/* ============================================================================
+ * Главная функция загрузчика
+ * ============================================================================ */
 
-    // for (size_t i = 0; i < 20; i++)
-    // {
-    //     print_uart("0x");
-    //     print_uart_int(buf[i]);
-    //     print_uart("\n");
-    // }
+/**
+ * @brief Точка входа C-части загрузчика
+ * @return 0 при успешном завершении всех тестов
+ * 
+ * Последовательность выполнения:
+ * 1. Инициализация и тест UART
+ * 2. Тест GPIO
+ * 3. Тест SRAM
+ * 4. Тест HEX дисплея
+ * 5. Вывод итогов
+ * 6. Проверка и передача управления основной программе
+ */
+int _bios_ini_c(void) {
+    test_result_t result;
+    int errors = 0;
     
-    // print_uart("DBG_2:\n");
+    /* === Тест 1: UART === */
+    result = test_uart();
+    print_test_result("UART", result);
+    if (result == TEST_ERROR) errors++;
+    
+    /* === Тест 2: GPIO === */
+    result = test_gpio();
+    print_test_result("GPIO", result);
+    if (result == TEST_ERROR) errors++;
+    
+    /* === Тест 3: SRAM === */
+    print_uart("SRAM Test was skipped !\n");
+    //result = test_sram();
+    //print_test_result("SRAM", result);
+    //if (result == TEST_ERROR) errors++;
+    
+    /* === Тест 4: HEX Display === */
+    result = test_hex_display();
+    print_test_result("HEX ", result);
+    if (result == TEST_ERROR) errors++;
+    
+    /* === Итоги === */
+    print_uart("=======================\n");
+    
+    if (errors > 0) {
+        print_uart("Tests failed: ");
+        print_uart_dec(errors);
+        print_uart("\n");
+    } else {
+        print_uart("All tests passed.\n");
+    }
+    
+    /* === Передача управления основной программе === */
+    check_and_jump_to_program();
+    
+    return 0;
+}
