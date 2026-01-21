@@ -282,17 +282,7 @@ module ahb_to_ext_bridge #(
                         
                         // capture read data
                         if (!write_reg) begin
-                            // Data alignment: 
-                            // 1. Shift data right to extract bytes from byte_offset position
-                            // 2. Apply mask based on hsize to clear unused upper bits
-                            hrdata <= (ext_rdata >> (byte_offset * 8)) & calc_read_mask(size_reg);
-                            
-                            // Debug: Read data received
-                            if (DEBUG) begin
-                                $display("[%0t] [AHB_BRIDGE] EXT_ACK received (READ): ext_rdata=0x%0h, shifted=0x%0h, mask=0x%0h, hrdata=0x%0h", 
-                                         $time, ext_rdata, ext_rdata >> (byte_offset * 8), calc_read_mask(size_reg),
-                                         (ext_rdata >> (byte_offset * 8)) & calc_read_mask(size_reg));
-                            end
+                            hrdata <= ext_rdata;
                         end else begin
                             // Debug: Write ack received
                             if (DEBUG) begin
