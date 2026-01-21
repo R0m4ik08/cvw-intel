@@ -16,9 +16,48 @@ FILE_NAME_QSYS_IPS_SRC := $(notdir $(wildcard $(SRC_QSYS_DIR)/src/* ) )
 PATH +=;$(QUARTUS_BIN);
 PATH +=;$(QSYS_BIN);
 
-.PHONY: all qsys_generate quartus_create quartus_build  clean 
+.PHONY: all qsys_generate quartus_create quartus_build clean docker_setup docker_check docker_build docker_load
 
-all: qsys_generate quartus_create 
+all: qsys_generate quartus_create
+
+# ========================================
+# Docker Environment Setup
+# ========================================
+DOCKER_IMAGE_NAME := riscv-gnu-toolchain
+DOCKER_IMAGE_FILE := docker/riscv-gnu-toolchain
+DOCKER_DIR := docker
+
+# Загрузка образа из файла
+docker_load:
+	@echo "Loading Docker image from file: $(DOCKER_IMAGE_FILE)"
+	docker load -i $(DOCKER_IMAGE_FILE)
+
+# Сборка образа из Dockerfile
+docker_build:
+	@echo "Building Docker image from Dockerfile"
+	docker build -t $(DOCKER_IMAGE_NAME):latest $(DOCKER_DIR)
+
+# Проверка и настройка Docker окружения
+# 1. Если образ уже есть в Docker - ничего не делаем
+# 2. Если образа нет, но есть файл - загружаем из файла
+# 3. Если нет ни образа, ни файла - собираем из Dockerfile
+docker_check:
+	@echo "Checking Docker environment..."
+	@if docker image inspect $(DOCKER_IMAGE_NAME) >/dev/null 2>&1; then \
+		echo "Docker image '$(DOCKER_IMAGE_NAME)' already exists."; \
+	elif [ -f "$(DOCKER_IMAGE_FILE)" ]; then \
+		echo "Docker image not found. Image file found at $(DOCKER_IMAGE_FILE)."; \
+		echo "Loading image from file..."; \
+		docker load -i $(DOCKER_IMAGE_FILE); \
+	else \
+		echo "Docker image not found. Image file not found."; \
+		echo "Building image from Dockerfile..."; \
+		docker build -t $(DOCKER_IMAGE_NAME):latest $(DOCKER_DIR); \
+	fi
+
+# Alias для удобства
+docker_setup: docker_check
+	@echo "Docker environment is ready." 
 
 $(BUILD_DIR): 
 	mkdir -p $@
