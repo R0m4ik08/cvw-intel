@@ -1,6 +1,6 @@
 puts "Start write_firmware!!!"
 
-set firmware_hex_file zsbl/bin/boot.hex
+set firmware_hex_file sdk/build/program.hex
 set start_address $ADR_SRAM
 
 write_firmware $firmware_hex_file $start_address
