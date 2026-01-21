@@ -99,7 +99,7 @@ quartus_open: $(BUILD_DIR)/$(PROJECT).qpf | qsys_generate
 	cmd.exe /c start quartus $<
 
 # TODO: Нужно еще добавить зависимость от Verilog исходников
-$(BUILD_DIR)/output_files/$(PROJECT).sof: | qsys_generate quartus_create
+$(BUILD_DIR)/output_files/$(PROJECT).sof: zsbl/bin/boot.mif | qsys_generate zsbl_build quartus_create 
 	cd $(BUILD_DIR) && quartus_map --read_settings_files=on --write_settings_files=off $(PROJECT) -c $(PROJECT)
 	cd $(BUILD_DIR) && quartus_fit --read_settings_files=off --write_settings_files=off $(PROJECT) -c $(PROJECT)
 	cd $(BUILD_DIR) && quartus_asm --read_settings_files=off --write_settings_files=off $(PROJECT) -c $(PROJECT)
