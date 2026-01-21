@@ -77,6 +77,8 @@ if {$make_assignments} {
 	set_global_assignment -name TOP_LEVEL_ENTITY fpgaTop
 	set_global_assignment -name SYSTEMVERILOG_FILE ../fpga/src/fpgaTop.sv
 	set_global_assignment -name SYSTEMVERILOG_FILE ../fpga/src/testbench.sv
+	set_global_assignment -name SYSTEMVERILOG_FILE ../fpga/src/sram_model.sv
+	set_global_assignment -name HEX_FILE ../fpga/src/sram_init.hex
 	set_global_assignment -name QIP_FILE Wally_CS/synthesis/Wally_CS.qip
 	set_global_assignment -name QIP_FILE ../qip/Wally_PS.qip
 	

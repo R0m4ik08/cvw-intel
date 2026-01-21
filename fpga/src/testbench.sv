@@ -47,6 +47,9 @@ module testbench;
     // UART
     logic UART_RXD;
     wire  UART_TXD;
+    
+    // UART_2 / EXT_IO
+    wire [0:6] EXT_IO;
 
     // ------------------------------------------------------------------------
     // Генерация тактового сигнала
@@ -105,7 +108,28 @@ module testbench;
         .SPI_CLK(SPI_CLK), .SPI_MOSI(SPI_MOSI),
         .SPI_MISO(SPI_MISO), .SPI_CS(SPI_CS),
 
-        .UART_RXD(UART_RXD), .UART_TXD(UART_TXD)
+        
+        .EXT_IO(EXT_IO)
+    );
+
+    // ------------------------------------------------------------------------
+    // Модель SRAM 2MB (1M×16)
+    // Для инициализации из файла укажите параметр INIT_FILE:
+    // .INIT_FILE("fpga/src/sram_init.hex")
+    // Если INIT_FILE не указан или пустой, память инициализируется нулями
+    sram_model #(
+        .ADDR_WIDTH(10),
+        .DATA_WIDTH(16),
+        .INIT_FILE("sram_init.hex")  // Раскомментируйте для использования файла
+        //.INIT_FILE("")  // Или оставьте пустым для инициализации нулями
+    ) sram_inst (
+        .DQ(SRAM_DQ),
+        .ADDR(SRAM_ADDR),
+        .CE_N(SRAM_CE_N),
+        .OE_N(SRAM_OE_N),
+        .WE_N(SRAM_WE_N),
+        .LB_N(SRAM_LB_N),
+        .UB_N(SRAM_UB_N)
     );
 
     // ------------------------------------------------------------------------

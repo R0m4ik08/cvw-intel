@@ -13,6 +13,25 @@ set_project_property HIDE_FROM_IP_CATALOG {false}
 
 # Instances and instance parameters
 # (disabled instances are intentionally culled)
+add_instance HEX3_HEX0 altera_avalon_pio 23.1
+set_instance_parameter_value HEX3_HEX0 {bitClearingEdgeCapReg} {0}
+set_instance_parameter_value HEX3_HEX0 {bitModifyingOutReg} {0}
+set_instance_parameter_value HEX3_HEX0 {captureEdge} {0}
+set_instance_parameter_value HEX3_HEX0 {direction} {Output}
+set_instance_parameter_value HEX3_HEX0 {edgeType} {RISING}
+set_instance_parameter_value HEX3_HEX0 {generateIRQ} {0}
+set_instance_parameter_value HEX3_HEX0 {irqType} {LEVEL}
+set_instance_parameter_value HEX3_HEX0 {resetValue} {0.0}
+set_instance_parameter_value HEX3_HEX0 {simDoTestBenchWiring} {0}
+set_instance_parameter_value HEX3_HEX0 {simDrivenValue} {0.0}
+set_instance_parameter_value HEX3_HEX0 {width} $XLEN
+
+add_instance JTAG_to_FPGA_Bridge altera_jtag_avalon_master 23.1
+set_instance_parameter_value JTAG_to_FPGA_Bridge {FAST_VER} {0}
+set_instance_parameter_value JTAG_to_FPGA_Bridge {FIFO_DEPTHS} {2}
+set_instance_parameter_value JTAG_to_FPGA_Bridge {PLI_PORT} {50000}
+set_instance_parameter_value JTAG_to_FPGA_Bridge {USE_PLI} {0}
+
 add_instance SRAM altera_up_avalon_sram 18.0
 set_instance_parameter_value SRAM {board} {DE2-115}
 set_instance_parameter_value SRAM {pixel_buffer} {0}
@@ -71,6 +90,8 @@ set_instance_parameter_value wallypipelinedsocwrapper_0 {PA_BITS} $PA_BITS
 set_instance_parameter_value wallypipelinedsocwrapper_0 {XLEN} $XLEN
 
 # exported interfaces
+add_interface hex3_hex0 conduit end
+set_interface_property hex3_hex0 EXPORT_OF HEX3_HEX0.external_connection
 add_interface reset_export reset sink
 set_interface_property reset_export EXPORT_OF reset_controller_0.reset_in1
 add_interface sdram conduit end
@@ -95,7 +116,26 @@ add_interface wally_uart conduit end
 set_interface_property wally_uart EXPORT_OF wallypipelinedsocwrapper_0.UART
 
 # connections and connection parameters
+add_connection JTAG_to_FPGA_Bridge.master HEX3_HEX0.s1
+set_connection_parameter_value JTAG_to_FPGA_Bridge.master/HEX3_HEX0.s1 arbitrationPriority {1}
+set_connection_parameter_value JTAG_to_FPGA_Bridge.master/HEX3_HEX0.s1 baseAddress {0x03000000}
+set_connection_parameter_value JTAG_to_FPGA_Bridge.master/HEX3_HEX0.s1 defaultConnection {0}
+
+add_connection JTAG_to_FPGA_Bridge.master SRAM.avalon_sram_slave
+set_connection_parameter_value JTAG_to_FPGA_Bridge.master/SRAM.avalon_sram_slave arbitrationPriority {1}
+set_connection_parameter_value JTAG_to_FPGA_Bridge.master/SRAM.avalon_sram_slave baseAddress {0x02000000}
+set_connection_parameter_value JTAG_to_FPGA_Bridge.master/SRAM.avalon_sram_slave defaultConnection {0}
+
+add_connection JTAG_to_FPGA_Bridge.master sdram_128mb_0.s1
+set_connection_parameter_value JTAG_to_FPGA_Bridge.master/sdram_128mb_0.s1 arbitrationPriority {1}
+set_connection_parameter_value JTAG_to_FPGA_Bridge.master/sdram_128mb_0.s1 baseAddress {0x08000000}
+set_connection_parameter_value JTAG_to_FPGA_Bridge.master/sdram_128mb_0.s1 defaultConnection {0}
+
 add_connection System_PLL.reset_source reset_controller_0.reset_in0
+
+add_connection System_PLL.sys_clk HEX3_HEX0.clk
+
+add_connection System_PLL.sys_clk JTAG_to_FPGA_Bridge.clk
 
 add_connection System_PLL.sys_clk SRAM.clk
 
@@ -116,6 +156,11 @@ set_connection_parameter_value ahb_to_ext_bridge_0.ExtBus_m/bridge_0.external_in
 set_connection_parameter_value ahb_to_ext_bridge_0.ExtBus_m/bridge_0.external_interface startPortLSB {0}
 set_connection_parameter_value ahb_to_ext_bridge_0.ExtBus_m/bridge_0.external_interface width {0}
 
+add_connection bridge_0.avalon_master HEX3_HEX0.s1
+set_connection_parameter_value bridge_0.avalon_master/HEX3_HEX0.s1 arbitrationPriority {1}
+set_connection_parameter_value bridge_0.avalon_master/HEX3_HEX0.s1 baseAddress {0x03000000}
+set_connection_parameter_value bridge_0.avalon_master/HEX3_HEX0.s1 defaultConnection {0}
+
 add_connection bridge_0.avalon_master SRAM.avalon_sram_slave
 set_connection_parameter_value bridge_0.avalon_master/SRAM.avalon_sram_slave arbitrationPriority {1}
 set_connection_parameter_value bridge_0.avalon_master/SRAM.avalon_sram_slave baseAddress {0x02000000}
@@ -134,6 +179,10 @@ set_connection_parameter_value wallypipelinedsocwrapper_0.AHB_m/ahb_to_ext_bridg
 set_connection_parameter_value wallypipelinedsocwrapper_0.AHB_m/ahb_to_ext_bridge_0.AHB_s startPort {}
 set_connection_parameter_value wallypipelinedsocwrapper_0.AHB_m/ahb_to_ext_bridge_0.AHB_s startPortLSB {0}
 set_connection_parameter_value wallypipelinedsocwrapper_0.AHB_m/ahb_to_ext_bridge_0.AHB_s width {0}
+
+add_connection wallypipelinedsocwrapper_0.reset_out HEX3_HEX0.reset
+
+add_connection wallypipelinedsocwrapper_0.reset_out JTAG_to_FPGA_Bridge.clk_reset
 
 add_connection wallypipelinedsocwrapper_0.reset_out SRAM.reset
 

@@ -22,9 +22,9 @@ ROOT		:= ..
 LIBRARY_DIRS	:= 
 LIBRARY_FILES	:=
 
-MARCH           :=-march=rv32g
+MARCH           :=-march=rv32i
 MABI            :=-mabi=ilp32
-LINK_FLAGS      :=$(MARCH) $(MABI) -nostartfiles -L $(RISCV)/riscv64-unknown-elf/lib
+LINK_FLAGS      :=$(MARCH) $(MABI) -nostartfiles -L $(RISCV)/riscv64-unknown-elf/lib/rv32i/ilp32
 LINKER		:=$(SRCDIR)/linker1000.x
 
 # FGPA parameters
@@ -117,4 +117,4 @@ $(TARGET).mif: $(TARGET)
 	@echo 'Making memory file 2'
 	riscv64-unknown-elf-elf2hex --bit-width 32 --input $^ --output $^.hex
 	@echo 'Generate .mif file'
-	python hex2mif/hex2mif.py $^.hex $@ --width 32
+	python3 hex2mif/hex2mif.py $^.hex $@ --width 32
