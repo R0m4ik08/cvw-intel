@@ -77,14 +77,48 @@ module ahb_to_ext_bridge #(
     endfunction
 
     // Debug: Size name function
+    // HSIZE encoding (bit 2 = unsigned flag, bits [1:0] = size):
+    //   000 = Byte (8-bit signed)
+    //   001 = Halfword (16-bit signed)
+    //   010 = Word (32-bit)
+    //   011 = Doubleword (64-bit)
+    //   100 = Unsigned Byte (8-bit)
+    //   101 = Unsigned Halfword (16-bit)
     function string get_size_name(input [2:0] size);
         case (size)
             3'b000: get_size_name = "BYTE";
             3'b001: get_size_name = "HWORD";
             3'b010: get_size_name = "WORD";
             3'b011: get_size_name = "DWORD";
+            3'b100: get_size_name = "UBYTE";
+            3'b101: get_size_name = "UHWORD";
             default: get_size_name = "UNKNOWN";
         endcase
+    endfunction
+
+    // Get number of bytes for transfer based on HSIZE
+    // HSIZE[2] = unsigned flag (doesn't affect byte count)
+    // HSIZE[1:0] = actual size (0=1byte, 1=2bytes, 2=4bytes, 3=8bytes)
+    function automatic integer get_transfer_bytes(input [2:0] size);
+        begin
+            // Use only lower 2 bits for size calculation
+            // size[2] is the unsigned flag and doesn't affect byte count
+            get_transfer_bytes = 1 << size[1:0];
+        end
+    endfunction
+
+    // Generate read data mask based on HSIZE
+    // Masks out upper bits to return only the requested data size
+    function automatic [AHB_DATA_W-1:0] calc_read_mask(input [2:0] size);
+        begin
+            case (size[1:0])
+                2'b00: calc_read_mask = {{(AHB_DATA_W-8){1'b0}}, 8'hFF};           // Byte: 0x000000FF
+                2'b01: calc_read_mask = {{(AHB_DATA_W-16){1'b0}}, 16'hFFFF};       // Halfword: 0x0000FFFF
+                2'b10: calc_read_mask = {AHB_DATA_W{1'b1}};                        // Word: 0xFFFFFFFF
+                2'b11: calc_read_mask = {AHB_DATA_W{1'b1}};                        // Doubleword: full width
+                default: calc_read_mask = {AHB_DATA_W{1'b1}};
+            endcase
+        end
     endfunction
 
     // Compute byteenable function (handles EXT_DATA_W >= AHB_DATA_W)
@@ -96,8 +130,8 @@ module ahb_to_ext_bridge #(
         begin
             // zero default
             calc_byteenable = '0;
-            // number of bytes for transfer
-            bs = 1 << size; // 1<<HSIZE gives bytes (HSIZE:0->1,1->2,2->4 etc.)
+            // number of bytes for transfer (using only size[1:0])
+            bs = get_transfer_bytes(size);
             // total bytes in EXT word (constant)
             total_bytes = EXT_DATA_W/8;
             // byte_offset = addr[log2(EXT_DATA_W/8)-1:0]
@@ -248,16 +282,16 @@ module ahb_to_ext_bridge #(
                         
                         // capture read data
                         if (!write_reg) begin
-                            // Data alignment: extract correct byte range based on address offset
-                            // Extract AHB_DATA_W bits starting from byte_offset
-                            hrdata <= ext_rdata[byte_offset*8 +: AHB_DATA_W];
+                            // Data alignment: 
+                            // 1. Shift data right to extract bytes from byte_offset position
+                            // 2. Apply mask based on hsize to clear unused upper bits
+                            hrdata <= (ext_rdata >> (byte_offset * 8)) & calc_read_mask(size_reg);
                             
                             // Debug: Read data received
                             if (DEBUG) begin
-                                $display("[%0t] [AHB_BRIDGE] EXT_ACK received (READ): ext_rdata=0x%0h, hrdata=0x%0h, byte_offset=%0d", 
-                                         $time, ext_rdata, ext_rdata[byte_offset*8 +: AHB_DATA_W], byte_offset);
-                                $display("[%0t] [AHB_BRIDGE]   Data extraction: [%0d*8 +: %0d] = [%0d:%0d]", 
-                                         $time, byte_offset, AHB_DATA_W, byte_offset*8+AHB_DATA_W-1, byte_offset*8);
+                                $display("[%0t] [AHB_BRIDGE] EXT_ACK received (READ): ext_rdata=0x%0h, shifted=0x%0h, mask=0x%0h, hrdata=0x%0h", 
+                                         $time, ext_rdata, ext_rdata >> (byte_offset * 8), calc_read_mask(size_reg),
+                                         (ext_rdata >> (byte_offset * 8)) & calc_read_mask(size_reg));
                             end
                         end else begin
                             // Debug: Write ack received
