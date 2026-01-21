@@ -53,6 +53,9 @@ int main(void) {
     print_uart(" Hz\n");
     print_uart("\n");
     
+    uint32_t* hex_ptr = (uint32_t*)HEX_BASE;
+    uint8_t pattern = 0x55;
+    
     /* Configure LED GPIO (pin 0) as output */
     pinMode(0, OUTPUT);
     
@@ -63,6 +66,10 @@ int main(void) {
         /* Toggle LED */
         digitalWrite(0, counter & 1);
         
+        /* Shift pattern to HEX */
+        *hex_ptr = ( (uint32_t)pattern << ((counter % 4) * 8) );
+        pattern = ~pattern;
+
         /* Print counter every 10 iterations */
         if ((counter % 10) == 0) {
             print_uart("Counter: ");
