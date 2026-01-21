@@ -71,6 +71,10 @@ $(BUILD_DIR)/output_files/$(PROJECT).sof: | qsys_generate quartus_create
 quartus_build: | $(BUILD_DIR)/output_files/$(PROJECT).sof
 	@echo "Quartus project is builded"
 
+quartus_rebuild: $(BUILD_DIR)/$(PROJECT).qpf
+	rm -rf $(BUILD_DIR)/output_files/$(PROJECT).sof
+	make quartus_build
+
 $(BLD_QSYS_PRJ)/modelsim.ini: $(BUILD_DIR)/$(PROJECT).qpf
 	cd $(BUILD_DIR) && quartus_map --read_settings_files=on --write_settings_files=off Wally_CS -c Wally_CS --analysis_and_elaboration
 	cd $(BUILD_DIR) && quartus_sh -t "$(QUARTUS_ROOTDIR)/common/tcl/internal/nativelink/qnativesim.tcl" --rtl_sim --no_gui "$(PROJECT)" "$(PROJECT)"
@@ -91,9 +95,8 @@ qsim_clean:
 
 qsim_rebuild: qsim_clean qsim_create
 
-## Не работает
 quartus_program: quartus_build
-	quartus_pgm -c USB-Blaster -m jtag -o "$(BUILD_DIR)/output_files/$(REVISION).sof"
+	quartus_pgm -c USB-Blaster -m jtag -o "p;$(BUILD_DIR)/output_files/$(REVISION).sof"
 
 sc_write_firmware:
 	system-console --project_dir=./$(BUILD_DIR) --rc_script=scripts/system_console/sc_rc.tcl --script=scripts/system_console/write_firmware.tcl
