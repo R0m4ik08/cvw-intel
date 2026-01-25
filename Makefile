@@ -132,7 +132,8 @@ qsim_open: | qsim_create
 qsim_clean:
 	rm -rf $(BLD_QSYS_PRJ)
 
-qsim_rebuild: qsim_clean qsim_create
+qsim_rebuild: 
+	make qsim_clean qsim_create
 
 quartus_program: quartus_build
 	quartus_pgm -c USB-Blaster -m jtag -o "p;$(BUILD_DIR)/output_files/$(REVISION).sof"
