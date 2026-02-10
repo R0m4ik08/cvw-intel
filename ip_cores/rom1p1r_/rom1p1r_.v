@@ -92,7 +92,7 @@ module rom1p1r_
 		altsyncram_component.clock_enable_input_a = "NORMAL",
 		altsyncram_component.clock_enable_output_a = "NORMAL",
 `ifdef QUARTUS_PRJ
-		altsyncram_component.init_file = "../zsbl/bin/boot.mif",
+		altsyncram_component.init_file = "../zsbl/build/boot.mif",
 `endif 
 `ifndef QUARTUS_PRJ
 		altsyncram_component.init_file = "./boot.mif",

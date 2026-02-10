@@ -98,8 +98,11 @@ quartus_open: $(BUILD_DIR)/$(PROJECT).qpf | qsys_generate
 #	через cmd чтобы работала команда start, через start, чтобы терминал не ожидал закрытия приложения
 	cmd.exe /c start quartus $<
 
+# Path to ZSBL MIF (change here if bootloader output location changes)
+ZSBL_MIF := zsbl/build/boot.mif
+
 # TODO: Нужно еще добавить зависимость от Verilog исходников
-$(BUILD_DIR)/output_files/$(PROJECT).sof: zsbl/bin/boot.mif | qsys_generate zsbl_build quartus_create 
+$(BUILD_DIR)/output_files/$(PROJECT).sof: $(ZSBL_MIF) | qsys_generate zsbl_build quartus_create 
 	cd $(BUILD_DIR) && quartus_map --read_settings_files=on --write_settings_files=off $(PROJECT) -c $(PROJECT)
 	cd $(BUILD_DIR) && quartus_fit --read_settings_files=off --write_settings_files=off $(PROJECT) -c $(PROJECT)
 	cd $(BUILD_DIR) && quartus_asm --read_settings_files=off --write_settings_files=off $(PROJECT) -c $(PROJECT)
@@ -145,14 +148,14 @@ sc_terminal:
 	system-console --project_dir=./$(BUILD_DIR) --rc_script=scripts/system_console/sc_rc.tcl -cli
 
 # ========================================
-#	Zero Stage Boot Loader
+#	Zero Stage Boot Loader (build via SDK)
 # ========================================
 
-zsbl/bin/boot.mif: zsbl/src/*
-	@echo "Run docker and do make..."
-	docker run --rm -v ./zsbl:/zsbl -w /zsbl -w /zsbl -it riscv-gnu-toolchain make
+$(ZSBL_MIF): zsbl/src/* zsbl/Makefile zsbl/Makefile.inc
+	@echo "Building ZSBL via SDK..."
+	docker run --rm -v ./zsbl:/work/zsbl -v ./sdk:/work/sdk -w /work/zsbl riscv-gnu-toolchain make
 
-zsbl_build: | zsbl/bin/boot.mif
+zsbl_build: | $(ZSBL_MIF)
 	@echo "boot.mif was generated"
 
 # ========================================

@@ -26,6 +26,9 @@ make PROJECT=examples/hello
 # Сборка внешнего проекта
 make PROJECT=/path/to/my_project
 
+# Сборка загрузчика ZSBL (внешний проект)
+make PROJECT=../zsbl
+
 # Очистка
 make clean
 
@@ -77,7 +80,7 @@ sdk/
 
 | Файл              | Описание                              |
 |-------------------|---------------------------------------|
-| `program.elf`     | ELF-файл программы                    |
+| `program.elf`     | ELF-файл программы (имя по умолчанию; для ZSBL — boot.elf) |
 | `program.hex`     | Intel HEX формат                      |
 | `program.mif`     | MIF для загрузки в SRAM (Quartus)     |
 | `program.objdump` | Дизассемблированный листинг           |
@@ -195,6 +198,18 @@ SDRAM_BASE    // 0x08000000
 - Python 3 (для hex2mif.py)
 - GNU Make
 
+## Опциональная конфигурация проекта (Makefile.inc)
+
+Проект может задать свой скрипт линкера, отключить общий startup и имя цели, создав в каталоге проекта файл `Makefile.inc`. Переменные (значения по умолчанию в скобках):
+
+| Переменная     | По умолчанию              | Описание |
+|----------------|---------------------------|----------|
+| `LINKER_SCRIPT`| `$(COMMON_DIR)/linker.x`  | Скрипт линкера |
+| `COMMON_SRCS`  | `$(COMMON_DIR)/startup.S`| Общий startup (пусто = только исходники проекта и lib) |
+| `TARGET_NAME`  | `program`                | База имени выходных файлов (program.elf, program.mif и т.д.) |
+
+Пример для загрузчика (другой линкер, свой entry, без magic/startup): в `Makefile.inc` задать `LINKER_SCRIPT`, `COMMON_SRCS :=`, `TARGET_NAME := boot`. Так собирается ZSBL: `make PROJECT=../zsbl` из каталога sdk или `make -C zsbl` из корня репозитория.
+
 ## Параметры сборки
 
 Можно переопределить при вызове make:
@@ -212,3 +227,5 @@ make CFLAGS="-O3"           # Дополнительные флаги
 | MAXSDCCLOCK   | 5000000      | Макс. частота SD (Hz)  |
 | EXT_MEM_BASE  | 0x80000000   | База внешней памяти    |
 | EXT_MEM_RANGE | 0x10000000   | Размер внешней памяти  |
+
+**Примечание:** При переносе выходного файла загрузчика (boot.mif) обновите ссылки в корневом Makefile, в ip_cores и в qip.

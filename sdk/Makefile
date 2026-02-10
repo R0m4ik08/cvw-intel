@@ -31,6 +31,13 @@ HEX2MIF     := $(SDK_ROOT)/common/hex2mif/hex2mif.py
 # Project source directory
 PROJECT_SRC := $(PROJECT)/src
 
+# Optional project config (linker, startup, target name)
+-include $(SDK_ROOT)/$(PROJECT)/Makefile.inc
+
+LINKER_SCRIPT ?= $(COMMON_DIR)/linker.x
+COMMON_SRCS   ?= $(COMMON_DIR)/startup.S
+TARGET_NAME   ?= program
+
 #######################################################################
 # Toolchain Configuration
 #######################################################################
@@ -83,14 +90,13 @@ ASFLAGS := $(MARCH) $(MABI) $(INCLUDES)
 
 LDFLAGS := $(MARCH) $(MABI) \
            -nostartfiles \
-           -T $(COMMON_DIR)/linker.x
+           -T $(LINKER_SCRIPT)
 
 #######################################################################
 # Source Files
 #######################################################################
 
-# Common startup and library files
-COMMON_SRCS := $(COMMON_DIR)/startup.S
+# Common startup and library files (COMMON_SRCS overridden in project Makefile.inc if needed)
 LIB_SRCS    := $(wildcard $(LIB_DIR)/*.c) $(wildcard $(LIB_DIR)/*.S)
 
 # Project source files
@@ -110,7 +116,7 @@ OBJECTS += $(patsubst %.s,$(BUILD_DIR)/%.o,$(notdir $(filter %.s,$(ALL_SRCS))))
 # Output Files
 #######################################################################
 
-TARGET     := $(BUILD_DIR)/program
+TARGET     := $(BUILD_DIR)/$(TARGET_NAME)
 ELF_FILE   := $(TARGET).elf
 HEX_FILE   := $(TARGET).hex
 MIF_FILE   := $(TARGET).mif
