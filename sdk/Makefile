@@ -7,11 +7,11 @@
 #   make PROJECT=/path/to/proj  - Build external project
 #   make clean                  - Clean build artifacts
 #
-# Output files:
-#   build/program.elf     - ELF executable
-#   build/program.hex     - Intel HEX format
-#   build/program.mif     - Memory Initialization File for Quartus
-#   build/program.objdump - Disassembly listing
+# Output files (in PROJECT/build/):
+#   program.elf     - ELF executable
+#   program.hex     - Intel HEX format
+#   program.mif     - Memory Initialization File for Quartus
+#   program.objdump - Disassembly listing
 #######################################################################
 
 #######################################################################
@@ -25,7 +25,7 @@ PROJECT ?= examples/hello
 SDK_ROOT    := $(shell pwd)
 COMMON_DIR  := $(SDK_ROOT)/common
 LIB_DIR     := $(SDK_ROOT)/lib
-BUILD_DIR   := $(SDK_ROOT)/build
+BUILD_DIR   := $(PROJECT)/build
 HEX2MIF     := $(SDK_ROOT)/common/hex2mif/hex2mif.py
 
 # Project source directory
@@ -205,6 +205,7 @@ info:
 	@echo "SDK_ROOT:    $(SDK_ROOT)"
 	@echo "PROJECT:     $(PROJECT)"
 	@echo "PROJECT_SRC: $(PROJECT_SRC)"
+	@echo "BUILD_DIR:   $(BUILD_DIR)"
 	@echo ""
 	@echo "=== Source Files ==="
 	@echo "COMMON_SRCS: $(COMMON_SRCS)"
