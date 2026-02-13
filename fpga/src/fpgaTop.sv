@@ -32,16 +32,16 @@ module fpgaTop
     output wire [6:0]           HEX7,
 
     // SDRAM external pins
-    output wire [1:0]           SDRAM_BA,
-    output wire [12:0]          SDRAM_ADDR,
-    output wire                 SDRAM_CAS_N,
-    output wire                 SDRAM_CKE,
-    output wire                 SDRAM_CS_N,
-    inout  wire [31:0]          SDRAM_DQ,
-    output wire [3:0]           SDRAM_DQM,
-    output wire                 SDRAM_RAS_N,
-    output wire                 SDRAM_WE_N,
-    output wire                 SDRAM_CLK,
+    output wire [1:0]           DRAM_BA,
+    output wire [12:0]          DRAM_ADDR,
+    output wire                 DRAM_CAS_N,
+    output wire                 DRAM_CKE,
+    output wire                 DRAM_CS_N,
+    inout  wire [31:0]          DRAM_DQ,
+    output wire [3:0]           DRAM_DQM,
+    output wire                 DRAM_RAS_N,
+    output wire                 DRAM_WE_N,
+    output wire                 DRAM_CLK,
 
     // SRAM external pins
     inout  wire [15:0]          SRAM_DQ,
@@ -94,16 +94,16 @@ Wally_CS Wally_CS_inst (
     .reset_export_reset       (~KEY[0]),
 
     // SDRAM
-    .sdram_ba                 (SDRAM_BA),
-    .sdram_addr               (SDRAM_ADDR),
-    .sdram_cas_n              (SDRAM_CAS_N),
-    .sdram_cke                (SDRAM_CKE),
-    .sdram_cs_n               (SDRAM_CS_N),
-    .sdram_dq                 (SDRAM_DQ),
-    .sdram_dqm                (SDRAM_DQM),
-    .sdram_ras_n              (SDRAM_RAS_N),
-    .sdram_we_n               (SDRAM_WE_N),
-    .sdram_clk_clk            (SDRAM_CLK),
+    .sdram_ba                 (DRAM_BA),
+    .sdram_addr               (DRAM_ADDR),
+    .sdram_cas_n              (DRAM_CAS_N),
+    .sdram_cke                (DRAM_CKE),
+    .sdram_cs_n               (DRAM_CS_N),
+    .sdram_dq                 (DRAM_DQ),
+    .sdram_dqm                (DRAM_DQM),
+    .sdram_ras_n              (DRAM_RAS_N),
+    .sdram_we_n               (DRAM_WE_N),
+    .sdram_clk_clk            (DRAM_CLK),
 
     // SRAM
     .sram_external_interface_DQ   (SRAM_DQ),

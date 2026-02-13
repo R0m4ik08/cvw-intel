@@ -67,18 +67,18 @@ add_interface_port clk clk clk Input 1
 
 
 # 
-# connection point reset
+# connection point reset_n
 # 
-add_interface reset reset end
-set_interface_property reset associatedClock clk
-set_interface_property reset synchronousEdges DEASSERT
-set_interface_property reset ENABLED true
-set_interface_property reset EXPORT_OF ""
-set_interface_property reset PORT_NAME_MAP ""
-set_interface_property reset CMSIS_SVD_VARIABLES ""
-set_interface_property reset SVD_ADDRESS_GROUP ""
+add_interface reset_n reset end
+set_interface_property reset_n associatedClock clk
+set_interface_property reset_n synchronousEdges DEASSERT
+set_interface_property reset_n ENABLED true
+set_interface_property reset_n EXPORT_OF ""
+set_interface_property reset_n PORT_NAME_MAP ""
+set_interface_property reset_n CMSIS_SVD_VARIABLES ""
+set_interface_property reset_n SVD_ADDRESS_GROUP ""
 
-add_interface_port reset reset_n reset_n Input 1
+add_interface_port reset_n reset_n reset_n Input 1
 
 
 # 
@@ -87,7 +87,7 @@ add_interface_port reset reset_n reset_n Input 1
 add_interface s1 avalon end
 set_interface_property s1 addressUnits WORDS
 set_interface_property s1 associatedClock clk
-set_interface_property s1 associatedReset reset
+set_interface_property s1 associatedReset reset_n
 set_interface_property s1 bitsPerSymbol 8
 set_interface_property s1 burstOnBurstBoundariesOnly false
 set_interface_property s1 burstcountUnits WORDS

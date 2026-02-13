@@ -190,7 +190,7 @@ add_connection wallypipelinedsocwrapper_0.reset_out ahb_to_ext_bridge_0.reset_si
 
 add_connection wallypipelinedsocwrapper_0.reset_out bridge_0.reset
 
-add_connection wallypipelinedsocwrapper_0.reset_out sdram_128mb_0.reset
+add_connection wallypipelinedsocwrapper_0.reset_out sdram_128mb_0.reset_n
 
 # interconnect requirements
 set_interconnect_requirement {$system} {qsys_mm.clockCrossingAdapter} {HANDSHAKE}
