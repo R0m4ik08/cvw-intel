@@ -14,10 +14,14 @@
 
 #pragma once
 #include <stdint.h>
+#include <system.h>
 #include "riscv.h"
 
 // UART register addresses
-#define UART_BASE 0x10000000
+#ifndef UART_BASE
+#define UART_BASE 0x00016000
+#endif
+
 
 #define UART_RBR UART_BASE + 0x00
 #define UART_THR UART_BASE + 0x00
