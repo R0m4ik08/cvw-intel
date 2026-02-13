@@ -118,17 +118,17 @@ set_interface_property wally_uart EXPORT_OF wallypipelinedsocwrapper_0.UART
 # connections and connection parameters
 add_connection JTAG_to_FPGA_Bridge.master HEX3_HEX0.s1
 set_connection_parameter_value JTAG_to_FPGA_Bridge.master/HEX3_HEX0.s1 arbitrationPriority {1}
-set_connection_parameter_value JTAG_to_FPGA_Bridge.master/HEX3_HEX0.s1 baseAddress {0x03000000}
+set_connection_parameter_value JTAG_to_FPGA_Bridge.master/HEX3_HEX0.s1 baseAddress {0x13000000}
 set_connection_parameter_value JTAG_to_FPGA_Bridge.master/HEX3_HEX0.s1 defaultConnection {0}
 
 add_connection JTAG_to_FPGA_Bridge.master SRAM.avalon_sram_slave
 set_connection_parameter_value JTAG_to_FPGA_Bridge.master/SRAM.avalon_sram_slave arbitrationPriority {1}
-set_connection_parameter_value JTAG_to_FPGA_Bridge.master/SRAM.avalon_sram_slave baseAddress {0x02000000}
+set_connection_parameter_value JTAG_to_FPGA_Bridge.master/SRAM.avalon_sram_slave baseAddress {0x20000000} 
 set_connection_parameter_value JTAG_to_FPGA_Bridge.master/SRAM.avalon_sram_slave defaultConnection {0}
 
 add_connection JTAG_to_FPGA_Bridge.master sdram_128mb_0.s1
 set_connection_parameter_value JTAG_to_FPGA_Bridge.master/sdram_128mb_0.s1 arbitrationPriority {1}
-set_connection_parameter_value JTAG_to_FPGA_Bridge.master/sdram_128mb_0.s1 baseAddress {0x08000000}
+set_connection_parameter_value JTAG_to_FPGA_Bridge.master/sdram_128mb_0.s1 baseAddress {0x38000000}
 set_connection_parameter_value JTAG_to_FPGA_Bridge.master/sdram_128mb_0.s1 defaultConnection {0}
 
 add_connection System_PLL.reset_source reset_controller_0.reset_in0
@@ -158,17 +158,17 @@ set_connection_parameter_value ahb_to_ext_bridge_0.ExtBus_m/bridge_0.external_in
 
 add_connection bridge_0.avalon_master HEX3_HEX0.s1
 set_connection_parameter_value bridge_0.avalon_master/HEX3_HEX0.s1 arbitrationPriority {1}
-set_connection_parameter_value bridge_0.avalon_master/HEX3_HEX0.s1 baseAddress {0x03000000}
+set_connection_parameter_value bridge_0.avalon_master/HEX3_HEX0.s1 baseAddress {0x13000000}
 set_connection_parameter_value bridge_0.avalon_master/HEX3_HEX0.s1 defaultConnection {0}
 
 add_connection bridge_0.avalon_master SRAM.avalon_sram_slave
 set_connection_parameter_value bridge_0.avalon_master/SRAM.avalon_sram_slave arbitrationPriority {1}
-set_connection_parameter_value bridge_0.avalon_master/SRAM.avalon_sram_slave baseAddress {0x02000000}
+set_connection_parameter_value bridge_0.avalon_master/SRAM.avalon_sram_slave baseAddress {0x20000000}
 set_connection_parameter_value bridge_0.avalon_master/SRAM.avalon_sram_slave defaultConnection {0}
 
 add_connection bridge_0.avalon_master sdram_128mb_0.s1
 set_connection_parameter_value bridge_0.avalon_master/sdram_128mb_0.s1 arbitrationPriority {1}
-set_connection_parameter_value bridge_0.avalon_master/sdram_128mb_0.s1 baseAddress {0x08000000}
+set_connection_parameter_value bridge_0.avalon_master/sdram_128mb_0.s1 baseAddress {0x38000000}
 set_connection_parameter_value bridge_0.avalon_master/sdram_128mb_0.s1 defaultConnection {0}
 
 add_connection reset_controller_0.reset_out wallypipelinedsocwrapper_0.reset_inp

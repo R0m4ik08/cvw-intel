@@ -63,8 +63,8 @@ MABI  := -mabi=ilp32
 
 SYSTEMCLOCK   ?= 50000000
 MAXSDCCLOCK   ?= 5000000
-EXT_MEM_BASE  ?= 0x80000000
-EXT_MEM_RANGE ?= 0x10000000
+EXT_MEM_BASE  ?= 0x10000000
+EXT_MEM_RANGE ?= 0x2fffffff
 
 #######################################################################
 # Compiler/Linker Flags
