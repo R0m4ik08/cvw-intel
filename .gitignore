@@ -24,3 +24,8 @@ simulation/
 /zsbl/bin
 
 /sdk/build
+
+### DONT IGNORE
+
+!.vscode/
+!.vscode/c_cpp_properties.json
