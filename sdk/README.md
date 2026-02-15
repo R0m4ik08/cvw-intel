@@ -56,6 +56,7 @@ my_project/
 sdk/
 ├── Makefile              # Система сборки
 ├── README.md             # Документация (этот файл)
+├── setup.sh              # Настройка окружения
 ├── common/
 │   ├── linker.x          # Linker script для SRAM
 │   ├── startup.S         # Startup-код с magic number
@@ -194,9 +195,15 @@ SDRAM_BASE    // 0x08000000
 
 ## Требования
 
-- RISC-V GCC Toolchain (`riscv64-unknown-elf-gcc`)
-- Python 3 (для hex2mif.py)
-- GNU Make
+- **Windows**: Docker (сборка через образ `riscv-gnu-toolchain`), GNU Make
+
+## Настройка окружения
+
+### Docker (Windows)
+
+При запуске `make run_docker_gnu_toolchain` из корня репозитория окружение настраивается через `setup.sh` (RISCV уже задан в образе).
+
+**Примечание:** В контейнере команда `gcc` — компилятор для x86 (хост). Для RISC-V после `source setup.sh` доступны алиасы: `riscv-gcc`, `riscv-as`, `riscv-ld`, `riscv-objcopy`, `riscv-objdump`, `riscv-elf2hex`.
 
 ## Опциональная конфигурация проекта (Makefile.inc)
 

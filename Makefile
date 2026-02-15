@@ -153,7 +153,7 @@ sc_terminal:
 
 $(ZSBL_MIF): zsbl/src/* zsbl/Makefile zsbl/Makefile.inc
 	@echo "Building ZSBL via SDK..."
-	docker run --rm -v ./zsbl:/work/zsbl -v ./sdk:/work/sdk -w /work/zsbl riscv-gnu-toolchain make
+	docker run --rm -v ./zsbl:/work/zsbl -v ./sdk:/work/sdk -w /work/zsbl riscv-gnu-toolchain bash -c 'source ../sdk/setup.sh && make'
 
 zsbl_build: | $(ZSBL_MIF)
 	@echo "boot.mif was generated"
@@ -170,7 +170,7 @@ run_docker_gnu_toolchain:
 		echo "Removing container riscv-dev..."; \
 		docker rm riscv-dev; \
 	fi
-	docker run -v ./zsbl:/work/zsbl -v ./sdk:/work/sdk -w /work --name riscv-dev -it riscv-gnu-toolchain
+	docker run -v ./zsbl:/work/zsbl -v ./sdk:/work/sdk -w /work --name riscv-dev -it riscv-gnu-toolchain bash -c 'source ./sdk/setup.sh && bash'
 
 # ========================================
 #	Other
