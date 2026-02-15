@@ -54,9 +54,10 @@ ELF2HEX := $(CROSS_COMPILE)elf2hex
 # Architecture Configuration
 #######################################################################
 
+# Архитектура RISC-V (берётся из окружения, задаётся в setup.sh)
 # TODO: Связать с config.vh 
-MARCH := -march=rv32i
-MABI  := -mabi=ilp32
+MARCH ?= -march=rv32i
+MABI  ?= -mabi=ilp32
 
 #######################################################################
 # FPGA System Parameters
