@@ -43,7 +43,7 @@ localparam logic E_SUPPORTED = 0;
 
 // Integer instruction set extensions
 localparam logic ZIFENCEI_SUPPORTED = 1; // Instruction-Fetch fence
-localparam logic ZICSR_SUPPORTED    = 0; // CSR Instructions // Включение этого флага вызывает ошибку синтеза Quartus проекта
+localparam logic ZICSR_SUPPORTED    = 1; // CSR Instructions
 localparam logic ZICCLSM_SUPPORTED  = 1; // Misaligned loads/stores
 localparam logic ZICOND_SUPPORTED   = 1; // Integer conditional operations
 
