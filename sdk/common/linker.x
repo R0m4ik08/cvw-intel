@@ -14,6 +14,7 @@ ENTRY(_start)
 
 MEMORY
 {
+    /* TODO: Связать с config.vh */ 
     SRAM (rwx) : ORIGIN = 0x20000000, LENGTH = 1M
 }
 

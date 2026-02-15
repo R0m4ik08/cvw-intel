@@ -5,6 +5,8 @@
 #
 #  Определение переменных
 #
+
+# TODO: Связать с config.vh 
 set ADR_HEX 0x03000000
 set ADR_SRAM 0x20000000
 set ADR_SDRAM 0x38000000

@@ -54,6 +54,7 @@ ELF2HEX := $(CROSS_COMPILE)elf2hex
 # Architecture Configuration
 #######################################################################
 
+# TODO: Связать с config.vh 
 MARCH := -march=rv32i
 MABI  := -mabi=ilp32
 
@@ -61,6 +62,7 @@ MABI  := -mabi=ilp32
 # FPGA System Parameters
 #######################################################################
 
+# TODO: Связать с config.vh 
 SYSTEMCLOCK   ?= 50000000
 MAXSDCCLOCK   ?= 5000000
 EXT_MEM_BASE  ?= 0x10000000

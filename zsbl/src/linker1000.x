@@ -5,6 +5,7 @@ ENTRY(_start)
 
 MEMORY
 {
+  # TODO: Связать с config.vh 
   ROM (rx) : ORIGIN = 0x00001000, LENGTH = 64K
   RAM (rwx) : ORIGIN = 0x00011000, LENGTH = 16K
 }

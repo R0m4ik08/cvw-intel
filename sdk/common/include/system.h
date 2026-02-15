@@ -8,6 +8,8 @@
 #ifndef __SYSTEM_H
 #define __SYSTEM_H
 
+// TODO: Связать с config.vh (пока что большая часть задается из Makefile)
+
 /* System clock frequency (Hz) */
 #ifndef SYSTEMCLOCK
 #define SYSTEMCLOCK  50000000
