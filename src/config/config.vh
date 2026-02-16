@@ -78,11 +78,11 @@ localparam logic ZKNH_SUPPORTED = 0;
 // All compressed extensions require Zca
 localparam logic ZCA_SUPPORTED = 0;
 localparam logic ZCB_SUPPORTED = 0;
-localparam logic ZCF_SUPPORTED = 1; // RV32 only, requires F
+localparam logic ZCF_SUPPORTED = 0; // RV32 only, requires F
 localparam logic ZCD_SUPPORTED = 0; // requires D
 
 // Floating point extensions
-localparam logic F_SUPPORTED   = 0;
+localparam logic F_SUPPORTED   = 1;
 localparam logic D_SUPPORTED   = 0;
 localparam logic Q_SUPPORTED   = 0;
 localparam logic ZFH_SUPPORTED = 0;

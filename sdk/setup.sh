@@ -43,7 +43,7 @@ export PATH="$RISCV/bin:$PATH"
 export SDK_ROOT
 
 # Архитектура RISC-V (используются в Makefile)
-export MARCH="-march=rv32im"
+export MARCH="-march=rv32imf_zicsr_zifencei_zicclsm_zicond"
 export MABI="-mabi=ilp32"
 
 # Интуитивные алиасы для RISC-V toolchain
