@@ -44,7 +44,6 @@ module fdivsqrtpostproc import config_pkg::*;   (
   output logic                 DivStickyM,
   output logic [XLEN-1:0]    FIntDivResultM     // U/Q(XLEN.0)
 );
-generate
   logic [DIVb+3:0]         Sum;
   logic [INTDIVb+3:0]      W;
   logic [DIVb:0]           PreUmM;
@@ -60,6 +59,7 @@ generate
   // check for early termination on an exact result. 
   aplusbeq0 #(DIVb+4) wspluswceq0(WS, WC, weq0E);
 
+generate
   if (RADIX == 2) begin: R2EarlyTerm
     logic [DIVb+3:0] FZeroE, FZeroSqrtE, FZeroDivE;
     logic [DIVb+2:0] FirstK;
