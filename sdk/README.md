@@ -22,6 +22,7 @@ make
 
 # Сборка конкретного проекта
 make PROJECT=examples/hello
+make PROJECT=examples/clint_timer   # Счётчик секунд на таймере CLINT
 
 # Сборка внешнего проекта
 make PROJECT=/path/to/my_project
@@ -62,17 +63,23 @@ sdk/
 │   ├── startup.S         # Startup-код с magic number
 │   └── include/
 │       ├── system.h      # Системные константы
+│       ├── clint.h       # CLINT (таймер, прерывания) — константы
 │       ├── uart.h        # UART API
 │       ├── gpiolib.h     # GPIO API
-│       └── riscv.h       # RISC-V утилиты
+│       └── riscv.h       # RISC-V утилиты (CSR, riscv.S)
 ├── lib/
 │   ├── uart.c            # Реализация UART
-│   └── riscv.S           # RISC-V ассемблерные функции
+│   └── riscv.S           # RISC-V ассемблерные функции (в т.ч. csr_read/csr_write)
 └── examples/
-    └── hello/            # Пример программы
+    ├── hello/            # Пример: приветствие, счётчик, UART
+    │   ├── src/
+    │   │   └── main.c
+    │   └── build/
+    └── clint_timer/      # Пример: счётчик секунд на CLINT (обработчик прерываний)
         ├── src/
-        │   └── main.c
-        └── build/        # Выходные файлы (создается при сборке)
+        │   ├── main.c
+        │   └── trap_handler.S
+        └── build/
 ```
 
 ## Выходные файлы
@@ -119,6 +126,21 @@ print_uart_int(0xABCD);   // Hex (4 байта)
 print_uart_byte(0xFF);    // Hex (1 байт)
 print_uart_addr(0x12345678); // Hex (8 байт)
 ```
+
+### CLINT (таймер, прерывания)
+
+```c
+#include "clint.h"
+#include "riscv.h"
+
+// Константы: CLINT_BASE, CLINT_MTIME_LO_ADDR, CLINT_MTIME_HI_ADDR,
+//           CLINT_MTIMECMP_LO_ADDR, CLINT_MTIMECMP_HI_ADDR
+// CSR: csr_read(CSR_MTVEC), csr_write(CSR_MTVEC, addr);
+//      csr_read(CSR_MIE), csr_write(CSR_MIE, val);  // MTIE = bit 7
+//      csr_read(CSR_MSTATUS), csr_write(CSR_MSTATUS, val);  // MIE = bit 3
+```
+
+Пример использования: `examples/clint_timer` — счётчик секунд на основе прерывания машинного таймера CLINT (MTIME/MTIMECMP).
 
 ### GPIO
 
