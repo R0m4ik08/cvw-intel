@@ -16,16 +16,16 @@ module testbench;
     wire  [6:0]  HEX0, HEX1, HEX2, HEX3, HEX4, HEX5, HEX6, HEX7;
 
     // SDRAM
-    wire [1:0]   SDRAM_BA;
-    wire [12:0]  SDRAM_ADDR;
-    wire         SDRAM_CAS_N;
-    wire         SDRAM_CKE;
-    wire         SDRAM_CS_N;
-    tri  [31:0]  SDRAM_DQ;
-    wire [3:0]   SDRAM_DQM;
-    wire         SDRAM_RAS_N;
-    wire         SDRAM_WE_N;
-    wire         SDRAM_CLK;
+    wire [1:0]   DRAM_BA;
+    wire [12:0]  DRAM_ADDR;
+    wire         DRAM_CAS_N;
+    wire         DRAM_CKE;
+    wire         DRAM_CS_N;
+    tri  [31:0]  DRAM_DQ;
+    wire [3:0]   DRAM_DQM;
+    wire         DRAM_RAS_N;
+    wire         DRAM_WE_N;
+    wire         DRAM_CLK;
 
     // SRAM
     tri  [15:0]  SRAM_DQ;
@@ -91,11 +91,11 @@ module testbench;
         .HEX0(HEX0), .HEX1(HEX1), .HEX2(HEX2), .HEX3(HEX3),
         .HEX4(HEX4), .HEX5(HEX5), .HEX6(HEX6), .HEX7(HEX7),
 
-        .SDRAM_BA(SDRAM_BA), .SDRAM_ADDR(SDRAM_ADDR),
-        .SDRAM_CAS_N(SDRAM_CAS_N), .SDRAM_CKE(SDRAM_CKE),
-        .SDRAM_CS_N(SDRAM_CS_N), .SDRAM_DQ(SDRAM_DQ),
-        .SDRAM_DQM(SDRAM_DQM), .SDRAM_RAS_N(SDRAM_RAS_N),
-        .SDRAM_WE_N(SDRAM_WE_N), .SDRAM_CLK(SDRAM_CLK),
+        .DRAM_BA(DRAM_BA), .DRAM_ADDR(DRAM_ADDR),
+        .DRAM_CAS_N(DRAM_CAS_N), .DRAM_CKE(DRAM_CKE),
+        .DRAM_CS_N(DRAM_CS_N), .DRAM_DQ(DRAM_DQ),
+        .DRAM_DQM(DRAM_DQM), .DRAM_RAS_N(DRAM_RAS_N),
+        .DRAM_WE_N(DRAM_WE_N), .DRAM_CLK(DRAM_CLK),
 
         .SRAM_DQ(SRAM_DQ), .SRAM_ADDR(SRAM_ADDR),
         .SRAM_LB_N(SRAM_LB_N), .SRAM_UB_N(SRAM_UB_N),
