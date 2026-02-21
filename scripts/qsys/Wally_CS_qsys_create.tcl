@@ -13,7 +13,7 @@ set_project_property HIDE_FROM_IP_CATALOG {false}
 
 # Instances and instance parameters
 # (disabled instances are intentionally culled)
-add_instance HEX3_HEX0 altera_avalon_pio 23.1
+add_instance HEX3_HEX0 altera_avalon_pio
 set_instance_parameter_value HEX3_HEX0 {bitClearingEdgeCapReg} {0}
 set_instance_parameter_value HEX3_HEX0 {bitModifyingOutReg} {0}
 set_instance_parameter_value HEX3_HEX0 {captureEdge} {0}
@@ -26,7 +26,7 @@ set_instance_parameter_value HEX3_HEX0 {simDoTestBenchWiring} {0}
 set_instance_parameter_value HEX3_HEX0 {simDrivenValue} {0.0}
 set_instance_parameter_value HEX3_HEX0 {width} $XLEN
 
-add_instance JTAG_to_FPGA_Bridge altera_jtag_avalon_master 23.1
+add_instance JTAG_to_FPGA_Bridge altera_jtag_avalon_master
 set_instance_parameter_value JTAG_to_FPGA_Bridge {FAST_VER} {0}
 set_instance_parameter_value JTAG_to_FPGA_Bridge {FIFO_DEPTHS} {2}
 set_instance_parameter_value JTAG_to_FPGA_Bridge {PLI_PORT} {50000}
@@ -56,7 +56,7 @@ set_instance_parameter_value bridge_0 {addr_size} {1024}
 set_instance_parameter_value bridge_0 {addr_size_multiplier} {Mbytes}
 set_instance_parameter_value bridge_0 {data_size} {32}
 
-add_instance reset_controller_0 altera_reset_controller 23.1
+add_instance reset_controller_0 altera_reset_controller
 set_instance_parameter_value reset_controller_0 {MIN_RST_ASSERTION_TIME} {3}
 set_instance_parameter_value reset_controller_0 {NUM_RESET_INPUTS} {2}
 set_instance_parameter_value reset_controller_0 {OUTPUT_RESET_SYNC_EDGES} {deassert}
