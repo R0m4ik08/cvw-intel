@@ -54,15 +54,15 @@ localparam logic ZMMUL_SUPPORTED = 0;
 
 // Atomic extensions
 // A extension is Zaamo + Zalrsc
-localparam logic ZAAMO_SUPPORTED  = 0;
-localparam logic ZALRSC_SUPPORTED = 0;
+localparam logic ZAAMO_SUPPORTED  = 1;
+localparam logic ZALRSC_SUPPORTED = 1;
 
 // Bit manipulation extensions
 // B extension is Zba + Zbb + Zbs
-localparam logic ZBA_SUPPORTED = 0;
-localparam logic ZBB_SUPPORTED = 0;
-localparam logic ZBS_SUPPORTED = 0;
-localparam logic ZBC_SUPPORTED = 0;
+localparam logic ZBA_SUPPORTED = 1;
+localparam logic ZBB_SUPPORTED = 1;
+localparam logic ZBS_SUPPORTED = 1;
+localparam logic ZBC_SUPPORTED = 1;
 
 // Scalar crypto extensions
 // Zkn is all 6 of these
