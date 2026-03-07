@@ -47,7 +47,8 @@ void print_uart_dec(uint64_t addr);
 void print_uart_addr(uint64_t addr);
 void print_uart_hex(uint64_t addr, int n);
 void print_uart_byte(uint8_t byte);
-void print_uart_float(float num, int precision);
+// Пока не решен вопрос с расширениями F D Q
+//void print_uart_float(float num, int precision);
 
 // Print numbers in hex with specified widths
 #define print_uart_int(addr) print_uart_hex(addr, 4)
