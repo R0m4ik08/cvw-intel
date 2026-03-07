@@ -36,6 +36,13 @@ SECTIONS
         *(.rodata*)
     } > SRAM
 
+    .fast_constants : 
+    {
+        . = ALIGN(4);
+        *(.srodata*)       /* И остальные мелкие константы заодно */
+        . = ALIGN(4);
+    } > SRAM
+
     /* Initialized data */
     .data : {
         *(.data*)
