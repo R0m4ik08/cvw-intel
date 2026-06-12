@@ -16,6 +16,13 @@ FILE_NAME_QSYS_IPS_SRC := $(notdir $(wildcard $(SRC_QSYS_DIR)/src/* ) )
 PATH +=;$(QUARTUS_BIN);
 PATH +=;$(QSYS_BIN);
 
+# Список исходных RTL-файлов (Verilog / SystemVerilog) для отслеживания изменений
+# TODO: Неполный список исходников
+RTL_SOURCES := $(wildcard fpga/src/*.v) $(wildcard fpga/src/*.sv)
+
+# Файл-маркер (stamp), фиксирующий время последнего успешного анализа RTL в Quartus
+MAP_STAMP := $(BUILD_DIR)/.map_stamp
+
 .PHONY: all qsys_generate quartus_create quartus_build clean docker_setup docker_check docker_build docker_load
 
 all: qsys_generate quartus_create
@@ -117,13 +124,29 @@ quartus_rebuild: $(BUILD_DIR)/$(PROJECT).qpf
 	rm -rf $(BUILD_DIR)/output_files/$(PROJECT).sof
 	make quartus_build
 
-$(BLD_QSYS_PRJ)/modelsim.ini: $(BUILD_DIR)/$(PROJECT).qpf
-	cd $(BUILD_DIR) && quartus_map --read_settings_files=on --write_settings_files=off Wally_CS -c Wally_CS --analysis_and_elaboration
+# =========================================================================
+# Создание и настройка проекта QuestaSim (modelsim.ini).
+# Зависит от:
+# - $(MAP_STAMP) : если обновился RTL, сначала отработает шаг 1, затем этот.
+# - $(ZSBL_MIF)  : если изменилась только прошивка, шаг 1 пропускается,
+#                  но этот шаг всё равно выполнится, обновляя проект симуляции.
+# =========================================================================
+$(BLD_QSYS_PRJ)/modelsim.ini: $(MAP_STAMP) $(ZSBL_MIF)
+	@echo "Updating QuestaSim simulation project..."
 	cd $(BUILD_DIR) && quartus_sh -t "$(QUARTUS_ROOTDIR)/common/tcl/internal/nativelink/qnativesim.tcl" --rtl_sim --no_gui "$(PROJECT)" "$(PROJECT)"
 # => Костыль, после добавления sram_model.sv в проект в qsim перестал автоматически добавлятся	testbench.sv
 	cd $(BLD_QSYS_PRJ) && vlog -sv -work work ../../../fpga/src/testbench.sv
 # ==
 	cd $(BLD_QSYS_PRJ) && vopt work.testbench +acc -o _testbench -L $(PROJECT) -L altera_mf_ver
+
+# =========================================================================
+#  Анализ и синтез (elaboration). Зависит от файлов проекта и исходников.
+#  Выполняется только если изменился файл проекта (.qpf) или любой RTL-файл.
+# =========================================================================
+$(MAP_STAMP): $(BUILD_DIR)/$(PROJECT).qpf $(RTL_SOURCES)
+	@echo "RTL or QPF changed. Running Quartus analysis & elaboration..."
+	cd $(BUILD_DIR) && quartus_map --read_settings_files=on --write_settings_files=off Wally_CS -c Wally_CS --analysis_and_elaboration
+	touch $@
 
 qsim_create: | qsys_generate quartus_create $(BLD_QSYS_PRJ)/modelsim.ini $(BLD_QSYS_PRJ)/rtl_work/@_testbench
 	@echo "Questasim project is created"
