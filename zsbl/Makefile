@@ -11,7 +11,12 @@
 
 all: build/boot.mif
 
-build/boot.mif:
+
+SRCS := $(wildcard src/*.c) \
+        $(wildcard src/*.S) \
+        $(wildcard src/*.s)
+
+build/boot.mif: $(SRCS)
 	@mkdir -p build
 	$(MAKE) -C ../sdk PROJECT=../zsbl
 	@echo ""
