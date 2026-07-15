@@ -51,7 +51,7 @@ set_instance_parameter_value ahb_to_ext_bridge_0 {AHB_DATA_W} $XLEN
 set_instance_parameter_value ahb_to_ext_bridge_0 {EXT_ADDR_W} {30}
 set_instance_parameter_value ahb_to_ext_bridge_0 {EXT_DATA_W} $XLEN
 
-add_instance bridge_0 altera_up_external_bus_to_avalon_bridge 18.0
+add_instance bridge_0 mod_altera_up_external_bus_to_avalon_bridge 1.0
 set_instance_parameter_value bridge_0 {addr_size} {1024}
 set_instance_parameter_value bridge_0 {addr_size_multiplier} {Mbytes}
 set_instance_parameter_value bridge_0 {data_size} {32}
