@@ -16,14 +16,15 @@ simulation/
 
 ###
 
-/.*
-
 build
 
 /zsbl/OBJ
 /zsbl/bin
 
 /sdk/build
+
+/no_commit
+/.venv
 
 ### DONT IGNORE
 
