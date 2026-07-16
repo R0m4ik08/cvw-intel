@@ -28,106 +28,106 @@
  ******************************************************************************/
 
 module altera_up_external_bus_to_avalon_bridge #(
-	parameter	AW	= 17,	// Address width
-	parameter	DW	= 16,	// Data width
+    parameter AW = 17,  // Address width
+    parameter DW = 16,  // Data width
 
-	parameter	BW	= 1		// Byte enable width
+    parameter BW = 1  // Byte enable width
 ) (
-	// Inputs
-	clk,
-	reset,
+    // Inputs
+    clk,
+    reset,
 
-	// Inputs from Avalon Switch Fabric
-	avalon_readdata,
-	avalon_waitrequest,
+    // Inputs from Avalon Switch Fabric
+    avalon_readdata,
+    avalon_waitrequest,
 
-	// Inputs from the master peripheral
-	address,
-	byte_enable,
-	read,
-	write,
-	write_data,
+    // Inputs from the master peripheral
+    address,
+    byte_enable,
+    read,
+    write,
+    write_data,
 
-	// Bidirectionals
+    // Bidirectionals
 
-	// Outputs
-	// Output to Avalon Switch Fabric
-	avalon_address,
-	avalon_byteenable,
-	avalon_read,
-	avalon_write,
-	avalon_writedata,
+    // Outputs
+    // Output to Avalon Switch Fabric
+    avalon_address,
+    avalon_byteenable,
+    avalon_read,
+    avalon_write,
+    avalon_writedata,
 
-	// Outputs to master peripheral
-	acknowledge,
-	read_data
+    // Outputs to master peripheral
+    acknowledge,
+    read_data
 );
 
 
 
-/*****************************************************************************
+    /*****************************************************************************
  *                             Port Declarations                             *
  *****************************************************************************/
-// Inputs
-input						clk;
-input						reset;
+    // Inputs
+    input clk;
+    input reset;
 
-input						avalon_waitrequest;
-input			[DW: 0]	avalon_readdata;
+    input avalon_waitrequest;
+    input [DW:0] avalon_readdata;
 
-input			[AW: 0]	address;
-input			[BW: 0]	byte_enable;
-input						write;
-input						read;
-input			[DW: 0]	write_data;
+    input [AW:0] address;
+    input [BW:0] byte_enable;
+    input write;
+    input read;
+    input [DW:0] write_data;
 
-// Bidirectionals
+    // Bidirectionals
 
-// Outputs
-output		[AW: 0]	avalon_address;
-output		[BW: 0]	avalon_byteenable;
-output					avalon_read;
-output					avalon_write;
-output		[DW: 0]	avalon_writedata;
+    // Outputs
+    output [AW:0] avalon_address;
+    output [BW:0] avalon_byteenable;
+    output avalon_read;
+    output avalon_write;
+    output [DW:0] avalon_writedata;
 
-output					acknowledge;
-output		[DW: 0]	read_data;
+    output acknowledge;
+    output [DW:0] read_data;
 
-/*****************************************************************************
+    /*****************************************************************************
  *                           Constant Declarations                           *
  *****************************************************************************/
 
-/*****************************************************************************
+    /*****************************************************************************
  *                 Internal Wires and Registers Declarations                 *
  *****************************************************************************/
 
-// Internal Wires
+    // Internal Wires
 
-// Internal Registers
+    // Internal Registers
 
-// State Machine Registers
+    // State Machine Registers
 
-/*****************************************************************************
+    /*****************************************************************************
  *                         Finite State Machine(s)                           *
  *****************************************************************************/
 
 
-/*****************************************************************************
+    /*****************************************************************************
  *                             Sequential Logic                              *
  *****************************************************************************/
 
-/*****************************************************************************
+    /*****************************************************************************
  *                            Combinational Logic                            *
  *****************************************************************************/
-assign read_data 				= avalon_readdata;
-assign avalon_address 		= address;
-assign avalon_byteenable	= byte_enable;
-assign avalon_write 			= write;
-assign avalon_read 			= read;
-assign avalon_writedata 	= write_data;
-assign acknowledge 			= ~avalon_waitrequest & (avalon_read | avalon_write);
+    assign read_data         = avalon_readdata;
+    assign avalon_address    = address;
+    assign avalon_byteenable = byte_enable;
+    assign avalon_write      = write;
+    assign avalon_read       = read;
+    assign avalon_writedata  = write_data;
+    assign acknowledge       = ~avalon_waitrequest & (avalon_read | avalon_write);
 
-/*****************************************************************************
+    /*****************************************************************************
  *                              Internal Modules                             *
  *****************************************************************************/
 

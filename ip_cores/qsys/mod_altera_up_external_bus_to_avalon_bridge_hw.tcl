@@ -4,7 +4,7 @@ set aup_version 1.0
 
 # +-----------------------------------
 # | module mod_altera_up_external_bus_to_avalon_bridge
-# | 
+# |
 set_module_property DESCRIPTION "Modificated External Bus to Avalon Bridge"
 set_module_property NAME mod_altera_up_external_bus_to_avalon_bridge
 set_module_property VERSION $aup_version
@@ -18,21 +18,22 @@ set_module_property ELABORATION_CALLBACK elaborate
 set_module_property REPORT_TO_TALKBACK false
 set_module_property ALLOW_GREYBOX_GENERATION false
 set_module_property REPORT_HIERARCHY false
-# | 
-# +-----------------------------------
 
-# 
+# |
+# +-----------------------------------
+#
 # file sets
-# 
+#
 add_fileset QUARTUS_SYNTH QUARTUS_SYNTH "" ""
 set_fileset_property QUARTUS_SYNTH TOP_LEVEL altera_up_external_bus_to_avalon_bridge
 set_fileset_property QUARTUS_SYNTH ENABLE_RELATIVE_INCLUDE_PATHS false
 set_fileset_property QUARTUS_SYNTH ENABLE_FILE_OVERWRITE_MODE false
-add_fileset_file altera_up_external_bus_to_avalon_bridge.v VERILOG PATH src/altera_up_external_bus_to_avalon_bridge.v TOP_LEVEL_FILE
+add_fileset_file altera_up_external_bus_to_avalon_bridge.v VERILOG PATH src/altera_up_external_bus_to_avalon_bridge.v \
+	TOP_LEVEL_FILE
 
 # +-----------------------------------
 # | parameters
-# | 
+# |
 add_parameter addr_size integer 4
 set_parameter_property addr_size DISPLAY_NAME "Address Range"
 #set_parameter_property addr_size GROUP "Address Range"
@@ -63,9 +64,9 @@ set_parameter_property data_size ALLOWED_RANGES {128 64 32 16 8}
 set_parameter_property data_size VISIBLE true
 set_parameter_property data_size ENABLED true
 
-# 
+#
 # HDL Parameters (Скрытые от пользователя, но передаваемые в Verilog как параметры)
-# 
+#
 add_parameter AW INTEGER 15
 set_parameter_property AW DISPLAY_NAME AW
 set_parameter_property AW TYPE INTEGER
@@ -90,47 +91,47 @@ set_parameter_property BW VISIBLE false
 set_parameter_property BW DERIVED true
 set_parameter_property BW HDL_PARAMETER true
 
-# | 
-# +-----------------------------------
 
+# |
+# +-----------------------------------
 # +-----------------------------------
 # | connection point clk
-# | 
+# |
 add_interface clk clock end
 set_interface_property clk enabled true
 
 add_interface_port clk clk clk Input 1
-# | 
-# +-----------------------------------
 
+# |
+# +-----------------------------------
 # +-----------------------------------
 # | connection point reset
-# | 
+# |
 add_interface reset reset end
 set_interface_property reset associatedClock clk
 set_interface_property reset enabled true
 set_interface_property reset synchronousEdges DEASSERT
 
 add_interface_port reset reset reset Input 1
-# | 
-# +-----------------------------------
 
+# |
+# +-----------------------------------
 # +-----------------------------------
 # | connection point avalon_master
-# | 
-add_interface avalon_master avalon start 
+# |
+add_interface avalon_master avalon start
 set_interface_property avalon_master associatedClock clk
 set_interface_property avalon_master associatedReset reset
 set_interface_property avalon_master burstOnBurstBoundariesOnly false
 set_interface_property avalon_master doStreamReads false
 set_interface_property avalon_master doStreamWrites false
 set_interface_property avalon_master linewrapBursts false
-# | 
-# +-----------------------------------
 
+# |
+# +-----------------------------------
 # +-----------------------------------
 # | Elaboration function
-# | 
+# |
 proc elaborate {} {
 	set addr_size [ get_parameter_value "addr_size" ]
 	set addr_size_multiplier [ get_parameter_value "addr_size_multiplier" ]
@@ -159,7 +160,7 @@ proc elaborate {} {
 
 	# +-----------------------------------
 	# | connection point avalon_master
-	# | 
+	# |
 	add_interface_port avalon_master avalon_readdata readdata Input $data_size
 	add_interface_port avalon_master avalon_waitrequest waitrequest Input 1
 	add_interface_port avalon_master avalon_byteenable byteenable Output $byte_en_bits
@@ -167,13 +168,13 @@ proc elaborate {} {
 	add_interface_port avalon_master avalon_write write Output 1
 	add_interface_port avalon_master avalon_writedata writedata Output $data_size
 	add_interface_port avalon_master avalon_address address Output $addr_width
-	# | 
-	# +-----------------------------------
 
+	# |
+	# +-----------------------------------
 	# +-----------------------------------
 	# | connection point external_interface (С исправленными ролями сигналов!)
 	# |
-	add_interface external_interface conduit end 
+	add_interface external_interface conduit end
 
 	add_interface_port external_interface address export_address Input $addr_width
 	add_interface_port external_interface byte_enable export_byte_enable Input $byte_en_bits
@@ -182,8 +183,8 @@ proc elaborate {} {
 	add_interface_port external_interface write_data export_write_data Input $data_size
 	add_interface_port external_interface acknowledge export_acknowledge Output 1
 	add_interface_port external_interface read_data export_read_data Output $data_size
-	# | 
+	# |
 	# +-----------------------------------
 }
-# | 
+# |
 # +-----------------------------------
