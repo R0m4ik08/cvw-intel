@@ -15,7 +15,6 @@ set_module_property DISPLAY_NAME "Modificated External Bus to Avalon Bridge"
 set_module_property INSTANTIATE_IN_SYSTEM_MODULE true
 set_module_property EDITABLE true
 set_module_property ELABORATION_CALLBACK elaborate
-set_module_property VALIDATION_CALLBACK generate
 set_module_property REPORT_TO_TALKBACK false
 set_module_property ALLOW_GREYBOX_GENERATION false
 set_module_property REPORT_HIERARCHY false
@@ -63,6 +62,34 @@ set_parameter_property data_size AFFECTS_GENERATION true
 set_parameter_property data_size ALLOWED_RANGES {128 64 32 16 8}
 set_parameter_property data_size VISIBLE true
 set_parameter_property data_size ENABLED true
+
+# 
+# HDL Parameters (Скрытые от пользователя, но передаваемые в Verilog как параметры)
+# 
+add_parameter AW INTEGER 15
+set_parameter_property AW DISPLAY_NAME AW
+set_parameter_property AW TYPE INTEGER
+set_parameter_property AW UNITS None
+set_parameter_property AW VISIBLE false
+set_parameter_property AW DERIVED true
+set_parameter_property AW HDL_PARAMETER true
+
+add_parameter DW INTEGER 15
+set_parameter_property DW DISPLAY_NAME DW
+set_parameter_property DW TYPE INTEGER
+set_parameter_property DW UNITS None
+set_parameter_property DW VISIBLE false
+set_parameter_property DW DERIVED true
+set_parameter_property DW HDL_PARAMETER true
+
+add_parameter BW INTEGER 1
+set_parameter_property BW DISPLAY_NAME BW
+set_parameter_property BW TYPE INTEGER
+set_parameter_property BW UNITS None
+set_parameter_property BW VISIBLE false
+set_parameter_property BW DERIVED true
+set_parameter_property BW HDL_PARAMETER true
+
 # | 
 # +-----------------------------------
 
@@ -120,6 +147,16 @@ proc elaborate {} {
 	set addr_width [ expr int (ceil (log ($addr_span) / (log (2)))) ]
 	set byte_en_bits [ expr $data_size / 8 ]
 
+	# Вычисляем значения параметров для передачи в Verilog
+	set aw_val [ expr $addr_width - 1 ]
+	set dw_val [ expr $data_size - 1 ]
+	set bw_val [ expr $byte_en_bits - 1 ]
+
+	# Передаем вычисленные значения в HDL-параметры
+	set_parameter_value AW $aw_val
+	set_parameter_value DW $dw_val
+	set_parameter_value BW $bw_val
+
 	# +-----------------------------------
 	# | connection point avalon_master
 	# | 
@@ -134,7 +171,7 @@ proc elaborate {} {
 	# +-----------------------------------
 
 	# +-----------------------------------
-	# | connection point external_interface
+	# | connection point external_interface (С исправленными ролями сигналов!)
 	# |
 	add_interface external_interface conduit end 
 
@@ -147,39 +184,6 @@ proc elaborate {} {
 	add_interface_port external_interface read_data export_read_data Output $data_size
 	# | 
 	# +-----------------------------------
-}
-# | 
-# +-----------------------------------
-
-# +-----------------------------------
-# | Generation function
-# | 
-proc generate {} {
-	send_message info "Starting Generation of External Bus to Avalon Bridge"
-
-	# get parameter values
-	set addr_size [ get_parameter_value "addr_size" ]
-	set addr_size_multiplier [ get_parameter_value "addr_size_multiplier" ]
-	set data_size [ get_parameter_value "data_size" ]
-
-	if { $addr_size_multiplier == "Mbytes" } {
-		set addr_span [ expr $addr_size * 1048576 ]
-	} elseif { $addr_size_multiplier == "Kbytes" } {
-		set addr_span [ expr $addr_size * 1024 ]
-	} else {
-		set addr_span [ expr $addr_size * 1 ]
-	}
-
-	set aw	[ format "AW:%.0f"	[ expr (ceil (log ($addr_span) / (log (2)))) - 1 ] ]
-	set dw	[ format "DW:%d"		[ expr $data_size - 1 ] ]
-	set bw	[ format "BW:%.0f"	[ expr ($data_size / 8) - 1 ] ]
-
-	# set section values
-
-	# set arguments
-	set params "$aw;$dw;$bw"
-	set sections ""
-
 }
 # | 
 # +-----------------------------------

@@ -27,7 +27,12 @@
  *                                                                            *
  ******************************************************************************/
 
-module altera_up_external_bus_to_avalon_bridge (
+module altera_up_external_bus_to_avalon_bridge #(
+	parameter	AW	= 17,	// Address width
+	parameter	DW	= 16,	// Data width
+
+	parameter	BW	= 1		// Byte enable width
+) (
 	// Inputs
 	clk,
 	reset,
@@ -59,14 +64,6 @@ module altera_up_external_bus_to_avalon_bridge (
 );
 
 
-/*****************************************************************************
- *                           Parameter Declarations                          *
- *****************************************************************************/
-
-parameter	AW	= 17;	// Address width
-parameter	DW	= 16;	// Data width
-
-parameter	BW	= 1;	// Byte enable width
 
 /*****************************************************************************
  *                             Port Declarations                             *
