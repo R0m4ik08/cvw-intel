@@ -128,6 +128,8 @@ module testbench;
         .SPI_MISO(SPI_MISO),
         .SPI_CS  (SPI_CS),
 
+        .UART_RXD(UART_RXD),
+        .UART_TXD(UART_TXD),
 
         .EXT_IO(EXT_IO)
     );
@@ -142,7 +144,7 @@ module testbench;
         .DATA_WIDTH(16),
         .INIT_FILE("sram_init.hex"
             )  // Раскомментируйте для использования файла
-        //.INIT_FILE("")  // Или оставьте пустым для инициализации нулями
+               //.INIT_FILE("")  // Или оставьте пустым для инициализации нулями
     ) sram_inst (
         .DQ  (SRAM_DQ),
         .ADDR(SRAM_ADDR),
@@ -152,11 +154,5 @@ module testbench;
         .LB_N(SRAM_LB_N),
         .UB_N(SRAM_UB_N)
     );
-
-    // ------------------------------------------------------------------------
-    // Мониторинг UART вывода (пример)
-    always @(posedge UART_TXD) begin
-        $display("UART TX toggled at %0t ns", $time);
-    end
 
 endmodule

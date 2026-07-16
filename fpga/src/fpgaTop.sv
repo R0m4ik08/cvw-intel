@@ -70,7 +70,7 @@ module fpgaTop #(
     output wire UART_TXD,
 
     // UART_2
-    output wire [0:6] EXT_IO
+    inout wire [0:6] EXT_IO
 );
 
     // ---------------------------------------------------------------------------
@@ -134,8 +134,8 @@ module fpgaTop #(
         .wally_spi_export4(SPI_CS),
 
         // UART
-        .wally_uart_export1(EXT_IO[0]),  // RX
-        .wally_uart_export2(EXT_IO[1]),  // TX
+        .wally_uart_export1(UART_RXD),  // RX
+        .wally_uart_export2(UART_TXD),  // TX
 
         // HEX
         .hex3_hex0_export(hex3_hex0_out),
@@ -144,17 +144,20 @@ module fpgaTop #(
         .wally_control_export1(1'b0)
     );
 
-    assign LEDR = wally_gpio_out3[w_ledr-1 : 0];
-    assign LEDG = wally_gpio_out3[w_ledr+w_ledg-1 : w_ledr];
+    assign EXT_IO[0] = UART_RXD;
+    assign EXT_IO[1] = UART_TXD;
+
+    assign LEDR      = wally_gpio_out3[w_ledr-1 : 0];
+    assign LEDG      = wally_gpio_out3[w_ledr+w_ledg-1 : w_ledr];
 
     // Tie HEX displays off by default (safe inactive value)
-    assign HEX0 = ~hex3_hex0_out[6:0];
-    assign HEX1 = ~hex3_hex0_out[14:8];
-    assign HEX2 = ~hex3_hex0_out[22:16];
-    assign HEX3 = ~hex3_hex0_out[30:24];
-    assign HEX4 = 7'h7f;
-    assign HEX5 = 7'h7f;
-    assign HEX6 = 7'h7f;
-    assign HEX7 = 7'h7f;
+    assign HEX0      = ~hex3_hex0_out[6:0];
+    assign HEX1      = ~hex3_hex0_out[14:8];
+    assign HEX2      = ~hex3_hex0_out[22:16];
+    assign HEX3      = ~hex3_hex0_out[30:24];
+    assign HEX4      = 7'h7f;
+    assign HEX5      = 7'h7f;
+    assign HEX6      = 7'h7f;
+    assign HEX7      = 7'h7f;
 
 endmodule
