@@ -1,0 +1,13 @@
+Language: Cpp
+BasedOnStyle: Google
+IndentWidth: 2
+ColumnLimit: 88
+AlignConsecutiveDeclarations: Consecutive
+AlignConsecutiveAssignments:
+  Enabled: true
+  AcrossEmptyLines: false
+  AcrossComments: true
+  AlignCompound: true
+AlignConsecutiveMacros: Consecutive
+
+PointerAlignment: Left

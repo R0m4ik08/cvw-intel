@@ -39,7 +39,6 @@ module div import config_pkg::*;   (
   output logic              DivBusyE,                       // Divide is busy - stall pipeline
   output logic [XLEN-1:0] QuotM, RemM                     // Quotient and remainder outputs
  );
-generate
   localparam STEPBITS = $clog2(XLEN/IDIV_BITSPERCYCLE); // Number of steps
 
   typedef enum logic [1:0] {IDLE, BUSY, DONE} statetype;    // division FSM state
@@ -69,6 +68,7 @@ generate
   assign DivStartE = IntDivE & (state == IDLE) & ~StallM; 
   assign DivBusyE = (state == BUSY) | DivStartE;
 
+generate
   // Handle sign extension for W-type instructions
   if (XLEN == 64) begin:rv64 // RV64 has W-type instructions
     mux2 #(XLEN) xinmux(ForwardedSrcAE, {ForwardedSrcAE[31:0], 32'b0}, W64E, XinE);
@@ -77,6 +77,7 @@ generate
     assign XinE = ForwardedSrcAE;
     assign DinE = ForwardedSrcBE;      
     end   
+endgenerate
 
   // Extract sign bits and check for division by zero
   assign SignDE = DivSignedE & DinE[XLEN-1]; 
@@ -103,12 +104,13 @@ generate
   flopen #(XLEN) xreg(clk, DivBusyE, XQNext, XQ[0]);
   flopen #(XLEN) dabsreg(clk, DivStartE, DAbsBE, DAbsB);
 
+generate
   // one copy of divstep for each bit produced per cycle
   genvar i;
   for (i=0; i<IDIV_BITSPERCYCLE; i = i+1) begin : bn_for1
     divstep #(XLEN) divstep(W[i], XQ[i], DAbsB, W[i+1], XQ[i+1]);
   end
-
+endgenerate
   //////////////////////////////
   // Memory Stage: output sign correction and special cases
   //////////////////////////////
@@ -142,5 +144,4 @@ generate
       if (StallM) state <= DONE;
       else        state <= IDLE;
     end 
-endgenerate
 endmodule 

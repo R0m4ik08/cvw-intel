@@ -319,12 +319,12 @@ module wallypipelinedcore import config_pkg::*; (
     end
   
     // multiply/divide unit
-    if (ZMMUL_SUPPORTED) begin:mdu
+    if (M_SUPPORTED | ZMMUL_SUPPORTED) begin:mdu
       mdu mdu(.clk, .reset, .StallM, .StallW, .FlushE, .FlushM, .FlushW,
         .ForwardedSrcAE, .ForwardedSrcBE, 
         .Funct3E, .Funct3M, .IntDivE, .W64E, .MDUActiveE,
         .MDUResultW, .DivBusyE); 
-    end else begin // no M instructions supported
+    end else begin:no_mdu // no M instructions supported
       assign MDUResultW = '0; 
       assign DivBusyE   = 1'b0;
     end

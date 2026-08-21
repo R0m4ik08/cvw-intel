@@ -14,7 +14,8 @@ ENTRY(_start)
 
 MEMORY
 {
-    SRAM (rwx) : ORIGIN = 0x02000000, LENGTH = 1M
+    /* TODO: Связать с config.vh */ 
+    SRAM (rwx) : ORIGIN = 0x20000000, LENGTH = 1M
 }
 
 SECTIONS
@@ -33,6 +34,13 @@ SECTIONS
     .text : {
         *(.text .text.*)
         *(.rodata*)
+    } > SRAM
+
+    .fast_constants : 
+    {
+        . = ALIGN(4);
+        *(.srodata*)       /* И остальные мелкие константы заодно */
+        . = ALIGN(4);
     } > SRAM
 
     /* Initialized data */

@@ -63,7 +63,6 @@ module fpu import config_pkg::*;   (
   output logic                 FCvtIntW,                           // select FCvtIntRes (to IEU)
   output logic [XLEN-1:0]    FIntDivResultW                      // Result from integer division (to IEU)
 );
-generate
   // RISC-V FPU specifics:
   //    - multiprecision support uses NAN-boxing, putting 1's in unused msbs
   //    - RISC-V detects underflow after rounding
@@ -208,6 +207,8 @@ generate
   mux3  #(FLEN)  fyemux (FRD2E, FResultW, PreFpResM, ForwardYE, PreYE);
   mux3  #(FLEN)  fzemux (FRD3E, FResultW, PreFpResM, ForwardZE, PreZE);
 
+generate
+  
   // Select NAN-boxed value of Y = 1.0 in proper format for fma to add/subtract X*Y+Z
   if(FPSIZES == 1) assign BoxedOneE = {2'b0, {NE-1{1'b1}}, (NF)'(0)};
   else if(FPSIZES == 2) 
@@ -232,6 +233,8 @@ generate
                                 (FLEN)'(0), FmtE, BoxedZeroE); // NaN boxing zeroes
   assign FmaZSelE = {OpCtrlE[2]&OpCtrlE[1], OpCtrlE[2]&~OpCtrlE[1]};
   mux3  #(FLEN)  fzmulmux (PreZE, BoxedZeroE, PreYE, FmaZSelE, ZE);
+
+endgenerate
 
   // unpack unit: splits FP inputs into their parts and classifies SNaN, NaN, Subnorm, Norm, Zero, Infinity
   unpack  unpack (.X(XE), .Y(YE), .Z(ZE), .Fmt(FmtE), .Xs(XsE), .Ys(YsE), .Zs(ZsE), 
@@ -272,6 +275,7 @@ generate
     .ResSubnormUf(CvtResSubnormUfE), .Cs(CsE), .IntZero(IntZeroE), .LzcIn(CvtLzcInE));
 
   // ZFA: fround and floating-point load immediate fli
+generate
   if (ZFA_SUPPORTED) begin:Zfa
     logic [4:0] Rs1E;
     logic [1:0] Fmt2E; // Two-bit format field from instruction
@@ -343,6 +347,8 @@ generate
     assign IntSrcXE = {{(XLEN-FLEN){mvsgn}}, SgnExtXE};
   mux3 #(XLEN) IntResMux (ClassResE, IntSrcXE, CmpIntResE, {~FResSelE[1], FResSelE[0]}, FIntResE);
 
+endgenerate
+
   // E/M pipe registers
 
   // Need to stall during divsqrt iterations to avoid capturing bad flags from stale forwarded sources
@@ -393,5 +399,4 @@ generate
 
   // select the result to be written to the FP register
   mux2  #(FLEN)  FResultMux (FpResW, ReadDataW, FResSelW[1], FResultW);
-endgenerate
 endmodule // fpu

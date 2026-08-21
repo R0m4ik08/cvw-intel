@@ -16,6 +16,13 @@ FILE_NAME_QSYS_IPS_SRC := $(notdir $(wildcard $(SRC_QSYS_DIR)/src/* ) )
 PATH +=;$(QUARTUS_BIN);
 PATH +=;$(QSYS_BIN);
 
+# Список исходных RTL-файлов (Verilog / SystemVerilog) для отслеживания изменений
+# TODO: Неполный список исходников
+RTL_SOURCES := $(wildcard fpga/src/*.v) $(wildcard fpga/src/*.sv)
+
+# Файл-маркер (stamp), фиксирующий время последнего успешного анализа RTL в Quartus
+MAP_STAMP := $(BUILD_DIR)/.map_stamp
+
 .PHONY: all qsys_generate quartus_create quartus_build clean docker_setup docker_check docker_build docker_load
 
 all: qsys_generate quartus_create
@@ -98,8 +105,11 @@ quartus_open: $(BUILD_DIR)/$(PROJECT).qpf | qsys_generate
 #	через cmd чтобы работала команда start, через start, чтобы терминал не ожидал закрытия приложения
 	cmd.exe /c start quartus $<
 
+# Path to ZSBL MIF (change here if bootloader output location changes)
+ZSBL_MIF := zsbl/build/boot.mif
+
 # TODO: Нужно еще добавить зависимость от Verilog исходников
-$(BUILD_DIR)/output_files/$(PROJECT).sof: zsbl/bin/boot.mif | qsys_generate zsbl_build quartus_create 
+$(BUILD_DIR)/output_files/$(PROJECT).sof: $(ZSBL_MIF) | qsys_generate zsbl_build quartus_create 
 	cd $(BUILD_DIR) && quartus_map --read_settings_files=on --write_settings_files=off $(PROJECT) -c $(PROJECT)
 	cd $(BUILD_DIR) && quartus_fit --read_settings_files=off --write_settings_files=off $(PROJECT) -c $(PROJECT)
 	cd $(BUILD_DIR) && quartus_asm --read_settings_files=off --write_settings_files=off $(PROJECT) -c $(PROJECT)
@@ -114,13 +124,29 @@ quartus_rebuild: $(BUILD_DIR)/$(PROJECT).qpf
 	rm -rf $(BUILD_DIR)/output_files/$(PROJECT).sof
 	make quartus_build
 
-$(BLD_QSYS_PRJ)/modelsim.ini: $(BUILD_DIR)/$(PROJECT).qpf
-	cd $(BUILD_DIR) && quartus_map --read_settings_files=on --write_settings_files=off Wally_CS -c Wally_CS --analysis_and_elaboration
+# =========================================================================
+# Создание и настройка проекта QuestaSim (modelsim.ini).
+# Зависит от:
+# - $(MAP_STAMP) : если обновился RTL, сначала отработает шаг 1, затем этот.
+# - $(ZSBL_MIF)  : если изменилась только прошивка, шаг 1 пропускается,
+#                  но этот шаг всё равно выполнится, обновляя проект симуляции.
+# =========================================================================
+$(BLD_QSYS_PRJ)/modelsim.ini: $(MAP_STAMP) $(ZSBL_MIF)
+	@echo "Updating QuestaSim simulation project..."
 	cd $(BUILD_DIR) && quartus_sh -t "$(QUARTUS_ROOTDIR)/common/tcl/internal/nativelink/qnativesim.tcl" --rtl_sim --no_gui "$(PROJECT)" "$(PROJECT)"
 # => Костыль, после добавления sram_model.sv в проект в qsim перестал автоматически добавлятся	testbench.sv
 	cd $(BLD_QSYS_PRJ) && vlog -sv -work work ../../../fpga/src/testbench.sv
 # ==
 	cd $(BLD_QSYS_PRJ) && vopt work.testbench +acc -o _testbench -L $(PROJECT) -L altera_mf_ver
+
+# =========================================================================
+#  Анализ и синтез (elaboration). Зависит от файлов проекта и исходников.
+#  Выполняется только если изменился файл проекта (.qpf) или любой RTL-файл.
+# =========================================================================
+$(MAP_STAMP): $(BUILD_DIR)/$(PROJECT).qpf $(RTL_SOURCES)
+	@echo "RTL or QPF changed. Running Quartus analysis & elaboration..."
+	cd $(BUILD_DIR) && quartus_map --read_settings_files=on --write_settings_files=off Wally_CS -c Wally_CS --analysis_and_elaboration
+	touch $@
 
 qsim_create: | qsys_generate quartus_create $(BLD_QSYS_PRJ)/modelsim.ini $(BLD_QSYS_PRJ)/rtl_work/@_testbench
 	@echo "Questasim project is created"
@@ -132,7 +158,8 @@ qsim_open: | qsim_create
 qsim_clean:
 	rm -rf $(BLD_QSYS_PRJ)
 
-qsim_rebuild: qsim_clean qsim_create
+qsim_rebuild: 
+	make qsim_clean qsim_create
 
 quartus_program: quartus_build
 	quartus_pgm -c USB-Blaster -m jtag -o "p;$(BUILD_DIR)/output_files/$(REVISION).sof"
@@ -144,14 +171,14 @@ sc_terminal:
 	system-console --project_dir=./$(BUILD_DIR) --rc_script=scripts/system_console/sc_rc.tcl -cli
 
 # ========================================
-#	Zero Stage Boot Loader
+#	Zero Stage Boot Loader (build via SDK)
 # ========================================
 
-zsbl/bin/boot.mif: zsbl/src/*
-	@echo "Run docker and do make..."
-	docker run --rm -v ./zsbl:/zsbl -w /zsbl -w /zsbl -it riscv-gnu-toolchain make
+$(ZSBL_MIF): zsbl/src/* zsbl/Makefile zsbl/Makefile.inc
+	@echo "Building ZSBL via SDK..."
+	docker run --rm -v ./zsbl:/work/zsbl -v ./sdk:/work/sdk -w /work/zsbl riscv-gnu-toolchain bash -c 'source ../sdk/setup.sh && make'
 
-zsbl_build: | zsbl/bin/boot.mif
+zsbl_build: | $(ZSBL_MIF)
 	@echo "boot.mif was generated"
 
 # ========================================
@@ -166,7 +193,7 @@ run_docker_gnu_toolchain:
 		echo "Removing container riscv-dev..."; \
 		docker rm riscv-dev; \
 	fi
-	docker run -v ./zsbl:/work/zsbl -v ./sdk:/work/sdk -w /work --name riscv-dev -it riscv-gnu-toolchain
+	docker run -v ./zsbl:/work/zsbl -v ./sdk:/work/sdk -w /work --name riscv-dev -it riscv-gnu-toolchain bash -c 'source ./sdk/setup.sh && bash'
 
 # ========================================
 #	Other

@@ -33,7 +33,11 @@ module lzc #(parameter WIDTH = 1) (
   
   always_comb begin
     i = 0;
-    while ((i < WIDTH) & ~num[WIDTH-1-i]) i = i+1;  // search for leading one
+    // search for leading one
+    while (i < WIDTH) begin
+      if (num[WIDTH-1-i]) break;  // внутри цикла всегда i < WIDTH → индекс в [WIDTH-1:0]
+      i = i + 1;
+    end
     ZeroCnt = i[$clog2(WIDTH+1)-1:0];
   end
 endmodule

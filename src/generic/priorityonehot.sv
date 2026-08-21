@@ -38,6 +38,7 @@ module priorityonehot #(parameter N = 8) (
   input  logic  [N-1:0] a,
   output logic  [N-1:0] y
 );
+generate
 
   genvar i;
   
@@ -45,5 +46,6 @@ module priorityonehot #(parameter N = 8) (
   for (i=1; i<N; i++) begin:poh
     assign y[i] = a[i] & ~|a[i-1:0];
   end
-
+  
+endgenerate
 endmodule

@@ -95,7 +95,6 @@ module csr import config_pkg::*;   (
   output logic                     IllegalCSRAccessM,         // Illegal CSR access: CSR doesn't exist or is inaccessible at this privilege level
   output logic                     BigEndianM                 // memory access is big-endian based on privilege mode and STATUS register endian fields
 );
-generate
   localparam MIP = 12'h344;
   localparam SIP = 12'h144;
   
@@ -157,6 +156,7 @@ generate
   assign TVecAlignedM = {TVecM[XLEN-1:2], 2'b00};
 
   // Support vectored interrupts
+generate
   if(VECTORED_INTERRUPTS_SUPPORTED) begin:vec
     logic VectoredM;
     logic [XLEN-1:0] TVecPlusCauseM;
@@ -165,6 +165,7 @@ generate
     mux2 #(XLEN) trapvecmux(TVecAlignedM, TVecPlusCauseM, VectoredM, TrapVectorM);
   end else 
     assign TrapVectorM = TVecAlignedM; // unvectored interrupt handler can be at any word-aligned address. This is called Sstvecd
+endgenerate
 
   // Trap Returns
   // A trap sets the PC to TrapVector
@@ -239,7 +240,7 @@ generate
     .IllegalCSRMAccessM, .IllegalCSRMWriteReadonlyM,
     .MENVCFG_REGW);
 
-
+generate
   if (S_SUPPORTED) begin:csrs
     logic STCE; 
     assign STCE = SSTC_SUPPORTED & (PrivilegeModeW == M_MODE | (MCOUNTEREN_REGW[1] & ENVCFG_STCE));
@@ -291,6 +292,7 @@ generate
     assign CSRCReadValM = '0;
     assign IllegalCSRCAccessM = 1'b1; // counters aren't enabled
   end
+endgenerate
 
    // Broadcast appropriate environment configuration based on privilege mode
   assign ENVCFG_STCE =  MENVCFG_REGW[63]; // supervisor timer counter enable
@@ -314,5 +316,4 @@ generate
   assign IllegalCSRAccessM = ((IllegalCSRCAccessM & IllegalCSRMAccessM & 
     IllegalCSRSAccessM & IllegalCSRUAccessM |
     InsufficientCSRPrivilegeM) & CSRReadM) | IllegalCSRMWriteReadonlyM;
-endgenerate
 endmodule

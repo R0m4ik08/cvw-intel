@@ -107,39 +107,42 @@ void print_uart_dec(uint64_t addr) {
   }
 }
 
-// Print a floating point number on the UART 
-void print_uart_float(float num, int precision) {
-  char str[32] = {'\0'};
-  char digit;
-  uint8_t length = precision + 1;
-  int i;
-  uint64_t cur;
-  
-  str[precision] = '.';
 
-  int pow = 1;
-
-  // Calculate power for precision
-  for (i = 0; i < precision; i++) {
-    pow = pow * 10;
-  }
+// TODO: Пока не решен вопрос с расширениями F D Q
+//
+// // Print a floating point number on the UART 
+// void print_uart_float(float num, int precision) {
+//   char str[32] = {'\0'};
+//   char digit;
+//   uint8_t length = precision + 1;
+//   int i;
+//   uint64_t cur;
   
-  cur = (uint64_t)(num * pow);
-  for (i = 0; i < precision; i++) {
-    digit = bin_to_hex_table[cur % 10];
-    str[i] = digit;
-    cur = cur / 10;
-  }
+//   str[precision] = '.';
 
-  cur = (uint64_t)num;
-  do {
-    digit = bin_to_hex_table[cur % 10];
-    str[length] = digit;
-    cur = cur/10;
-    length++;
-  } while (cur != 0);
+//   int pow = 1;
+
+//   // Calculate power for precision
+//   for (i = 0; i < precision; i++) {
+//     pow = pow * 10;
+//   }
   
-  for (i = length; i > -1; i--) {
-    write_serial(str[i]);
-  }
-}
+//   cur = (uint64_t)(num * pow);
+//   for (i = 0; i < precision; i++) {
+//     digit = bin_to_hex_table[cur % 10];
+//     str[i] = digit;
+//     cur = cur / 10;
+//   }
+
+//   cur = (uint64_t)num;
+//   do {
+//     digit = bin_to_hex_table[cur % 10];
+//     str[length] = digit;
+//     cur = cur/10;
+//     length++;
+//   } while (cur != 0);
+  
+//   for (i = length; i > -1; i--) {
+//     write_serial(str[i]);
+//   }
+// }

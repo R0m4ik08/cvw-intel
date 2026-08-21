@@ -11,6 +11,7 @@
 #define __GPIOLIB_H
 
 #include <stdint.h>
+#include <system.h>
 
 ///////////////////////////////////////////////////////////////////////////////
 // Bitfield Structs
@@ -42,9 +43,11 @@ typedef struct
 // GPIO Constant Definitions
 ///////////////////////////////////////////////////////////////////////////////
 
-#define GPIO0_BASE  (0x10060000U)   // GPIO memory-mapped base address
+#ifndef GPIO_BASE
+#define GPIO_BASE 0x00015000
+#endif
 
-#define GPIO0 ((GPIO*) GPIO0_BASE)  // Set up pointer to struct of type GPIO aligned at the base GPIO0 memory-mapped address
+#define GPIO0 ((GPIO*) GPIO_BASE)  // Set up pointer to struct of type GPIO aligned at the base GPIO0 memory-mapped address
 
 #define LOW 0
 #define HIGH 1

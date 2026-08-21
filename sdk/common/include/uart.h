@@ -14,10 +14,14 @@
 
 #pragma once
 #include <stdint.h>
+#include <system.h>
 #include "riscv.h"
 
 // UART register addresses
-#define UART_BASE 0x10000000
+#ifndef UART_BASE
+#define UART_BASE 0x00016000
+#endif
+
 
 #define UART_RBR UART_BASE + 0x00
 #define UART_THR UART_BASE + 0x00
@@ -43,7 +47,8 @@ void print_uart_dec(uint64_t addr);
 void print_uart_addr(uint64_t addr);
 void print_uart_hex(uint64_t addr, int n);
 void print_uart_byte(uint8_t byte);
-void print_uart_float(float num, int precision);
+// Пока не решен вопрос с расширениями F D Q
+//void print_uart_float(float num, int precision);
 
 // Print numbers in hex with specified widths
 #define print_uart_int(addr) print_uart_hex(addr, 4)

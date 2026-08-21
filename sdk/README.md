@@ -9,7 +9,7 @@ SDK для разработки пользовательских програм�
 cd sdk
 make
 
-# Результат: build/program.mif
+# Результат: examples/hello/build/program.mif
 ```
 
 ## Использование
@@ -22,9 +22,13 @@ make
 
 # Сборка конкретного проекта
 make PROJECT=examples/hello
+make PROJECT=examples/clint_timer   # Счётчик секунд на таймере CLINT
 
 # Сборка внешнего проекта
 make PROJECT=/path/to/my_project
+
+# Сборка загрузчика ZSBL (внешний проект)
+make PROJECT=../zsbl
 
 # Очистка
 make clean
@@ -37,9 +41,14 @@ make info
 
 ```
 my_project/
-└── src/
-    ├── main.c      # Точка входа (функция main)
-    └── ...         # Дополнительные файлы (.c, .S)
+├── src/
+│   ├── main.c      # Точка входа (функция main)
+│   └── ...         # Дополнительные файлы (.c, .S)
+└── build/          # Выходные файлы (создается при сборке)
+    ├── program.elf
+    ├── program.hex
+    ├── program.mif
+    └── program.objdump
 ```
 
 ## Структура SDK
@@ -48,31 +57,38 @@ my_project/
 sdk/
 ├── Makefile              # Система сборки
 ├── README.md             # Документация (этот файл)
+├── setup.sh              # Настройка окружения
 ├── common/
 │   ├── linker.x          # Linker script для SRAM
 │   ├── startup.S         # Startup-код с magic number
 │   └── include/
 │       ├── system.h      # Системные константы
+│       ├── clint.h       # CLINT (таймер, прерывания) — константы
 │       ├── uart.h        # UART API
 │       ├── gpiolib.h     # GPIO API
-│       └── riscv.h       # RISC-V утилиты
+│       └── riscv.h       # RISC-V утилиты (CSR, riscv.S)
 ├── lib/
 │   ├── uart.c            # Реализация UART
-│   └── riscv.S           # RISC-V ассемблерные функции
-├── examples/
-│   └── hello/            # Пример программы
-│       └── src/
-│           └── main.c
-└── build/                # Выходные файлы (создается при сборке)
+│   └── riscv.S           # RISC-V ассемблерные функции (в т.ч. csr_read/csr_write)
+└── examples/
+    ├── hello/            # Пример: приветствие, счётчик, UART
+    │   ├── src/
+    │   │   └── main.c
+    │   └── build/
+    └── clint_timer/      # Пример: счётчик секунд на CLINT (обработчик прерываний)
+        ├── src/
+        │   ├── main.c
+        │   └── trap_handler.S
+        └── build/
 ```
 
 ## Выходные файлы
 
-После сборки в директории `build/` создаются:
+После сборки в директории `<PROJECT>/build/` создаются:
 
 | Файл              | Описание                              |
 |-------------------|---------------------------------------|
-| `program.elf`     | ELF-файл программы                    |
+| `program.elf`     | ELF-файл программы (имя по умолчанию; для ZSBL — boot.elf) |
 | `program.hex`     | Intel HEX формат                      |
 | `program.mif`     | MIF для загрузки в SRAM (Quartus)     |
 | `program.objdump` | Дизассемблированный листинг           |
@@ -111,6 +127,21 @@ print_uart_byte(0xFF);    // Hex (1 байт)
 print_uart_addr(0x12345678); // Hex (8 байт)
 ```
 
+### CLINT (таймер, прерывания)
+
+```c
+#include "clint.h"
+#include "riscv.h"
+
+// Константы: CLINT_BASE, CLINT_MTIME_LO_ADDR, CLINT_MTIME_HI_ADDR,
+//           CLINT_MTIMECMP_LO_ADDR, CLINT_MTIMECMP_HI_ADDR
+// CSR: csr_read(CSR_MTVEC), csr_write(CSR_MTVEC, addr);
+//      csr_read(CSR_MIE), csr_write(CSR_MIE, val);  // MTIE = bit 7
+//      csr_read(CSR_MSTATUS), csr_write(CSR_MSTATUS, val);  // MIE = bit 3
+```
+
+Пример использования: `examples/clint_timer` — счётчик секунд на основе прерывания машинного таймера CLINT (MTIME/MTIMECMP).
+
 ### GPIO
 
 ```c
@@ -126,19 +157,6 @@ digitalWrite(0, LOW);
 
 // Чтение
 int val = digitalRead(1);
-```
-
-### Системные константы
-
-```c
-#include "system.h"
-
-SYSTEMCLOCK   // 50000000 Hz
-SRAM_BASE     // 0x02000000
-UART_BASE     // 0x10000000
-GPIO_BASE     // 0x10060000
-HEX_BASE      // 0x03000000
-SDRAM_BASE    // 0x08000000
 ```
 
 ## Интеграция с ZSBL
@@ -182,13 +200,31 @@ SDRAM_BASE    // 0x08000000
    make PROJECT=my_project
    ```
 
-4. Загрузите `build/program.mif` в SRAM через Quartus
+4. Загрузите `my_project/build/program.mif` в SRAM через Quartus
 
 ## Требования
 
-- RISC-V GCC Toolchain (`riscv64-unknown-elf-gcc`)
-- Python 3 (для hex2mif.py)
-- GNU Make
+- **Windows**: Docker (сборка через образ `riscv-gnu-toolchain`), GNU Make
+
+## Настройка окружения
+
+### Docker (Windows)
+
+При запуске `make run_docker_gnu_toolchain` из корня репозитория окружение настраивается через `setup.sh` (RISCV уже задан в образе).
+
+**Примечание:** В контейнере команда `gcc` — компилятор для x86 (хост). Для RISC-V после `source setup.sh` доступны алиасы: `riscv-gcc`, `riscv-as`, `riscv-ld`, `riscv-objcopy`, `riscv-objdump`, `riscv-elf2hex`.
+
+## Опциональная конфигурация проекта (Makefile.inc)
+
+Проект может задать свой скрипт линкера, отключить общий startup и имя цели, создав в каталоге проекта файл `Makefile.inc`. Переменные (значения по умолчанию в скобках):
+
+| Переменная     | По умолчанию              | Описание |
+|----------------|---------------------------|----------|
+| `LINKER_SCRIPT`| `$(COMMON_DIR)/linker.x`  | Скрипт линкера |
+| `COMMON_SRCS`  | `$(COMMON_DIR)/startup.S`| Общий startup (пусто = только исходники проекта и lib) |
+| `TARGET_NAME`  | `program`                | База имени выходных файлов (program.elf, program.mif и т.д.) |
+
+Пример для загрузчика (другой линкер, свой entry, без magic/startup): в `Makefile.inc` задать `LINKER_SCRIPT`, `COMMON_SRCS :=`, `TARGET_NAME := boot`. Так собирается ZSBL: `make PROJECT=../zsbl` из каталога sdk или `make -C zsbl` из корня репозитория.
 
 ## Параметры сборки
 
@@ -199,11 +235,4 @@ make SYSTEMCLOCK=100000000  # Изменить частоту
 make CFLAGS="-O3"           # Дополнительные флаги
 ```
 
-Доступные параметры:
-
-| Параметр      | По умолчанию | Описание              |
-|---------------|--------------|------------------------|
-| SYSTEMCLOCK   | 50000000     | Частота системы (Hz)   |
-| MAXSDCCLOCK   | 5000000      | Макс. частота SD (Hz)  |
-| EXT_MEM_BASE  | 0x80000000   | База внешней памяти    |
-| EXT_MEM_RANGE | 0x10000000   | Размер внешней памяти  |
+**Примечание:** При переносе выходного файла загрузчика (boot.mif) обновите ссылки в корневом Makefile, в ip_cores и в qip.

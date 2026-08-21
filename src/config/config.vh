@@ -43,7 +43,7 @@ localparam logic E_SUPPORTED = 0;
 
 // Integer instruction set extensions
 localparam logic ZIFENCEI_SUPPORTED = 1; // Instruction-Fetch fence
-localparam logic ZICSR_SUPPORTED    = 0; // CSR Instructions // Включение этого флага вызывает ошибку синтеза Quartus проекта
+localparam logic ZICSR_SUPPORTED    = 1; // CSR Instructions
 localparam logic ZICCLSM_SUPPORTED  = 1; // Misaligned loads/stores
 localparam logic ZICOND_SUPPORTED   = 1; // Integer conditional operations
 
@@ -54,15 +54,15 @@ localparam logic ZMMUL_SUPPORTED = 0;
 
 // Atomic extensions
 // A extension is Zaamo + Zalrsc
-localparam logic ZAAMO_SUPPORTED  = 0;
-localparam logic ZALRSC_SUPPORTED = 0;
+localparam logic ZAAMO_SUPPORTED  = 1;
+localparam logic ZALRSC_SUPPORTED = 1;
 
 // Bit manipulation extensions
 // B extension is Zba + Zbb + Zbs
-localparam logic ZBA_SUPPORTED = 0;
-localparam logic ZBB_SUPPORTED = 0;
-localparam logic ZBS_SUPPORTED = 0;
-localparam logic ZBC_SUPPORTED = 0;
+localparam logic ZBA_SUPPORTED = 1;
+localparam logic ZBB_SUPPORTED = 1;
+localparam logic ZBS_SUPPORTED = 1;
+localparam logic ZBC_SUPPORTED = 1;
 
 // Scalar crypto extensions
 // Zkn is all 6 of these
@@ -78,11 +78,11 @@ localparam logic ZKNH_SUPPORTED = 0;
 // All compressed extensions require Zca
 localparam logic ZCA_SUPPORTED = 0;
 localparam logic ZCB_SUPPORTED = 0;
-localparam logic ZCF_SUPPORTED = 1; // RV32 only, requires F
+localparam logic ZCF_SUPPORTED = 0; // RV32 only, requires F
 localparam logic ZCD_SUPPORTED = 0; // requires D
 
 // Floating point extensions
-localparam logic F_SUPPORTED   = 0;
+localparam logic F_SUPPORTED   = 1;
 localparam logic D_SUPPORTED   = 0;
 localparam logic Q_SUPPORTED   = 0;
 localparam logic ZFH_SUPPORTED = 0;
@@ -151,42 +151,56 @@ localparam WFI_TIMEOUT_BIT = 32'd16;
 
 // Peripheral Physical Addresses
 // Peripheral memory space extends from BASE to BASE+RANGE
-// Range should be a thermometer code with 0's in the upper bits and 1s in the lower bits
+// Range should be a thermometer code with 0's in the upper bits and 1s in the lower bits // ERR: Возможно (не проверено) декодер адресов был исправлен так, что Range не обязательно указывать в "thermometer code"
+
+// // Active
+
+localparam logic BOOTROM_SUPPORTED = 1;
+localparam logic BOOTROM_PRELOAD = 1'b0;                // ERR: По факту предзагрузка есть
+localparam logic [63:0] BOOTROM_BASE = 64'h00001000;
+localparam logic [63:0] BOOTROM_RANGE = 64'hffff;  // 64K
+
+localparam logic UNCORE_RAM_SUPPORTED = 1;
+localparam logic UNCORE_RAM_PRELOAD = 0;
+localparam logic [63:0] UNCORE_RAM_BASE = 64'h11000;
+localparam logic [63:0] UNCORE_RAM_RANGE = 64'h3fff; // 16K
+
+localparam logic GPIO_SUPPORTED = 1;
+localparam logic [63:0] GPIO_BASE = 64'h00015000;
+localparam logic [63:0] GPIO_RANGE = 64'h000000FF;
+
+localparam logic UART_SUPPORTED = 1;
+localparam logic [63:0] UART_BASE = 64'h00016000;
+localparam logic [63:0] UART_RANGE = 64'h00000007;
+
+localparam logic SDC_SUPPORTED = 1;
+localparam logic [63:0] SDC_BASE = 64'h00017000;
+localparam logic [63:0] SDC_RANGE = 64'h00000FFF;
+
+localparam logic SPI_SUPPORTED = 1;
+localparam logic [63:0] SPI_BASE = 64'h00018000;
+localparam logic [63:0] SPI_RANGE = 64'h00000FFF;
+
+localparam logic CLINT_SUPPORTED = 1;
+localparam logic [63:0] CLINT_BASE = 64'h01000000;
+localparam logic [63:0] CLINT_RANGE = 64'h0000FFFF;
+
+localparam logic PLIC_SUPPORTED = 1;
+localparam logic [63:0] PLIC_BASE = 64'h0C000000;
+localparam logic [63:0] PLIC_RANGE = 64'h03FFFFFF;
+
+localparam logic EXT_MEM_SUPPORTED = 1;
+localparam logic [63:0] EXT_MEM_BASE = 64'h10000000;
+localparam logic [63:0] EXT_MEM_RANGE = 64'h2fff_ffff;
+
+// // DeActive
+
 localparam logic DTIM_SUPPORTED = 0;
 localparam logic [63:0] DTIM_BASE        = 64'h80000000;
 localparam logic [63:0] DTIM_RANGE       = 64'h007FFFFF;
 localparam logic IROM_SUPPORTED = 0;
 localparam logic [63:0] IROM_BASE        = 64'h80000000;
 localparam logic [63:0] IROM_RANGE       = 64'h007FFFFF;
-localparam logic BOOTROM_SUPPORTED = 1;
-localparam logic [63:0] BOOTROM_BASE = 64'h00001000;
-localparam logic [63:0] BOOTROM_RANGE = 64'hffff;
-localparam logic BOOTROM_PRELOAD = 1'b0;
-localparam logic UNCORE_RAM_SUPPORTED = 1;
-localparam logic [63:0] UNCORE_RAM_BASE = 64'h11000;
-localparam logic [63:0] UNCORE_RAM_RANGE = 64'hfff;
-localparam logic UNCORE_RAM_PRELOAD = 0;
-localparam logic EXT_MEM_SUPPORTED = 1;
-localparam logic [63:0] EXT_MEM_BASE = 64'h02000000;
-localparam logic [63:0] EXT_MEM_RANGE = 64'h7ff_ffff;
-localparam logic CLINT_SUPPORTED = 1;
-localparam logic [63:0] CLINT_BASE = 64'h02000000;
-localparam logic [63:0] CLINT_RANGE = 64'h0000FFFF;
-localparam logic GPIO_SUPPORTED = 1;
-localparam logic [63:0] GPIO_BASE = 64'h10060000;
-localparam logic [63:0] GPIO_RANGE = 64'h000000FF;
-localparam logic UART_SUPPORTED = 1;
-localparam logic [63:0] UART_BASE = 64'h10000000;
-localparam logic [63:0] UART_RANGE = 64'h00000007;
-localparam logic PLIC_SUPPORTED = 1;
-localparam logic [63:0] PLIC_BASE = 64'h0C000000;
-localparam logic [63:0] PLIC_RANGE = 64'h03FFFFFF;
-localparam logic SDC_SUPPORTED = 1;
-localparam logic [63:0] SDC_BASE = 64'h00013000;
-localparam logic [63:0] SDC_RANGE = 64'h00000FFF;
-localparam logic SPI_SUPPORTED = 1;
-localparam logic [63:0] SPI_BASE = 64'h10040000;
-localparam logic [63:0] SPI_RANGE = 64'h00000FFF;
 
 // Bus Interface width
 localparam AHBW = (XLEN);

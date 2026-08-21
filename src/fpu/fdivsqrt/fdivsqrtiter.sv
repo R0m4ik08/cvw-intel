@@ -37,7 +37,6 @@ module fdivsqrtiter import config_pkg::*;   (
   output logic [DIVb+1:0] FirstC,                // Q2.DIVb
   output logic [DIVb+3:0] FirstWS, FirstWC       // Q4.DIVb
 );
-generate
   logic [DIVb+3:0]      WSNext[DIVCOPIES-1:0]; // Q4.DIVb
   logic [DIVb+3:0]      WCNext[DIVCOPIES-1:0]; // Q4.DIVb
   logic [DIVb+3:0]      WS[DIVCOPIES:0];       // Q4.DIVb
@@ -78,6 +77,7 @@ generate
 
   // C register/initialization mux: C = -R:
   // C = -4 = 00.000000... (in Q2.DIVb) for radix 4, C = -2 = 10.000000... for radix2
+generate
   if(RADIX == 4) assign initC = '0;
   else             assign initC = {2'b10, {{DIVb{1'b0}}}};
   mux2   #(DIVb+2) cmux(C[DIVCOPIES], initC, IFDivStartE, NextC); 
@@ -107,6 +107,7 @@ generate
       assign U[i+1]  = UNext[i];
       assign UM[i+1] = UMNext[i];
     end
+endgenerate
 
   // Send values from start of cycle for postprocessing
   assign FirstWS = WS[0];
@@ -114,6 +115,5 @@ generate
   assign FirstU  = U[0];
   assign FirstUM = UM[0];
   assign FirstC  = C[0];
-endgenerate
 endmodule
 

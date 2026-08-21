@@ -8,6 +8,8 @@
 #ifndef __SYSTEM_H
 #define __SYSTEM_H
 
+// TODO: Связать с config.vh (пока что большая часть задается из Makefile)
+
 /* System clock frequency (Hz) */
 #ifndef SYSTEMCLOCK
 #define SYSTEMCLOCK  50000000
@@ -28,13 +30,12 @@
 #endif
 
 #define EXT_MEM_END (EXT_MEM_BASE + EXT_MEM_RANGE)
-#define FDT_ADDRESS (EXT_MEM_END - 0x1000000)
 
 /* Memory map addresses */
-#define SRAM_BASE       0x02000000
-#define HEX_BASE        0x03000000
-#define SDRAM_BASE      0x08000000
-#define UART_BASE       0x10000000
-#define GPIO_BASE       0x10060000
+#define GPIO_BASE       0x00015000
+#define UART_BASE       0x00016000
+#define HEX_BASE        0x13000000
+#define SRAM_BASE       0x20000000
+#define SDRAM_BASE      0x38000000
 
 #endif /* __SYSTEM_H */

@@ -144,7 +144,6 @@ set_global_assignment -name SYSTEMVERILOG_FILE ../src/cache/cacheway.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../src/cache/cacheLRU.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../src/cache/cachefsm.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../src/cache/cache.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../src/generic/or_rows.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../src/mmu/tlb/tlblru.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../src/mmu/pmpchecker.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../src/mmu/pmpadrdec.sv
@@ -176,13 +175,27 @@ set_global_assignment -name SYSTEMVERILOG_FILE ../src/ifu/decompress.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../src/ifu/bpred/bpred.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../src/generic/mem/rom1p1r.sv
 
-set_global_assignment -name SYSTEMVERILOG_FILE ../src/generic/mux.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../src/generic/flop/flopr.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../src/generic/flop/flopenrc.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../src/generic/flop/flopenr.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../src/generic/flop/flopenl.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../src/generic/flop/flopen.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../src/generic/flop/flop.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../src/generic/flop/synchronizer.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../src/generic/adder.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../src/generic/aplusbeq0.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../src/generic/arrs.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../src/generic/binencoder.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../src/generic/counter.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../src/generic/csa.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../src/generic/decoder.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../src/generic/lzc.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../src/generic/mux.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../src/generic/neg.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../src/generic/onehotdecoder.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../src/generic/or_rows.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../src/generic/priorityonehot.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../src/generic/prioritythermometer.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../src/mmu/adrdec.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../src/mmu/adrdecs.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../src/uncore/uartPC16550D.sv
@@ -197,4 +210,3 @@ set_global_assignment -name SYSTEMVERILOG_FILE ../src/uncore/plic_apb.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../src/uncore/gpio_apb.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../src/uncore/clint_apb.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../src/uncore/ahbapbbridge.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../src/generic/flop/synchronizer.sv

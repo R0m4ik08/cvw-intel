@@ -34,6 +34,7 @@ module prioritythermometer #(parameter N = 8) (
   input  logic  [N-1:0] a,
   output logic  [N-1:0] y
 );
+generate
 
   // Carefully crafted so design compiler will synthesize into a fast tree structure
   //  Rather than linear.
@@ -44,4 +45,6 @@ module prioritythermometer #(parameter N = 8) (
   for (i=1; i<N; i++) begin:therm
     assign y[i] = y[i-1] & ~a[i];
   end
+
+endgenerate
 endmodule

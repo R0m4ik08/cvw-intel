@@ -7,11 +7,11 @@
 #   make PROJECT=/path/to/proj  - Build external project
 #   make clean                  - Clean build artifacts
 #
-# Output files:
-#   build/program.elf     - ELF executable
-#   build/program.hex     - Intel HEX format
-#   build/program.mif     - Memory Initialization File for Quartus
-#   build/program.objdump - Disassembly listing
+# Output files (in PROJECT/build/):
+#   program.elf     - ELF executable
+#   program.hex     - Intel HEX format
+#   program.mif     - Memory Initialization File for Quartus
+#   program.objdump - Disassembly listing
 #######################################################################
 
 #######################################################################
@@ -25,11 +25,18 @@ PROJECT ?= examples/hello
 SDK_ROOT    := $(shell pwd)
 COMMON_DIR  := $(SDK_ROOT)/common
 LIB_DIR     := $(SDK_ROOT)/lib
-BUILD_DIR   := $(SDK_ROOT)/build
+BUILD_DIR   := $(PROJECT)/build
 HEX2MIF     := $(SDK_ROOT)/common/hex2mif/hex2mif.py
 
 # Project source directory
 PROJECT_SRC := $(PROJECT)/src
+
+# Optional project config (linker, startup, target name)
+-include $(SDK_ROOT)/$(PROJECT)/Makefile.inc
+
+LINKER_SCRIPT ?= $(COMMON_DIR)/linker.x
+COMMON_SRCS   ?= $(COMMON_DIR)/startup.S
+TARGET_NAME   ?= program
 
 #######################################################################
 # Toolchain Configuration
@@ -47,17 +54,20 @@ ELF2HEX := $(CROSS_COMPILE)elf2hex
 # Architecture Configuration
 #######################################################################
 
-MARCH := -march=rv32i
-MABI  := -mabi=ilp32
+# Архитектура RISC-V (берётся из окружения, задаётся в setup.sh)
+# TODO: Связать с config.vh 
+MARCH ?= -march=rv32i
+MABI  ?= -mabi=ilp32
 
 #######################################################################
 # FPGA System Parameters
 #######################################################################
 
+# TODO: Связать с config.vh 
 SYSTEMCLOCK   ?= 50000000
 MAXSDCCLOCK   ?= 5000000
-EXT_MEM_BASE  ?= 0x80000000
-EXT_MEM_RANGE ?= 0x10000000
+EXT_MEM_BASE  ?= 0x10000000
+EXT_MEM_RANGE ?= 0x2fffffff
 
 #######################################################################
 # Compiler/Linker Flags
@@ -83,14 +93,13 @@ ASFLAGS := $(MARCH) $(MABI) $(INCLUDES)
 
 LDFLAGS := $(MARCH) $(MABI) \
            -nostartfiles \
-           -T $(COMMON_DIR)/linker.x
+           -T $(LINKER_SCRIPT)
 
 #######################################################################
 # Source Files
 #######################################################################
 
-# Common startup and library files
-COMMON_SRCS := $(COMMON_DIR)/startup.S
+# Common startup and library files (COMMON_SRCS overridden in project Makefile.inc if needed)
 LIB_SRCS    := $(wildcard $(LIB_DIR)/*.c) $(wildcard $(LIB_DIR)/*.S)
 
 # Project source files
@@ -110,7 +119,7 @@ OBJECTS += $(patsubst %.s,$(BUILD_DIR)/%.o,$(notdir $(filter %.s,$(ALL_SRCS))))
 # Output Files
 #######################################################################
 
-TARGET     := $(BUILD_DIR)/program
+TARGET     := $(BUILD_DIR)/$(TARGET_NAME)
 ELF_FILE   := $(TARGET).elf
 HEX_FILE   := $(TARGET).hex
 MIF_FILE   := $(TARGET).mif
@@ -205,6 +214,7 @@ info:
 	@echo "SDK_ROOT:    $(SDK_ROOT)"
 	@echo "PROJECT:     $(PROJECT)"
 	@echo "PROJECT_SRC: $(PROJECT_SRC)"
+	@echo "BUILD_DIR:   $(BUILD_DIR)"
 	@echo ""
 	@echo "=== Source Files ==="
 	@echo "COMMON_SRCS: $(COMMON_SRCS)"

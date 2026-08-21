@@ -43,7 +43,6 @@ module unpackinput import config_pkg::*;   (
   output logic                     Subnorm,    // is the number subnormal
   output logic [FLEN-1:0]        PostBox     // Number reboxed correctly as a NaN
 );
-generate
   logic [NF-1:0] Frac;        // Fraction of XYZ
   logic            BadNaNBox;   // incorrectly NaN Boxed
   logic            FracZero;    // is the fraction zero
@@ -53,6 +52,7 @@ generate
   // Gate input when FPU is not active to save power and simulation
   assign In = A & {FLEN{FPUActive}};
 
+generate
   if (FPSIZES == 1) begin        // if there is only one floating point format supported
       assign BadNaNBox = 1'b0;
       assign Sgn = In[FLEN-1];  // sign bit
@@ -289,6 +289,7 @@ generate
           endcase
 
   end
+endgenerate
 
   // Output logic
   assign FracZero = ~|Frac & ~BadNaNBox; // is the fraction zero?
@@ -298,5 +299,4 @@ generate
   assign Inf = ExpMax & FracZero & En; // is the input infinity?
   assign Zero = ~ExpNonZero & FracZero; // is the input zero?
   assign Subnorm = ~ExpNonZero & ~FracZero & ~BadNaNBox; // is the input subnormal
-endgenerate
 endmodule
